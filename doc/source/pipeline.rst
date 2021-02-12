@@ -39,10 +39,16 @@ Example Jenkinsfile
         // harness.set_required_hardware(["zynq-adrv9361-z7035-fmc"])
 
         // Set stages (stages are run sequentially on agents)
+        // Execution type is provided to the second parameter of the 'add_stage' method:
+        //   "stopWhenFail"(Default) -> stops whole pipeline execution at error
+        //                           -> set build status to 'FAILURE'
+        //   "continueWhenFail"      -> stops current stage execution at error but proceeds to next.
+        //                           -> set build status to 'UNSTABLE'
         harness.add_stage(harness.stage_library("UpdateBOOTFiles"))
-        harness.add_stage(harness.stage_library("LinuxTests"))
-        harness.add_stage(harness.stage_library("PyADITests"))
-        harness.add_stage(harness.stage_library("CollectLogs"))
+        harness.add_stage(harness.stage_library("LinuxTests"),"stopWhenFail")
+        harness.add_stage(harness.stage_library("PyADITests"),"continueWhenFail")
+        harness.add_stage(harness.stage_library('LibAD9361Tests'),"continueWhenFail")
+        harness.add_stage(harness.stage_library("CollectLogs"),"continueWhenFail")
         //Above is equivalent to harness.set_default_stages()
 
 
