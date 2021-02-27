@@ -199,7 +199,9 @@ def stage_library(String stage_name) {
     case 'LibAD9361Tests':
             cls = { String board ->
                 def supported_boards = ['zynq-zed-adv7511-ad9361-fmcomms2-3',
+                                        'zynq-zc706-adv7511-ad9361-fmcomms5',
                                         'zynq-adrv9361-z7035-fmc',
+                                        'zynq-zed-adv7511-ad9364-fmcomms4',
                                         'pluto']
                 if(supported_boards.contains(board) && gauntEnv.libad9361Version != null){
                     try{
