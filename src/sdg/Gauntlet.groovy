@@ -181,32 +181,32 @@ def stage_library(String stage_name) {
             break
     case 'PyADITests':
             cls = { String board ->
-                try
-                {
                 stage('Run Python Tests') {
-                    //def ip = nebula('uart.get-ip')
-                    def ip = nebula('update-config network-config dutip --board-name='+board)
-                    println('IP: ' + ip)
-                    sh 'git clone -b "' + gauntEnv.pyadiBranch + '" https://github.com/analogdevicesinc/pyadi-iio.git'
-                    dir('pyadi-iio')
-            {
-                        run_i('pip3 install -r requirements.txt')
-                        run_i('pip3 install -r requirements_dev.txt')
-                        run_i('pip3 install pylibiio')
-                        run_i('mkdir testxml')
-                        board = board.replaceAll('-', '_')
-                        cmd = "python3 -m pytest --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board
-                        def statusCode = sh script:cmd, returnStatus:true
-                        if ((statusCode != 5) && (statusCode != 0)){
-                            // Ignore error 5 which means no tests were run
-                            throw new NominalException('PyADITests Failed')
-                        }                
-            }
-                }
-                }
-                finally
-                {
-                    junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true                    
+                    try
+                    {
+                        //def ip = nebula('uart.get-ip')
+                        def ip = nebula('update-config network-config dutip --board-name='+board)
+                        println('IP: ' + ip)
+                        sh 'git clone -b "' + gauntEnv.pyadiBranch + '" https://github.com/analogdevicesinc/pyadi-iio.git'
+                        dir('pyadi-iio')
+                        {
+                            run_i('pip3 install -r requirements.txt')
+                            run_i('pip3 install -r requirements_dev.txt')
+                            run_i('pip3 install pylibiio')
+                            run_i('mkdir testxml')
+                            board = board.replaceAll('-', '_')
+                            cmd = "python3 -m pytest --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board
+                            def statusCode = sh script:cmd, returnStatus:true
+                            if ((statusCode != 5) && (statusCode != 0)){
+                                // Ignore error 5 which means no tests were run
+                                throw new NominalException('PyADITests Failed')
+                            }                
+                        }
+                    }
+                    finally
+                    {
+                        junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true                    
+                    }
                 }
             }
             break
