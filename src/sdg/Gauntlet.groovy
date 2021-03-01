@@ -147,23 +147,37 @@ def stage_library(String stage_name) {
     case 'LinuxTests':
             println('Added Stage LinuxTests')
             cls = { String board ->
-                try {
-                    stage('Linux Tests') {
+                stage('Linux Tests') {
+                    def failed_test = ''
+                    try {
                         run_i('pip3 install pylibiio')
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
-                        nebula("net.check-dmesg --ip='"+ip+"'")
-                        nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board)
+                        try{
+                            nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
+                        }catch(Exception ex) {
+                            failed_test = failed_test + "[dmesg check failed: $ex]"
+                        }
+
+                        try{
+                            nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board)
+                        }catch(Exception ex) {
+                            failed_test = failed_test + " [iio_devices check failed: $ex]"
+                        }
+                        if(failed_test && !failed_test.allWhitespace){
+                            throw new Exception("failed_test")
+                        }
+                    }catch(Exception ex) {
+                        throw new NominalException("Linux Test Failed: $ex")
+                    }finally{
+                        // Rename logs
+                        run_i("mv dmesg.log dmesg_" + board + ".log")
+                        run_i("mv dmesg_err.log dmesg_" + board + "_err.log")
+                        run_i("mv dmesg_warn.log dmesg_" + board + "_warn.log")
+                        archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
                     }
                 }
-        finally {
-                    // Rename logs
-                    run_i("mv dmesg.log dmesg_" + board + ".log")
-                    run_i("mv dmesg_err.log dmesg_" + board + "_err.log")
-                    run_i("mv dmesg_warn.log dmesg_" + board + "_warn.log")
-                    archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
-        }
-      };
+            };
             break
     case 'PyADITests':
             cls = { String board ->
