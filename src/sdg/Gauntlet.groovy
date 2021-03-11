@@ -1,5 +1,6 @@
 package sdg
-
+import sdg.FailSafeWrapper
+import sdg.NominalException
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
 
@@ -182,8 +183,10 @@ def stage_library(String stage_name) {
                         board = board.replaceAll('-', '_')
                         cmd = "python3 -m pytest --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board
                         def statusCode = sh script:cmd, returnStatus:true
-                        if ((statusCode != 5) && (statusCode != 0)) // Ignore error 5 which means no tests were run
-                            error "Error code: "+statusCode.toString()
+                        if ((statusCode != 5) && (statusCode != 0)){
+                            // Ignore error 5 which means no tests were run
+                            throw new NominalException('PyADITests Failed')
+                        }                
             }
                 }
                 }
@@ -225,6 +228,7 @@ def stage_library(String stage_name) {
                     println("LibAD9361Tests: Skipping board: "+board)
                 }
             }
+            break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
@@ -236,8 +240,23 @@ def stage_library(String stage_name) {
  * Add stage to agent pipeline
  * @param cls Closure of stage(s). Should contain at least one stage closure.
  */
-def add_stage(cls) {
-    gauntEnv.stages.add(cls)
+def add_stage(cls, String option='stopWhenFail') {
+    def newCls;
+    switch (option){
+        case 'stopWhenFail':
+            newCls = new FailSafeWrapper(cls, true)
+            break
+        case 'continueWhenFail': 
+            newCls = new FailSafeWrapper(cls, false)
+            break
+        case 'retryWhenFail':
+            // TODO
+            break
+        default:
+            throw new Exception('Unknown stage execution type: ' + option)
+    }
+    
+    gauntEnv.stages.add(newCls)
 }
 
 private def collect_logs() {
@@ -438,9 +457,13 @@ private def check_required_hardware() {
  * will generated and mapped to relevant agents
  */
 def run_stages() {
-    setup_agents()
-    check_required_hardware()
-    run_agents()
+    // make sure log collection stage is called for the whole build
+    // regardless of status i.e SUCCESS, UNSTABLE, FAILURE
+    catchError {
+        setup_agents()
+        check_required_hardware()
+        run_agents()
+    }
     collect_logs()
 }
 
