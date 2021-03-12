@@ -98,7 +98,7 @@ private def update_agent() {
             node(agent_name) {
                 stage('Update agents') {
                     sh 'mkdir -p /usr/app'
-                    setupAgent(['nebula','libiio'], false, docker_status)
+                    setupAgent(['nebula','libiio', 'telemetry'], false, docker_status)
                 }
             }
         }
@@ -356,7 +356,7 @@ private def run_agents() {
                             sh 'cp /default/nebula /etc/default/nebula'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
                             sh 'cp -r /app/* "${PWD}"/'
-                            setupAgent(['libiio','nebula'], true, docker_status);
+                            setupAgent(['libiio','nebula','telemetry'], true, docker_status);
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
                         }
@@ -722,6 +722,36 @@ private def install_libiio() {
     }
 }
 
+private def clone_telemetry(){
+    if (checkOs() == 'Windows') {
+        bat 'git clone https://github.com/tfcollins/telemetry.git'
+    }else{
+        // sh 'pip3 uninstall telemetry -y || true'
+        sh 'git clone https://github.com/tfcollins/telemetry.git'
+        sh 'cp -r telemetry /usr/app'
+    }
+}
+
+private def install_telemetry() {
+    if (checkOs() == 'Windows') {
+        // bat 'git clone https://github.com/tfcollins/telemetry.git'
+        dir('telemetry')
+        {
+            bat 'pip install -r requirements_dev.txt'
+            bat 'python setup.py install'
+        }
+    }
+    else {
+        sh 'pip3 uninstall telemetry -y || true'
+        // sh 'git clone https://github.com/tfcollins/telemetry.git'
+        dir('telemetry')
+        {
+            sh 'pip3 install -r requirements_dev.txt'
+            sh 'python3 setup.py install'
+        }
+    }
+}
+
 private def setupAgent(deps, skip_cleanup = false, docker_status) {
     try {
         def i;
@@ -741,6 +771,14 @@ private def setupAgent(deps, skip_cleanup = false, docker_status) {
                 } else {
                     clone_libiio()
                     install_libiio()
+                }
+            }
+            if (deps[i] == 'telemetry') {
+                if (docker_status) {
+                    install_telemetry()
+                } else {
+                    clone_telemetry()
+                    install_telemetry()
                 }
             }
         }
