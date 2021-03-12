@@ -37,6 +37,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, firmwareVersion, bootfi
             setup_called: false,
             nebula_debug: false,
             nebula_local_fs_source_root: '/var/lib/tftpboot',
+            elastic_server: '',
             configure_called: false,
             libad9361Version: libad9361Version
     ]
@@ -141,6 +142,31 @@ def stage_library(String stage_name) {
             cls = {
                 stage('Collect Logs') {
                     echo 'Collect Logs'
+                }
+      };
+            break
+    case 'SendResults':
+            println('Added Stage SendResults')
+            cls = { String board ->
+                stage('SendLogsToElastic') {
+                    echo 'Starting send log to elastic search'
+                    cmd = 'boot_folder_name ' + board
+                    cmd += ' hdl_hash NA'
+                    cmd += ' linux_hash NA'
+                    cmd += ' hdl_branch NA'
+                    cmd += ' linux_branch NA'
+                    cmd += ' is_hdl_release False'
+                    cmd += ' is_linux_release False'
+                    cmd += ' uboot_reached False'
+                    cmd += ' linux_prompt_reached False'
+                    cmd += ' drivers_enumerated False'
+                    cmd += ' dmesg_warnings_found False'
+                    cmd += ' dmesg_errors_found False'
+                    // cmd +="jenkins_job_date datetime.datetime.now(),
+                    cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
+                    cmd += ' jenkins_project_name ' + env.JOB_NAME
+                    cmd += ' jenkins_agent ' + env.NODE_NAME
+                    sendLogsToElastic(cmd)
                 }
       };
             break
@@ -394,6 +420,14 @@ def set_required_hardware(List board_names) {
 }
 
 /**
+ * Set elastic server address. Setting will use a non-default elastic search server
+ * @param elastic_server String of server IP
+ */
+def set_elastic_server(elastic_server) {
+    gauntEnv.elastic_server = elastic_server
+}
+
+/**
  * Set nebula debug mode. Setting true will add show-log to nebula commands
  * @param nebula_debug Boolean of debug mode
  */
@@ -563,6 +597,43 @@ def nebula(cmd, full=false, show_log=false) {
         script_out = sh(script: cmd, returnStdout: true).trim()
     }
     // Remove lines
+    if (!full) {
+        lines = script_out.split('\n')
+        if (lines.size() == 1) {
+            return script_out
+        }
+        out = ''
+        added = 0
+        for (i = 1; i < lines.size(); i++) {
+            if (lines[i].contains('WARNING')) {
+                continue
+            }
+            if (added > 0) {
+                out = out + '\n'
+            }
+            out = out + lines[i]
+            added = added + 1
+        }
+    }
+    return out
+}
+
+def sendLogsToElastic(... args) {
+    full = false
+    cmd = args.join(' ')
+    if (gauntEnv.elastic_server) {
+        cmd = ' --server=' + gauntEnv.elastic_server + ' ' + cmd
+    }
+    cmd = 'telemetry log-boot-logs ' + cmd
+    println(cmd)
+    if (checkOs() == 'Windows') {
+        script_out = bat(script: cmd, returnStdout: true).trim()
+    }
+    else {
+        script_out = sh(script: cmd, returnStdout: true).trim()
+    }
+    // Remove lines
+    out = ''
     if (!full) {
         lines = script_out.split('\n')
         if (lines.size() == 1) {
