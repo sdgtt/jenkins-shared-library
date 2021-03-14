@@ -1,5 +1,5 @@
-def call(depends, hdlBranch, linuxBranch, firmwareVersion, bootfile_source, libad9361Version=null) {
+def call(depends, hdlBranch, linuxBranch, firmwareVersion, bootfile_source) {
     def harness =  new sdg.Gauntlet()
-    harness.construct(depends, hdlBranch, linuxBranch, firmwareVersion, bootfile_source, libad9361Version)
+    harness.construct(depends, hdlBranch, linuxBranch, firmwareVersion, bootfile_source)
     return harness
 }

@@ -12,15 +12,13 @@ gauntEnv
  * @param linuxBranch - String of name of linux branch to use for bootfile source
  * @param firmwareVersion - String of name of firmware version branch to use for pluto and m2k
  * @param bootfile_source - String location of bootfiles. Options: sftp, artifactory, http, local
- * @param libad9361Version - String name of the ad9361 lib branch to be used.
  * @return constructed object
  */
-def construct(List dependencies, hdlBranch, linuxBranch, firmwareVersion, bootfile_source, libad9361Version) {
+def construct(List dependencies, hdlBranch, linuxBranch, firmwareVersion, bootfile_source) {
     gauntEnv = [
             dependencies: dependencies,
             hdlBranch: hdlBranch,
             linuxBranch: linuxBranch,
-            pyadiBranch: 'master',
             firmwareVersion: firmwareVersion,
             bootfile_source: bootfile_source,
             agents_online: '',
@@ -39,7 +37,18 @@ def construct(List dependencies, hdlBranch, linuxBranch, firmwareVersion, bootfi
             nebula_local_fs_source_root: '/var/lib/tftpboot',
             elastic_server: '',
             configure_called: false,
-            libad9361Version: libad9361Version
+            pytest_libiio_repo: 'https://github.com/tfcollins/pytest-libiio.git',
+            pytest_libiio_branch: 'master',
+            pyadi_iio_repo: 'https://github.com/analogdevicesinc/pyadi-iio.git',
+            pyadi_iio_branch: 'master',
+            libad9361_iio_repo: 'https://github.com/analogdevicesinc/libad9361-iio.git',
+            libad9361_iio_branch : 'master',
+            nebula_repo: 'https://github.com/tfcollins/nebula.git',
+            nebula_branch: 'master',
+            libiio_repo: 'https://github.com/analogdevicesinc/libiio.git',
+            libiio_branch: 'master',
+            telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
+            telemetry_branch: 'master'
     ]
 
     gauntEnv.agents_online = getOnlineAgents()
@@ -50,6 +59,20 @@ def construct(List dependencies, hdlBranch, linuxBranch, firmwareVersion, bootfi
  */
 def print_agents() {
     println(gauntEnv.agents_online)
+}
+
+/* *
+ * Env getter method
+ */
+def get_env(String param) {
+    return gauntEnv[param]
+}
+
+/* *
+ * Env setter method
+ */
+def set_env(String param, String value) {
+    gauntEnv[param] = value
 }
 
 private def setup_agents() {
@@ -213,7 +236,12 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         println('IP: ' + ip)
-                        sh 'git clone -b "' + gauntEnv.pyadiBranch + '" https://github.com/analogdevicesinc/pyadi-iio.git'
+                        // temporarily get pytest-libiio from another source
+                        sh 'git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo
+                        dir('pytest-libiio'){
+                            run_i('python3 setup.py install')
+                        }
+                        sh 'git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo
                         dir('pyadi-iio')
                         {
                             run_i('pip3 install -r requirements.txt')
@@ -243,11 +271,11 @@ def stage_library(String stage_name) {
                                         'zynq-adrv9361-z7035-fmc',
                                         'zynq-zed-adv7511-ad9364-fmcomms4',
                                         'pluto']
-                if(supported_boards.contains(board) && gauntEnv.libad9361Version != null){
+                if(supported_boards.contains(board) && gauntEnv.libad9361_iio_branch != null){
                     try{
                         stage("Test libad9361") {
                             def ip = nebula("update-config -s network-config -f dutip --board-name="+board)
-                            sh 'git clone -b '+ gauntEnv.libad9361Version + ' https://github.com/analogdevicesinc/libad9361-iio.git'
+                            sh 'git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo
                             dir('libad9361-iio')
                             {
                                 sh 'mkdir build'
@@ -441,14 +469,6 @@ def set_nebula_debug(nebula_debug) {
  */
 def set_nebula_local_fs_source_root(nebula_local_fs_source_root) {
     gauntEnv.nebula_local_fs_source_root = nebula_local_fs_source_root
-}
-
-/**
- * Set pyadi branch name to use for testing.
- * @param pyadi_branch String of branch name
- */
-def set_pyadi_branch(pyadi_branch) {
-    gauntEnv.pyadiBranch = pyadi_branch
 }
 
 /**
@@ -657,11 +677,11 @@ def sendLogsToElastic(... args) {
 
 private def clone_nebula() {
     if (checkOs() == 'Windows') {
-        bat 'git clone https://github.com/tfcollins/nebula.git'
+        bat 'git clone -b '+  gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo
     }
     else {
         sh 'pip3 uninstall nebula -y || true'
-        sh 'git clone https://github.com/tfcollins/nebula.git'
+        sh 'git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo
         sh 'cp -r nebula /usr/app'
     }
 }
@@ -685,10 +705,10 @@ private def install_nebula() {
 
 private def clone_libiio() {
     if (checkOs() == 'Windows') {
-        bat 'git clone https://github.com/analogdevicesinc/libiio.git'
+        bat 'git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo
     }
     else {
-        sh 'git clone -b v0.19 https://github.com/analogdevicesinc/libiio.git'
+        sh 'git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo
         sh 'cp -r libiio /usr/app'
     }
 }
@@ -724,10 +744,10 @@ private def install_libiio() {
 
 private def clone_telemetry(){
     if (checkOs() == 'Windows') {
-        bat 'git clone https://github.com/tfcollins/telemetry.git'
+        bat 'git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo
     }else{
         // sh 'pip3 uninstall telemetry -y || true'
-        sh 'git clone https://github.com/tfcollins/telemetry.git'
+        sh 'git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo
         sh 'cp -r telemetry /usr/app'
     }
 }
