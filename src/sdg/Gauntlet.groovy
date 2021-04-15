@@ -221,9 +221,9 @@ def stage_library(String stage_name) {
                         throw new NominalException("Linux Test Failed: $ex")
                     }finally{
                         // Rename logs
-                        run_i("if [ -f dmesg.log ]; mv dmesg.log dmesg_" + board + ".log; fi")
-                        run_i("if [ -f dmesg_err.log ]; mv dmesg_err.log dmesg_" + board + "_err.log; fi")
-                        run_i("if [ -f dmesg_warn.log ]; mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
+                        run_i("if [ -f dmesg.log ]; then mv dmesg.log dmesg_" + board + ".log; fi")
+                        run_i("if [ -f dmesg_err.log ]; then mv dmesg_err.log dmesg_" + board + "_err.log; fi")
+                        run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
                         archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
                     }
                 }
