@@ -1,7 +1,7 @@
 // Pipeline
 
 println("Build branch ${env.BRANCH_NAME}")
-library "adgt-lib@${env.BRANCH_NAME}"
+library "tfc-lib@${env.BRANCH_NAME}"
 
 def dependencies = ["nebula","libiio","libiio-py"]
 def hdlBranch = "NA"
