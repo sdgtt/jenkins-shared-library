@@ -314,12 +314,14 @@ def stage_library(String stage_name) {
 /**
  * Add stage to agent pipeline
  * @param cls Closure of stage(s). Should contain at least one stage closure.
+ * @param option Defines the execution flow behavior of the stage defined in cls.
+ * @param delegatedCls The stage closure that will be executed when cls fails for option 'stopWhenFail'
  */
-def add_stage(cls, String option='stopWhenFail') {
+def add_stage(cls, String option='stopWhenFail', delegatedCls=null) {
     def newCls;
     switch (option){
         case 'stopWhenFail':
-            newCls = new FailSafeWrapper(cls, true)
+            newCls = new FailSafeWrapper(cls, true, delegatedCls)
             break
         case 'continueWhenFail': 
             newCls = new FailSafeWrapper(cls, false)
@@ -330,7 +332,6 @@ def add_stage(cls, String option='stopWhenFail') {
         default:
             throw new Exception('Unknown stage execution type: ' + option)
     }
-    
     gauntEnv.stages.add(newCls)
 }
 
