@@ -611,7 +611,7 @@ private def checkOs() {
     }
 }
 
-def nebula(cmd, full=false, show_log=false) {
+def nebula(cmd, full=false, show_log=false, report_error=false) {
     // full=false
     if (gauntEnv.nebula_debug) {
         show_log = true
@@ -624,7 +624,43 @@ def nebula(cmd, full=false, show_log=false) {
         script_out = bat(script: cmd, returnStdout: true).trim()
     }
     else {
-        script_out = sh(script: cmd, returnStdout: true).trim()
+        if (report_error){
+            def outfile = 'out.out'
+            def nebula_traceback = []
+            cmd = cmd + " 2>&1 | tee ${outfile}"
+            cmd = 'set -o pipefail; ' + cmd 
+            try{
+                sh cmd
+                if (fileExists(outfile))
+                    script_out = readFile(outfile).trim()
+            }catch(Exception ex){
+                echo ex.getMessage()
+                if (fileExists(outfile)){
+                    script_out = readFile(outfile).trim()
+                    echo script_out
+                    lines = script_out.split('\n')
+                    def err_line = false
+                    for (i = 1; i < lines.size(); i++) {
+                        if (lines[i].matches('Traceback .+')) {
+                            err_line = true
+                        }
+                        if(err_line){
+                            nebula_traceback << lines[i]
+                            if (lines[i].matches('    raise .+')){
+                                nebula_traceback << lines[i+1]
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (nebula_traceback.size() > 0){
+                    throw new Exception(nebula_traceback.join("\n"))
+                }
+                throw new Exception("nebula failed")
+            }
+        }else{
+            script_out = sh(script: cmd, returnStdout: true).trim()
+        }
     }
     // Remove lines
     if (!full) {
