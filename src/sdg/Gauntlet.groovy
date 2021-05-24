@@ -195,7 +195,45 @@ def stage_library(String stage_name) {
             }
         };
             break
-
+    case 'RestoreIP':
+        println('Added stage RestoreIP')
+        cls = { String board ->
+            stage('Restore IP'){
+                echo "Restoring IP of ${board}"
+                if (board=="pluto"){
+                    echo "Pluto not yet supported"
+                }else{
+                    // prepare environment
+                    def dutip = ''
+                    def uart_ip = ''
+                    try{
+                        dutip = harness.nebula('update-config network-config dutip --board-name=' + board )
+                        uart_ip = harness.nebula('uart.get-ip --board-name=' + board )
+                        if (dutip != uart_ip){
+                            echo "${uart_ip} not same with config ip ${dutip}, will proceed to reconfiguration..."
+                            harness.nebula("uart.set-static-ip --ip=${dutip} --board-name=${board}", false, true)
+                            // harness.nebula('uart.restart-board --board-name=' + board , false, true)
+                            // wait for a little time before intface completes restart
+                            echo "waiting for interface..."
+                            sleep(10)
+                            // verify new address
+                            uart_ip = harness.nebula('uart.get-ip --board-name=' + board )
+                            if (dutip != uart_ip)
+                                throw new Exception('IP reconfiguration failed.')
+                            else
+                                echo "IP reconfiguration successful!"
+                        }else{
+                            echo "${uart_ip} is same with config ip ${dutip}"
+                        }
+                    }catch(Exception ex){
+                        dutip = ''
+                        uart_ip = ''
+                        throw ex
+                    }
+                }
+            }
+        };
+        break
     case 'CollectLogs':
             println('Added Stage CollectLogs')
             cls = {
