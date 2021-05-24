@@ -955,6 +955,7 @@ private def install_telemetry() {
         // bat 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
+            bat 'pip install elasticsearch'
             bat 'python setup.py install'
         }
     }
@@ -963,6 +964,7 @@ private def install_telemetry() {
         // sh 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
+            sh 'pip3 install elasticsearch'
             sh 'python3 setup.py install'
         }
     }
