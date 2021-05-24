@@ -165,6 +165,37 @@ def stage_library(String stage_name) {
                 }
       };
             break
+    
+    case 'RecoverBoard':
+        println('Added Stage RecoverBoard')
+        cls = { String board ->
+            stage('RecoverBoard'){
+                echo "Recovering ${board}"
+                def ref_branch = ['boot_partition', 'release']
+                if (board=="pluto"){
+                    echo "Recover stage does not support pluto yet!"
+                }else{
+                    dir ('recovery'){
+                        try{
+                            echo "Fetching reference boot files"
+                            harness.nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + harness.gauntEnv.nebula_local_fs_source_root + '" --source=' + harness.gauntEnv.bootfile_source
+                                +  ' --branch="' + ref_branch.toString() + '"') 
+                            echo "Extracting reference fsbl and u-boot"
+                            dir('outs'){
+                                sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf; cp fsbl.elf u-boot.elf .. ")
+                            }
+                            echo "Executing board recovery..."
+                            harness.nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
+                        }catch(Exception ex){
+                            cleanWs();
+                            throw ex
+                        }
+                    }
+                }
+            }
+        };
+            break
+
     case 'CollectLogs':
             println('Added Stage CollectLogs')
             cls = {
