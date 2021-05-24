@@ -160,7 +160,6 @@ def stage_library(String stage_name) {
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
                 }}
                 catch(Exception ex) {
-                    cleanWs();
                     throw new Exception('Update boot files failed');
                 }
       };
@@ -178,16 +177,15 @@ def stage_library(String stage_name) {
                     dir ('recovery'){
                         try{
                             echo "Fetching reference boot files"
-                            harness.nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + harness.gauntEnv.nebula_local_fs_source_root + '" --source=' + harness.gauntEnv.bootfile_source
+                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
                             dir('outs'){
                                 sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf; cp fsbl.elf u-boot.elf .. ")
                             }
                             echo "Executing board recovery..."
-                            harness.nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
+                            nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
                         }catch(Exception ex){
-                            cleanWs();
                             throw ex
                         }
                     }
@@ -207,17 +205,17 @@ def stage_library(String stage_name) {
                     def dutip = ''
                     def uart_ip = ''
                     try{
-                        dutip = harness.nebula('update-config network-config dutip --board-name=' + board )
-                        uart_ip = harness.nebula('uart.get-ip --board-name=' + board )
+                        dutip = nebula('update-config network-config dutip --board-name=' + board )
+                        uart_ip = nebula('uart.get-ip --board-name=' + board )
                         if (dutip != uart_ip){
                             echo "${uart_ip} not same with config ip ${dutip}, will proceed to reconfiguration..."
-                            harness.nebula("uart.set-static-ip --ip=${dutip} --board-name=${board}", false, true)
-                            // harness.nebula('uart.restart-board --board-name=' + board , false, true)
+                            nebula("uart.set-static-ip --ip=${dutip} --board-name=${board}", false, true)
+                            // nebula('uart.restart-board --board-name=' + board , false, true)
                             // wait for a little time before intface completes restart
                             echo "waiting for interface..."
                             sleep(10)
                             // verify new address
-                            uart_ip = harness.nebula('uart.get-ip --board-name=' + board )
+                            uart_ip = nebula('uart.get-ip --board-name=' + board )
                             if (dutip != uart_ip)
                                 throw new Exception('IP reconfiguration failed.')
                             else
