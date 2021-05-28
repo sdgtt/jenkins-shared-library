@@ -353,13 +353,13 @@ def stage_library(String stage_name) {
                         throw new NominalException("Linux Test Failed: $ex")
                     }finally{
                         // count dmesg errs and warns
-                        set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err.log | wc -l').trim())
+                        set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
                         set_elastic_field(board, 'dmesg_warns', sh(returnStdout: true, script: 'cat dmesg_warn.log | wc -l').trim())
                         println('Dmesg warns: ' + get_elastic_field(board, 'dmesg_warns'))
                         println('Dmesg errs: ' + get_elastic_field(board, 'dmesg_errs'))
                         // Rename logs
                         run_i("if [ -f dmesg.log ]; then mv dmesg.log dmesg_" + board + ".log; fi")
-                        run_i("if [ -f dmesg_err.log ]; then mv dmesg_err.log dmesg_" + board + "_err.log; fi")
+                        run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
                         run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
                         archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
                     }
