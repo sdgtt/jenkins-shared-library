@@ -176,6 +176,10 @@ def stage_library(String stage_name) {
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
             cls = { String board ->
+                set_elastic_field(board, 'uboot_reached', 'True')
+                set_elastic_field(board, 'kernel_started', 'True')
+                set_elastic_field(board, 'linux_prompt_reached', 'True')
+                set_elastic_field(board, 'post_boot_failure', 'False')
                 try {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
@@ -188,21 +192,23 @@ def stage_library(String stage_name) {
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', false, true, true)
                     if (board=="pluto")
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
-                    //at this point, the board is assummed to have fully booted
-                    set_elastic_field(board, 'uboot_reached', 'True')
-                    set_elastic_field(board, 'kernel_started', 'True')
-                    set_elastic_field(board, 'linux_prompt_reached', 'True')
                 }}
                 catch(Exception ex) {
-                    set_elastic_field(board, 'uboot_reached', 'False')
-                    set_elastic_field(board, 'kernel_started', 'False')
-                    set_elastic_field(board, 'linux_prompt_reached', 'False')
-                    if (ex.getMessage().contains('u-boot menu cannot boot kernel')){
-                        set_elastic_field(board, 'uboot_reached', 'True')
-                    }
-                    if (ex.getMessage().contains('Linux not fully booting')){
-                        set_elastic_field(board, 'uboot_reached', 'True')
-                        set_elastic_field(board, 'kernel_started', 'True')
+                    if (ex.getMessage().contains('u-boot not reached')){
+                        set_elastic_field(board, 'uboot_reached', 'False')
+                        set_elastic_field(board, 'kernel_started', 'False')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('u-boot menu cannot boot kernel')){
+                        set_elastic_field(board, 'kernel_started', 'False')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('Linux not fully booting')){
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('Linux is functional but Ethernet is broken after updating boot files') ||
+                              ex.getMessage().contains('SSH not working but ping does after updating boot files')){
+                        set_elastic_field(board, 'post_boot_failure', 'True')
+                    }else{
+                        echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
+                        throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                     }
                     // send logs to elastic
                     stage_library('SendResults').call(board)
