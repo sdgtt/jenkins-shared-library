@@ -194,6 +194,7 @@ def stage_library(String stage_name) {
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
                 }}
                 catch(Exception ex) {
+                    echo "UpdateBOOTFiles exception ${ex}"
                     if (ex.getMessage().contains('u-boot not reached')){
                         set_elastic_field(board, 'uboot_reached', 'False')
                         set_elastic_field(board, 'kernel_started', 'False')
@@ -797,6 +798,7 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                 sh cmd
                 if (fileExists(outfile))
                     script_out = readFile(outfile).trim()
+                    echo script_out
             }catch(Exception ex){
                 echo ex.getMessage()
                 if (fileExists(outfile)){
@@ -809,10 +811,8 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                             err_line = true
                         }
                         if(err_line){
-                            nebula_traceback << lines[i]
-                            if (lines[i].matches('    raise .+')){
-                                nebula_traceback << lines[i+1]
-                                break;
+                            if (!lines[i].matches('.*nebula.{1}uart.*')){
+                                nebula_traceback << lines[i]
                             }
                         }
                     }
