@@ -227,8 +227,9 @@ def stage_library(String stage_name) {
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
                             dir('outs'){
-                                sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf; cp fsbl.elf u-boot.elf .. ")
+                                sh("cp bootgen_sysfiles.tgz ..")
                             }
+                            sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
                             echo "Executing board recovery..."
                             nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
                         }catch(Exception ex){
