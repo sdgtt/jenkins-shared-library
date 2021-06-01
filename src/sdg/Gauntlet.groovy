@@ -207,6 +207,10 @@ def stage_library(String stage_name) {
                     // send logs to elastic
                     stage_library('SendResults').call(board)
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
+                }finally{
+                    //archive uart logs
+                    run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_boot_" + board + ".log; fi")
+                    archiveArtifacts artifacts: 'uart_boot_*.log', followSymlinks: false, allowEmptyArchive: true
                 }
       };
             break
@@ -234,6 +238,10 @@ def stage_library(String stage_name) {
                             nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
                         }catch(Exception ex){
                             throw ex
+                        }finally{
+                            //archive uart logs
+                            run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_recover_" + board + ".log; fi")
+                            archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
                         }
                     }
                 }
