@@ -55,6 +55,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             hdl_hash: "NA",
             linux_hash: "NA",
             boot_partition_hash: "NA",
+            send_results: false,
             elastic_logs : [:]
     ]
 
@@ -78,7 +79,7 @@ def get_env(String param) {
 /* *
  * Env setter method
  */
-def set_env(String param, String value) {
+def set_env(String param, def value) {
     gauntEnv[param] = value
 }
 
@@ -176,10 +177,6 @@ def stage_library(String stage_name) {
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
             cls = { String board ->
-                set_elastic_field(board, 'uboot_reached', 'True')
-                set_elastic_field(board, 'kernel_started', 'True')
-                set_elastic_field(board, 'linux_prompt_reached', 'True')
-                set_elastic_field(board, 'post_boot_failure', 'False')
                 try {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
@@ -192,6 +189,10 @@ def stage_library(String stage_name) {
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
                     if (board=="pluto")
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
+                    set_elastic_field(board, 'uboot_reached', 'True')
+                    set_elastic_field(board, 'kernel_started', 'True')
+                    set_elastic_field(board, 'linux_prompt_reached', 'True')
+                    set_elastic_field(board, 'post_boot_failure', 'False')
                 }}
                 catch(Exception ex) {
                     echo "UpdateBOOTFiles exception ${ex}"
@@ -200,19 +201,27 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'kernel_started', 'False')
                         set_elastic_field(board, 'linux_prompt_reached', 'False')
                     }else if (ex.getMessage().contains('u-boot menu cannot boot kernel')){
+                        set_elastic_field(board, 'uboot_reached', 'True')
                         set_elastic_field(board, 'kernel_started', 'False')
                         set_elastic_field(board, 'linux_prompt_reached', 'False')
                     }else if (ex.getMessage().contains('Linux not fully booting')){
+                        set_elastic_field(board, 'uboot_reached', 'True')
+                        set_elastic_field(board, 'kernel_started', 'True')
                         set_elastic_field(board, 'linux_prompt_reached', 'False')
                     }else if (ex.getMessage().contains('Linux is functional but Ethernet is broken after updating boot files') ||
                               ex.getMessage().contains('SSH not working but ping does after updating boot files')){
+                        set_elastic_field(board, 'uboot_reached', 'True')
+                        set_elastic_field(board, 'kernel_started', 'True')
+                        set_elastic_field(board, 'linux_prompt_reached', 'True')
                         set_elastic_field(board, 'post_boot_failure', 'True')
                     }else{
                         echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
-                        throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                     }
                     // send logs to elastic
-                    stage_library('SendResults').call(board)
+                    if gauntEnv.send_results
+                        set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
+                        set_elastic_field(board, 'last_failing_stage_failure', ex.getMessage.split('\n').last())
+                        stage_library('SendResults').call(board)
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
                     //archive uart logs
@@ -330,6 +339,7 @@ def stage_library(String stage_name) {
                     cmd += ' uboot_reached ' + get_elastic_field(board, 'uboot_reached', 'False')
                     cmd += ' linux_prompt_reached ' + get_elastic_field(board, 'linux_prompt_reached', 'False')
                     cmd += ' drivers_enumerated ' + get_elastic_field(board, 'drivers_enumerated', '0')
+                    cmd += ' drivers_missing ' + get_elastic_field(board, 'drivers_missing', '0')
                     cmd += ' dmesg_warnings_found ' + get_elastic_field(board, 'dmesg_warns' , '0')
                     cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
                     // cmd +="jenkins_job_date datetime.datetime.now(),
@@ -338,6 +348,10 @@ def stage_library(String stage_name) {
                     cmd += ' jenkins_agent ' + env.NODE_NAME
                     cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
                     cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
+                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
+                    cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+                    cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
+                    cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
                     sendLogsToElastic(cmd)
                 }
       };
