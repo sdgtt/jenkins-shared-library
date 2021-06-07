@@ -687,6 +687,14 @@ def set_enable_update_boot_pre_docker(enable_update_boot_pre_docker) {
     gauntEnv.enable_update_boot_pre_docker = enable_update_boot_pre_docker
 }
 
+/**
+ * Enable sending of elastic telemetry
+ * @param send_results boolean True will run enable sending of telemetry to elastic server
+ */
+def set_send_telemetry(send_results) {
+    gauntEnv.send_results = send_results
+}
+
 private def check_required_hardware() {
     def s = gauntEnv.required_hardware.size()
     def b = gauntEnv.boards.size()
