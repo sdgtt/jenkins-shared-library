@@ -220,7 +220,7 @@ def stage_library(String stage_name) {
                     // send logs to elastic
                     if (gauntEnv.send_results){
                         set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
-                        set_elastic_field(board, 'last_failing_stage_failure', ex.getMessage.split('\n').last())
+                        set_elastic_field(board, 'last_failing_stage_failure', ex.getMessage().split('\n').last())
                         stage_library('SendResults').call(board)
                     }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
