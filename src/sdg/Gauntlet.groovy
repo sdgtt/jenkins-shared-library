@@ -372,9 +372,11 @@ def stage_library(String stage_name) {
                         }
 
                         try{
-                            nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board)
+                            nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
                         }catch(Exception ex) {
                             failed_test = failed_test + " [iio_devices check failed: $ex]"
+                            missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
+                            set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
                         if(failed_test && !failed_test.allWhitespace){
                             throw new Exception("failed_test")
