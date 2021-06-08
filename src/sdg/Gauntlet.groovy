@@ -290,14 +290,22 @@ def stage_library(String stage_name) {
             println('Added Stage SendResults')
             cls = { String board ->
                 stage('SendLogsToElastic') {
+                    dir ('outs'){
+                        script{ properties = readYaml file: 'properties.yaml' }
+                    }
                     is_hdl_release = "False"
                     is_linux_release = "False"
                     is_boot_partition_release = "False"
                     if (gauntEnv.bootPartitionBranch == 'NA'){
                         is_hdl_release = ( gauntEnv.hdlBranch == "release" )? "True": "False"
                         is_linux_release = ( gauntEnv.linuxBranch == "release" )? "True": "False"
+                        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
+                        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")"
+
                     }else{
                         is_boot_partition_release = ( gauntEnv.bootPartitionBranch == "release" )? "True": "False"
+                        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
+                        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
                     }
                     println(gauntEnv.elastic_logs)
                     echo 'Starting send log to elastic search'
