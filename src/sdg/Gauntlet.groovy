@@ -55,6 +55,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             hdl_hash: "NA",
             linux_hash: "NA",
             boot_partition_hash: "NA",
+            send_results: false,
             elastic_logs : [:]
     ]
 
@@ -78,7 +79,7 @@ def get_env(String param) {
 /* *
  * Env setter method
  */
-def set_env(String param, String value) {
+def set_env(String param, def value) {
     gauntEnv[param] = value
 }
 
@@ -181,7 +182,7 @@ def stage_library(String stage_name) {
                     println("Board name passed: "+board)
                     println(gauntEnv.branches.toString())
                     if (board=="pluto")
-                        nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', false, true, true)
+                        nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', true, true, true)
                     else
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + gauntEnv.branches.toString() + '"', false, true, true)
@@ -191,26 +192,47 @@ def stage_library(String stage_name) {
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', false, true, true)
                     if (board=="pluto")
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
-                    //at this point, the board is assummed to have fully booted
                     set_elastic_field(board, 'uboot_reached', 'True')
                     set_elastic_field(board, 'kernel_started', 'True')
                     set_elastic_field(board, 'linux_prompt_reached', 'True')
+                    set_elastic_field(board, 'post_boot_failure', 'False')
                 }}
                 catch(Exception ex) {
-                    set_elastic_field(board, 'uboot_reached', 'False')
-                    set_elastic_field(board, 'kernel_started', 'False')
-                    set_elastic_field(board, 'linux_prompt_reached', 'False')
-                    if (ex.getMessage().contains('u-boot menu cannot boot kernel')){
+                    echo "UpdateBOOTFiles exception ${ex}"
+                    if (ex.getMessage().contains('u-boot not reached')){
+                        set_elastic_field(board, 'uboot_reached', 'False')
+                        set_elastic_field(board, 'kernel_started', 'False')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('u-boot menu cannot boot kernel')){
                         set_elastic_field(board, 'uboot_reached', 'True')
-                    }
-                    if (ex.getMessage().contains('Linux not fully booting')){
+                        set_elastic_field(board, 'kernel_started', 'False')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('Linux not fully booting')){
                         set_elastic_field(board, 'uboot_reached', 'True')
                         set_elastic_field(board, 'kernel_started', 'True')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                    }else if (ex.getMessage().contains('Linux is functional but Ethernet is broken after updating boot files') ||
+                              ex.getMessage().contains('SSH not working but ping does after updating boot files')){
+                        set_elastic_field(board, 'uboot_reached', 'True')
+                        set_elastic_field(board, 'kernel_started', 'True')
+                        set_elastic_field(board, 'linux_prompt_reached', 'True')
+                        set_elastic_field(board, 'post_boot_failure', 'True')
+                    }else{
+                        echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
                     }
                     get_gitsha()
                     // send logs to elastic
-                    stage_library('SendResults').call(board)
+                    if (gauntEnv.send_results){
+                        set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
+                        failing_msg = "'" + ex.getMessage().split('\n').last().replaceAll( /(['])/, '"') + "'" 
+                        set_elastic_field(board, 'last_failing_stage_failure', failing_msg)
+                        stage_library('SendResults').call(board)
+                    }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
+                }finally{
+                    //archive uart logs
+                    run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_boot_" + board + ".log; fi")
+                    archiveArtifacts artifacts: 'uart_boot_*.log', followSymlinks: false, allowEmptyArchive: true
                 }
       };
             break
@@ -231,12 +253,17 @@ def stage_library(String stage_name) {
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
                             dir('outs'){
-                                sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf; cp fsbl.elf u-boot.elf .. ")
+                                sh("cp bootgen_sysfiles.tgz ..")
                             }
+                            sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
                             echo "Executing board recovery..."
                             nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
                         }catch(Exception ex){
                             throw ex
+                        }finally{
+                            //archive uart logs
+                            run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_recover_" + board + ".log; fi")
+                            archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
                         }
                     }
                 }
@@ -318,6 +345,7 @@ def stage_library(String stage_name) {
                     cmd += ' uboot_reached ' + get_elastic_field(board, 'uboot_reached', 'False')
                     cmd += ' linux_prompt_reached ' + get_elastic_field(board, 'linux_prompt_reached', 'False')
                     cmd += ' drivers_enumerated ' + get_elastic_field(board, 'drivers_enumerated', '0')
+                    cmd += ' drivers_missing ' + get_elastic_field(board, 'drivers_missing', '0')
                     cmd += ' dmesg_warnings_found ' + get_elastic_field(board, 'dmesg_warns' , '0')
                     cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
                     // cmd +="jenkins_job_date datetime.datetime.now(),
@@ -326,6 +354,10 @@ def stage_library(String stage_name) {
                     cmd += ' jenkins_agent ' + env.NODE_NAME
                     cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
                     cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
+                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
+                    cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+                    cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
+                    cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
                     sendLogsToElastic(cmd)
                 }
       };
@@ -346,9 +378,11 @@ def stage_library(String stage_name) {
                         }
 
                         try{
-                            nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board)
+                            nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
                         }catch(Exception ex) {
                             failed_test = failed_test + " [iio_devices check failed: $ex]"
+                            missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
+                            set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
                         if(failed_test && !failed_test.allWhitespace){
                             throw new Exception("failed_test")
@@ -357,13 +391,13 @@ def stage_library(String stage_name) {
                         throw new NominalException("Linux Test Failed: $ex")
                     }finally{
                         // count dmesg errs and warns
-                        set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err.log | wc -l').trim())
+                        set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
                         set_elastic_field(board, 'dmesg_warns', sh(returnStdout: true, script: 'cat dmesg_warn.log | wc -l').trim())
                         println('Dmesg warns: ' + get_elastic_field(board, 'dmesg_warns'))
                         println('Dmesg errs: ' + get_elastic_field(board, 'dmesg_errs'))
                         // Rename logs
                         run_i("if [ -f dmesg.log ]; then mv dmesg.log dmesg_" + board + ".log; fi")
-                        run_i("if [ -f dmesg_err.log ]; then mv dmesg_err.log dmesg_" + board + "_err.log; fi")
+                        run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
                         run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
                         archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
                     }
@@ -658,6 +692,14 @@ def set_enable_update_boot_pre_docker(enable_update_boot_pre_docker) {
     gauntEnv.enable_update_boot_pre_docker = enable_update_boot_pre_docker
 }
 
+/**
+ * Enable sending of elastic telemetry
+ * @param send_results boolean True will run enable sending of telemetry to elastic server
+ */
+def set_send_telemetry(send_results) {
+    gauntEnv.send_results = send_results
+}
+
 private def check_required_hardware() {
     def s = gauntEnv.required_hardware.size()
     def b = gauntEnv.boards.size()
@@ -786,6 +828,7 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                 sh cmd
                 if (fileExists(outfile))
                     script_out = readFile(outfile).trim()
+                    echo script_out
             }catch(Exception ex){
                 echo ex.getMessage()
                 if (fileExists(outfile)){
@@ -798,10 +841,8 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                             err_line = true
                         }
                         if(err_line){
-                            nebula_traceback << lines[i]
-                            if (lines[i].matches('    raise .+')){
-                                nebula_traceback << lines[i+1]
-                                break;
+                            if (!lines[i].matches('.*nebula.{1}uart.*')){
+                                nebula_traceback << lines[i]
                             }
                         }
                     }
