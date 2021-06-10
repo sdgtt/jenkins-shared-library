@@ -185,6 +185,9 @@ def stage_library(String stage_name) {
                     else
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + gauntEnv.branches.toString() + '"', false, true, true)
+                    //get git sha properties of files
+                    get_gitsha()
+                    //update-boot-files
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', false, true, true)
                     if (board=="pluto")
                         nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
@@ -204,6 +207,7 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'uboot_reached', 'True')
                         set_elastic_field(board, 'kernel_started', 'True')
                     }
+                    get_gitsha()
                     // send logs to elastic
                     stage_library('SendResults').call(board)
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
@@ -290,22 +294,14 @@ def stage_library(String stage_name) {
             println('Added Stage SendResults')
             cls = { String board ->
                 stage('SendLogsToElastic') {
-                    dir ('outs'){
-                        script{ properties = readYaml file: 'properties.yaml' }
-                    }
                     is_hdl_release = "False"
                     is_linux_release = "False"
                     is_boot_partition_release = "False"
                     if (gauntEnv.bootPartitionBranch == 'NA'){
                         is_hdl_release = ( gauntEnv.hdlBranch == "release" )? "True": "False"
                         is_linux_release = ( gauntEnv.linuxBranch == "release" )? "True": "False"
-                        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
-                        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")"
-
                     }else{
                         is_boot_partition_release = ( gauntEnv.bootPartitionBranch == "release" )? "True": "False"
-                        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
-                        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
                     }
                     println(gauntEnv.elastic_logs)
                     echo 'Starting send log to elastic search'
@@ -1012,6 +1008,19 @@ private def setupAgent(deps, skip_cleanup = false, docker_status) {
     finally {
         if (!skip_cleanup)
             cleanWs()
+    }
+}
+
+private def get_gitsha(){
+    dir ('outs'){
+        script{ properties = readYaml file: 'properties.yaml' }
+    }
+    if (gauntEnv.bootPartitionBranch == 'NA'){
+        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
+        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")"
+    }else{
+        gauntEnv.hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
+        gauntEnv.linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
     }
 }
 
