@@ -182,6 +182,7 @@ def stage_library(String stage_name) {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
                     println(gauntEnv.branches.toString())
+                    //check_for_marker(board)
                     if (board=="pluto")
                         nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', true, true, true)
                     else
@@ -250,6 +251,7 @@ def stage_library(String stage_name) {
                     dir ('recovery'){
                         try{
                             echo "Fetching reference boot files"
+                            //check_for_marker(board)
                             nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
@@ -431,12 +433,15 @@ def stage_library(String stage_name) {
                             run_i('pip3 install pylibiio')
                             run_i('mkdir testxml')
                             run_i('mkdir testhtml')
-                            board = board.replaceAll('-', '_')
                             if (gauntEnv.iio_uri_source == "ip")
                                 uri = "ip:" + ip;
                             else
                                 uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
-                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='"+uri+"' -m " + board + " --capture=tee-sys"
+                            check = check_for_marker(board)
+                            board = board.replaceAll('-', '_')
+                            board_name = check.board_name.replaceAll('-', '_')
+                            marker = check.marker
+                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board_name + " --capture=tee-sys" + " --" + marker
                             def statusCode = sh script:cmd, returnStatus:true
                             publishHTML(target : [escapeUnderscores: false, allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'testhtml', reportFiles: 'report.html', reportName: board, reportTitles: board])
                             // get pytest results for logging
@@ -1110,6 +1115,18 @@ private def get_gitsha(String board){
         linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
         set_elastic_field(board, 'hdl_hash', hdl_hash)
         set_elastic_field(board, 'linux_hash', linux_hash)
+    }
+}
+
+private def check_for_marker(String board){
+    if (board.contains("-v")){
+        board_name = board.split("-v")[0]
+        marker = board.split("-v")[1]
+        return [board_name:board_name, marker:marker]
+    }
+    else {
+        board_name = board
+        return board_name
     }
 }
 
