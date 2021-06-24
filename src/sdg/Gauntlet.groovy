@@ -1,6 +1,7 @@
 package sdg
 import sdg.FailSafeWrapper
 import sdg.NominalException
+
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
 
@@ -37,6 +38,8 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             docker_args: ['MATLAB','Vivado'],
             docker_host_mode: true,
             enable_update_boot_pre_docker: false,
+            board_sub_categories : ['rx2tx2'],
+            enable_resource_queuing: false,
             setup_called: false,
             nebula_debug: false,
             nebula_local_fs_source_root: '/var/lib/tftpboot',
@@ -562,6 +565,7 @@ private def run_agents() {
     def num_boards = gauntEnv.boards.size()
     def docker_args = getDockerConfig(gauntEnv.docker_args)
     def enable_update_boot_pre_docker = gauntEnv.enable_update_boot_pre_docker
+    def enable_resource_queuing = gauntEnv.enable_resource_queuing
     def pre_docker_cls = stage_library("UpdateBOOTFiles")
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
@@ -641,7 +645,39 @@ jobs[agent+"-"+board] = {
 }
 */
         if (gauntEnv.enable_docker) {
-            jobs[agent + '-' + board] = { oneNodeDocker(agent, num_stages, stages, board, docker_image, enable_update_boot_pre_docker, pre_docker_cls, docker_status) };
+            if( enable_resource_queuing ){
+                println("Enable resource queueing")
+                jobs[agent + '-' + board] = {
+                    def lock_name = extractLockName(board)
+                    echo "Acquiring lock for ${lock_name}"
+                    lock(lock_name){
+                        oneNodeDocker(
+                            agent,
+                            num_stages,
+                            stages,
+                            board,
+                            docker_image,
+                            enable_update_boot_pre_docker,
+                            pre_docker_cls, 
+                            docker_status
+                        )
+                    }
+                 };
+            }else{
+                jobs[agent + '-' + board] = { 
+                    oneNodeDocker(
+                            agent,
+                            num_stages,
+                            stages,
+                            board,
+                            docker_image,
+                            enable_update_boot_pre_docker,
+                            pre_docker_cls,
+                            docker_status
+                        )
+                 };
+            }
+            
         } else{
             jobs[agent + '-' + board] = { oneNode(agent, num_stages, stages, board, docker_status) };
         }
@@ -677,6 +713,14 @@ def set_iio_uri_source(iio_uri_source) {
  */
 def set_iio_uri_baudrate(iio_uri_baudrate) {
     gauntEnv.iio_uri_baudrate = iio_uri_baudrate
+}
+
+/**
+ * Set enable_resource_queuing. Set enable_resource_queuing. Set to true to enable
+ * @param enable_resource_queuing Boolean true to enable
+ */
+def set_enable_resource_queuing(enable_resource_queuing) {
+    gauntEnv.enable_resource_queuing = enable_resource_queuing
 }
 
 /**
@@ -1128,6 +1172,19 @@ private def check_for_marker(String board){
         board_name = board
         return board_name
     }
+}
+
+private def extractLockName(String bname){
+    echo "Extracting resource lockname from ${bname}"
+    def lockName = bname
+    if (bname.contains("-v")){
+        lockName = bname.split("-v")[0]
+    }
+    for (cat in gauntEnv.board_sub_categories){
+        if(lockName.contains('-' + cat))
+            lockName = lockName.replace('-' + cat, "")
+    }
+    return lockName
 }
 
 private def run_i(cmd) {
