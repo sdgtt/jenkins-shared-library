@@ -185,7 +185,6 @@ def stage_library(String stage_name) {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
                     println(gauntEnv.branches.toString())
-                    //check_for_marker(board)
                     if (board=="pluto")
                         nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', true, true, true)
                     else
@@ -254,7 +253,6 @@ def stage_library(String stage_name) {
                     dir ('recovery'){
                         try{
                             echo "Fetching reference boot files"
-                            //check_for_marker(board)
                             nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
