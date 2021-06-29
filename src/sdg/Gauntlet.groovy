@@ -60,7 +60,8 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
             telemetry_branch: 'master',
             send_results: false,
-            elastic_logs : [:]
+            elastic_logs : [:],
+            max_retry: 3
     ]
 
     gauntEnv.agents_online = getOnlineAgents()
@@ -374,7 +375,7 @@ def stage_library(String stage_name) {
                 stage('Linux Tests') {
                     def failed_test = ''
                     try {
-                        run_i('pip3 install pylibiio')
+                        run_i('pip3 install pylibiio',true)
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         try{
@@ -422,16 +423,16 @@ def stage_library(String stage_name) {
                         def uri;
                         println('IP: ' + ip)
                         // temporarily get pytest-libiio from another source
-                        sh 'git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo
+                        run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
                         dir('pytest-libiio'){
-                            run_i('python3 setup.py install')
+                            run_i('python3 setup.py install', true)
                         }
-                        sh 'git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo
+                        run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo, true)
                         dir('pyadi-iio')
                         {
-                            run_i('pip3 install -r requirements.txt')
-                            run_i('pip3 install -r requirements_dev.txt')
-                            run_i('pip3 install pylibiio')
+                            run_i('pip3 install -r requirements.txt', true)
+                            run_i('pip3 install -r requirements_dev.txt', true)
+                            run_i('pip3 install pylibiio', true)
                             run_i('mkdir testxml')
                             run_i('mkdir testhtml')
                             if (gauntEnv.iio_uri_source == "ip")
@@ -485,7 +486,7 @@ def stage_library(String stage_name) {
                     try{
                         stage("Test libad9361") {
                             def ip = nebula("update-config -s network-config -f dutip --board-name="+board)
-                            sh 'git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo
+                            run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
                             dir('libad9361-iio')
                             {
                                 sh 'mkdir build'
@@ -785,6 +786,14 @@ def set_send_telemetry(send_results) {
     gauntEnv.send_results = send_results
 }
 
+/**
+ * Set the max_retry variable of gauntEnv used in retrying some sh/bat steps.
+ * @param max_retry integer replaces default gauntEnv.max_retry
+ */
+def set_max_retry(max_retry) {
+    gauntEnv.max_retry = max_retry
+}
+
 private def check_required_hardware() {
     def s = gauntEnv.required_hardware.size()
     def b = gauntEnv.boards.size()
@@ -1005,11 +1014,11 @@ def sendLogsToElastic(... args) {
 
 private def clone_nebula() {
     if (checkOs() == 'Windows') {
-        bat 'git clone -b '+  gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo
+        run_i('git clone -b '+  gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
     }
     else {
         sh 'pip3 uninstall nebula -y || true'
-        sh 'git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo
+        run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
         sh 'cp -r nebula /usr/app'
     }
 }
@@ -1018,25 +1027,25 @@ private def install_nebula() {
     if (checkOs() == 'Windows') {
         dir('nebula')
         {
-            bat 'pip install -r requirements.txt'
-            bat 'python setup.py install'
+            run_i('pip install -r requirements.txt', true)
+            run_i('python setup.py install', true)
         }
     }
     else {
         dir('nebula')
         {
-            sh 'pip3 install -r requirements.txt'
-            sh 'python3 setup.py install'
+            run_i('pip3 install -r requirements.txt', true)
+            run_i('python3 setup.py install', true)
         }
     }
 }
 
 private def clone_libiio() {
     if (checkOs() == 'Windows') {
-        bat 'git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo
+        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
     }
     else {
-        sh 'git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo
+        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
         sh 'cp -r libiio /usr/app'
     }
 }
@@ -1072,10 +1081,10 @@ private def install_libiio() {
 
 private def clone_telemetry(){
     if (checkOs() == 'Windows') {
-        bat 'git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo
+        run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
     }else{
         // sh 'pip3 uninstall telemetry -y || true'
-        sh 'git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo
+        run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
         sh 'cp -r telemetry /usr/app'
     }
 }
@@ -1085,17 +1094,17 @@ private def install_telemetry() {
         // bat 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            bat 'pip install elasticsearch'
-            bat 'python setup.py install'
+            run_i('pip install elasticsearch', true)
+            run_i('python setup.py install', true)
         }
     }
     else {
-        sh 'pip3 uninstall telemetry -y || true'
+        run_i('pip3 uninstall telemetry -y || true', true)
         // sh 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            sh 'pip3 install elasticsearch'
-            sh 'python3 setup.py install'
+            run_i('pip3 install elasticsearch', true)
+            run_i('python3 setup.py install', true)
         }
     }
 }
@@ -1186,12 +1195,18 @@ private def extractLockName(String bname){
     return lockName
 }
 
-private def run_i(cmd) {
-    if (checkOs() == 'Windows') {
-        bat cmd
+private def run_i(cmd, do_retry=false) {
+    def retry_count = 1
+    if(do_retry){
+        retry_count = gauntEnv.max_retry
     }
-    else {
-        sh cmd
+    retry(retry_count){
+        if (checkOs() == 'Windows') {
+            bat cmd
+        }
+        else {
+            sh cmd
+        }
     }
 }
 
