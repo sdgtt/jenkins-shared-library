@@ -380,18 +380,27 @@ def stage_library(String stage_name) {
                         try{
                             nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
                         }catch(Exception ex) {
-                            failed_test = failed_test + "[dmesg check failed: $ex]"
+                            failed_test = failed_test + "[dmesg check failed]"
                         }
 
                         try{
                             nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
                         }catch(Exception ex) {
-                            failed_test = failed_test + " [iio_devices check failed: $ex]"
+                            failed_test = failed_test + "[iio_devices check failed]"
                             missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
                             set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
+                        
+                        try{
+                            if (!gauntEnv.firmware_boards.contains(board))
+                                nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                        }catch(Exception ex) {
+                            echo ex.getMessage()
+                            failed_test = failed_test + " [diagnostics failed]"
+                        }
+
                         if(failed_test && !failed_test.allWhitespace){
-                            throw new Exception("failed_test")
+                            throw new Exception("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
                         echo getStackTrace(ex)
@@ -407,6 +416,7 @@ def stage_library(String stage_name) {
                         run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
                         run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
                         archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
+                        archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                     }
                 }
             };
