@@ -442,7 +442,7 @@ def stage_library(String stage_name) {
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
                             marker = check.marker
-                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board_name + " --capture=tee-sys" + " --" + marker
+                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board_name + " --capture=tee-sys" + marker
                             def statusCode = sh script:cmd, returnStatus:true
                             publishHTML(target : [escapeUnderscores: false, allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'testhtml', reportFiles: 'report.html', reportName: board, reportTitles: board])
                             // get pytest results for logging
@@ -1161,14 +1161,15 @@ private def get_gitsha(String board){
 }
 
 private def check_for_marker(String board){
+    def marker = ''
+    def board_name = board
     if (board.contains("-v")){
         board_name = board.split("-v")[0]
-        marker = board.split("-v")[1]
+        marker = ' --' + board.split("-v")[1]
         return [board_name:board_name, marker:marker]
     }
     else {
-        board_name = board
-        return board_name
+        return [board_name:board_name, marker:marker]
     }
 }
 
