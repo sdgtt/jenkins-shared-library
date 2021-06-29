@@ -380,13 +380,13 @@ def stage_library(String stage_name) {
                         try{
                             nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
                         }catch(Exception ex) {
-                            failed_test = failed_test + "[dmesg check failed]"
+                            failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
                         }
 
                         try{
                             nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
                         }catch(Exception ex) {
-                            failed_test = failed_test + "[iio_devices check failed]"
+                            failed_test = failed_test + "[iio_devices check failed: ${ex.getMessage()}]"
                             missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
                             set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
@@ -395,22 +395,18 @@ def stage_library(String stage_name) {
                             if (!gauntEnv.firmware_boards.contains(board))
                                 nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
                         }catch(Exception ex) {
-                            echo ex.getMessage()
-                            failed_test = failed_test + " [diagnostics failed]"
+                            failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
                             throw new Exception("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
-                        echo getStackTrace(ex)
-                        throw new NominalException("Linux Test Failed: $ex")
+                        throw new NominalException(ex.getMessage())
                     }finally{
                         // count dmesg errs and warns
                         set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
                         set_elastic_field(board, 'dmesg_warns', sh(returnStdout: true, script: 'cat dmesg_warn.log | wc -l').trim())
-                        println('Dmesg warns: ' + get_elastic_field(board, 'dmesg_warns'))
-                        println('Dmesg errs: ' + get_elastic_field(board, 'dmesg_errs'))
                         // Rename logs
                         run_i("if [ -f dmesg.log ]; then mv dmesg.log dmesg_" + board + ".log; fi")
                         run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
