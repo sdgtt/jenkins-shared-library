@@ -25,6 +25,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             branches: ( bootPartitionBranch == 'NA')? [linuxBranch, hdlBranch]: ['boot_partition', bootPartitionBranch],
             firmwareVersion: firmwareVersion,
             bootfile_source: bootfile_source,
+            job_trigger: 'manual',
             agents_online: '',
             debug: false,
             board_map: [:],
@@ -359,6 +360,7 @@ def stage_library(String stage_name) {
                     cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
                     cmd += ' jenkins_project_name ' + env.JOB_NAME
                     cmd += ' jenkins_agent ' + env.NODE_NAME
+                    cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
                     cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
                     cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
                     cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
@@ -799,6 +801,15 @@ def set_send_telemetry(send_results) {
  */
 def set_max_retry(max_retry) {
     gauntEnv.max_retry = max_retry
+}
+
+/**
+ * Set the job_trigger variable of gauntEnv used in identifying what triggered the execution of the pipeline
+ * @param trigger string replaces default gauntEnv.job_trigger
+ * set to manual(default) if manually triggert or auto:<jenkins project name>:<jenkins build number> for auto triggered builds
+ */
+def set_job_trigger(trigger) {
+    gauntEnv.job_trigger = trigger
 }
 
 private def check_required_hardware() {
