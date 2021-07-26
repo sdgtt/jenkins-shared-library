@@ -377,7 +377,7 @@ def stage_library(String stage_name) {
                 stage('Linux Tests') {
                     def failed_test = ''
                     try {
-                        run_i('pip3 install pylibiio',true)
+                        // run_i('pip3 install pylibiio',true)
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         try{
@@ -398,6 +398,7 @@ def stage_library(String stage_name) {
                         try{
                             if (!gauntEnv.firmware_boards.contains(board))
                                 nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                                archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                         }catch(Exception ex) {
                             failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
@@ -416,7 +417,6 @@ def stage_library(String stage_name) {
                         run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
                         run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
                         archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
-                        archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                     }
                 }
             };
@@ -989,8 +989,9 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
             out = out + lines[i]
             added = added + 1
         }
+        return out
     }
-    return out
+    return script_out
 }
 
 def sendLogsToElastic(... args) {
@@ -1088,11 +1089,18 @@ private def install_libiio() {
             dir('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                sh 'cmake ..'
+                sh 'cmake .. -DPYTHON_BINDINGS=ON'
                 sh 'make'
                 sh 'make install'
                 sh 'ldconfig'
+                // install python bindings
+                dir('bindings/python'){
+                    sh 'python3 setup.py install'
+                }
             }
+
+            
+
         }
     }
 }
