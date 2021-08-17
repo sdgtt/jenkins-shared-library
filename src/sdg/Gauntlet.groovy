@@ -142,8 +142,11 @@ private def setup_agents() {
 
     gauntEnv.board_map = board_map
     (agents, boards) = splitMap(board_map,true)
+    println(gauntEnv.board_map)
     gauntEnv.agents = agents
     gauntEnv.boards = boards
+    println(gauntEnv.agents)
+    println(gauntEnv.boards)
 }
 
 private def update_agent() {
@@ -813,28 +816,30 @@ def set_job_trigger(trigger) {
 }
 
 private def check_required_hardware() {
-    def s = gauntEnv.required_hardware.size()
-    def b = gauntEnv.boards.size()
-    def filtered_board_list = []
-    def filtered_agent_list = []
 
-    println("Found boards:")
-    for (k = 0; k < b; k++) {
-        println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
-    }
-    for (i = 0; i < s; i++) {
-        if (! gauntEnv.boards.contains(gauntEnv.required_hardware[i]) ) {
-            error(gauntEnv.required_hardware[i] + ' not found in harness. Failing pipeline')
+    stage('Check Required Hardware'){
+        def s = gauntEnv.required_hardware.size()
+        def b = gauntEnv.boards.size()
+        def rh = gauntEnv.required_hardware
+        def filtered_board_list = []
+        def filtered_agent_list = []
+
+        println("Found boards:")
+        for (k = 0; k < b; k++) {
+            println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
+            if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
+                filtered_board_list.add(gauntEnv.boards[k])
+                filtered_agent_list.add(gauntEnv.agents[k])
+                rh.remove(rh.indexOf(gauntEnv.boards[k]))
+            }// else do nothing
         }
-        // Filter out
-        def indx = gauntEnv.boards.indexOf(gauntEnv.required_hardware[i])
-        filtered_board_list.add(gauntEnv.boards[indx])
-        filtered_agent_list.add(gauntEnv.agents[indx])
-    }
-    // Update to filtered lists
-    if (s > 0) {
         gauntEnv.boards = filtered_board_list
         gauntEnv.agents = filtered_agent_list
+
+        if(rh.size() > 0){
+            println("Some required hardwares cannot be found :" + rh.toString())
+            currentBuild.result = "UNSTABLE"
+        }
     }
 }
 
