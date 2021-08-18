@@ -38,6 +38,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             docker_image: 'tfcollins/sw-ci:latest',
             docker_args: ['MATLAB','Vivado'],
             docker_host_mode: true,
+            update_nebula_config: true,
             enable_update_boot_pre_docker: false,
             board_sub_categories : ['rx2tx2'],
             enable_resource_queuing: false,
@@ -60,6 +61,8 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             libiio_branch: 'master',
             telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
             telemetry_branch: 'master',
+            nebula_config_repo: 'https://github.com/sdgtt/nebula-config.git',
+            nebula_config_branch: 'master',
             send_results: false,
             elastic_logs : [:],
             max_retry: 3
@@ -166,6 +169,24 @@ private def update_agent() {
                     sh 'mkdir -p /usr/app'
                     sh 'rm -rf /usr/app/*'
                     setupAgent(['nebula','libiio', 'telemetry'], false, docker_status)
+                }
+                // automatically update nebula config
+                if(gauntEnv.update_nebula_config){
+                    stage('Update Nebula Config') {
+                        run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
+                        run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                        if (fileExists('nebula-config/' + agent_name)){
+                            run_i('sudo mv nebula-config/' + agent_name + ' /etc/default/nebula')
+                        }else{
+                            // create and empty file
+                            run_i('sudo mv nebula-config/null-agent' + ' /etc/default/nebula')
+                        }
+                        
+                    }
+                }
+                // clean up residue containers
+                stage('Clean up residue docker containers') {
+                    sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
                 }
             }
         }
@@ -829,6 +850,16 @@ def set_max_retry(max_retry) {
 def set_job_trigger(trigger) {
     gauntEnv.job_trigger = trigger
 }
+
+/**
+ * Enables updating of nebula-config used by nebula
+ * @param enable boolean replaces default gauntEnv.update_nebula_config
+ * set to true(default) to update nebula_config of agent, or set to false otherwise
+ */
+def set_update_nebula_config(boolean enable) {
+    gauntEnv.update_nebula_config = enable
+}
+
 
 private def check_required_hardware() {
 
