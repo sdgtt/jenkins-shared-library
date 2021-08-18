@@ -457,22 +457,37 @@ def stage_library(String stage_name) {
                             marker = check.marker
                             cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board_name + " --capture=tee-sys" + marker
                             def statusCode = sh script:cmd, returnStatus:true
-                            publishHTML(target : [escapeUnderscores: false, allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'testhtml', reportFiles: 'report.html', reportName: board, reportTitles: board])
+
+                            // generate html report
+                            if (fileExists('testhtml/report.html')){
+                                publishHTML(target : [
+                                    escapeUnderscores: false, 
+                                    allowMissing: false, 
+                                    alwaysLinkToLastBuild: false, 
+                                    keepAll: true, 
+                                    reportDir: 'testhtml', 
+                                    reportFiles: 'report.html', 
+                                    reportName: board, 
+                                    reportTitles: board])
+                            }
+
                             // get pytest results for logging
-                            try{
-                                def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
-                                pytest_logs.each {
-                                    cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*' 
-                                    cmd+= it + '="([0-9]+)".*/\\1/p\''
-                                    println(cmd)
-                                    set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
+                            if(fileExists('testxml/' + board + '_reports.xml')){
+                                try{
+                                    def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
+                                    pytest_logs.each {
+                                        cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*' 
+                                        cmd+= it + '="([0-9]+)".*/\\1/p\''
+                                        set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
+                                    }
+                                    // println(gauntEnv.elastic_logs[board.replaceAll('_', '-')])
+                                }catch(Exception ex){
+                                    println('Parsing pytest results failed')
+                                    echo getStackTrace(ex)
                                 }
-                                println(gauntEnv.elastic_logs[board])
-                            }catch(Exception ex){
-                                println(ex)
-                                throw new NominalException('PyADITests Failed')
                             }
                             
+                            // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
                                 throw new NominalException('PyADITests Failed')
