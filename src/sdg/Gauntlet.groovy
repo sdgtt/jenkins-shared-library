@@ -60,6 +60,10 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             libiio_branch: 'master',
             telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
             telemetry_branch: 'master',
+            matlab_release: 'R2021a',
+            matlab_repo: 'https://github.com/analogdevicesinc/TransceiverToolbox.git',
+            matlab_branch: 'master',
+            matlab_commands: [],
             send_results: false,
             elastic_logs : [:],
             max_retry: 3
@@ -519,6 +523,37 @@ def stage_library(String stage_name) {
                 }
             }
             break
+    case 'MATLABTests':
+        cls = { String board ->
+            def under_scm = true
+            stage("Run MATLAB Toolbox Tests") {
+                def ip = nebula('update-config network-config dutip --board-name='+board)
+                sh 'cp -r /root/.matlabro /root/.matlab'
+                under_scm = isMultiBranchPipeline()
+                if (under_scm)
+                {
+                    retry(3) {
+                        sleep(5)
+                        checkout scm
+                        sh 'git submodule update --init'
+                    }
+                    createMFile()
+                    sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                    junit testResults: '*.xml', allowEmptyResults: true
+                }
+                else
+                {   
+                    sh 'git clone --recursive -b '+gauntEnv.matlab_branch+' '+gauntEnv.matlab_repo
+                    dir('TransceiverToolbox')
+                    {
+                        createMFile()
+                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        junit testResults: '*.xml', allowEmptyResults: true
+                    }
+                }
+            }
+        }
+            break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
@@ -812,6 +847,37 @@ def set_job_trigger(trigger) {
     gauntEnv.job_trigger = trigger
 }
 
+/**
+ * Set list of MATLAB commands
+ * @param matlab_commands list of strings of commands to be executed in MATLAB
+ * For example: "runHWTests('AD9361')"
+ */
+def set_matlab_commands(List matlab_commands) {
+    assert matlab_commands instanceof java.util.List
+    gauntEnv.matlab_commands = matlab_commands
+}
+
+/**
+ * Main method for starting pipeline once configuration is complete
+ * Once called all agents are queried for attached boards and parallel stages
+ * will generated and mapped to relevant agents
+ */
+def run_stages() {
+    // make sure log collection stage is called for the whole build
+    // regardless of status i.e SUCCESS, UNSTABLE, FAILURE
+    catchError {
+        setup_agents()
+        check_required_hardware()
+        run_agents()
+    }
+    collect_logs()
+}
+
+def update_agents() {
+    update_agent()
+}
+
+// Private methods
 private def check_required_hardware() {
     def s = gauntEnv.required_hardware.size()
     def b = gauntEnv.boards.size()
@@ -838,27 +904,6 @@ private def check_required_hardware() {
     }
 }
 
-/**
- * Main method for starting pipeline once configuration is complete
- * Once called all agents are queried for attached boards and parallel stages
- * will generated and mapped to relevant agents
- */
-def run_stages() {
-    // make sure log collection stage is called for the whole build
-    // regardless of status i.e SUCCESS, UNSTABLE, FAILURE
-    catchError {
-        setup_agents()
-        check_required_hardware()
-        run_agents()
-    }
-    collect_logs()
-}
-
-def update_agents() {
-    update_agent()
-}
-
-// Private methods
 @NonCPS
 private def splitMap(map, do_split=false) {
     def keys = []
@@ -1242,4 +1287,28 @@ private def String getStackTrace(Throwable aThrowable){
     PrintStream ps = new PrintStream(baos, true);
     aThrowable.printStackTrace(ps);
     return baos.toString();
+}
+
+private def isMultiBranchPipeline() {
+    // Utility to check if current project is a multibranch pipeline job
+    isMultiBranch = false
+    println("Checking if multibranch pipeline..")
+    try
+    {
+        checkout scm
+        isMultiBranch = true
+    }
+    catch(all)
+    {
+        println("Not a multibranch pipeline")
+    }
+    return isMultiBranch
+}
+
+private def  createMFile(){
+    // Utility method to write matlab commands in a .m file
+    def String command_oneline = gauntEnv.matlab_commands.join(";")
+    writeFile file: 'matlab_commands.m', text: command_oneline
+    sh 'ls -l matlab_commands.m'
+    sh 'cat matlab_commands.m'
 }
