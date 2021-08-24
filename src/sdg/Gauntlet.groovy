@@ -405,6 +405,8 @@ def stage_library(String stage_name) {
             cls = { String board ->
                 stage('Linux Tests') {
                     def failed_test = ''
+                    def devs = []
+                    def missing_devs = []
                     try {
                         // run_i('pip3 install pylibiio',true)
                         //def ip = nebula('uart.get-ip')
@@ -423,6 +425,11 @@ def stage_library(String stage_name) {
                             writeFile(file: board+'_missing_devs.log', text: missing_devs.join(","))
                             set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
+                        // get drivers enumerated
+                        devs = Eval.me(nebula('update-config driver-config iio_device_names -b '+board, false, true, false))
+                        devs = devs.minus(missing_devs)
+                        writeFile(file: board+'_numerated_devs.log', text: devs.join(","))
+                        set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
                         
                         try{
                             if (!gauntEnv.firmware_boards.contains(board))
