@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = "SDG Jenkins Shared Libary"
-copyright = "2020, Travis F. Collins <travis.collins@analog.com>"
-author = "Travis F. Collins <travis.collins@analog.com>"
+copyright = "2021, SDGTT"
+#author = "Travis F. Collins <travis.collins@analog.com>"
 
 # The full version, including alpha/beta/rc tags
 release = "v0.0.1"
@@ -36,7 +36,8 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx_rtd_theme",
     "sphinx.ext.graphviz",
-    "sphinx.ext.autosectionlabel"
+    "sphinx.ext.autosectionlabel",
+    "sphinx_toolbox.collapse"
 ]
 autosectionlabel_prefix_document = True
 
