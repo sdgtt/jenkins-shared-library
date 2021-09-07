@@ -20,18 +20,26 @@ Required Packages
 
 * `nebula`_ 0.0.1+
 
-.. _nebula: https://github.com/tfcollins/nebula
+.. _nebula: https://github.com/sdgtt/nebula
 
+* `libiio`_ v0.21+
+
+.. _libiio: https://github.com/analogdevicesinc/libiio
+
+* `telemetry`_ 
+
+.. _telemetry: https://github.com/sdgtt/telemetry
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    pipeline
+   jenkinsfile_conf
+   methods
    stages
-   artifacts
    nebula
-
+   artifacts
 
 Indices and tables
 ==================

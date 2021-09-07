@@ -6,50 +6,31 @@ digraph {
     ratio = fill;
 
     "START\n(master)"
-    "Query Node\n(pi4a-cluj)" [peripheries=3]
-    "Query Node\n(pi4b-cluj)" [peripheries=3]
-    "Query Node\n(pi4c-cluj)" [peripheries=3]
-    "Check Board\nConfigurations\n(master)"
-    "Update Boot\n(pi4a-cluj-zed-fmcomms2)"
-    "Update Boot\n(pi4b-cluj-zc706-daq2)"
-    "Update Boot\n(pi4c-cluj-pluto)"
-    "Collect Logs\n(pi4a-cluj-zed-fmcomms2)"
-    "Collect Logs\n(pi4b-cluj-zc706-daq2)"
-    "Collect Logs\n(pi4c-cluj-pluto)"
-    "Run Linux Checks\n(pi4a-cluj-zed-fmcomms2)"
-    "Run Linux Checks\n(pi4b-cluj-zc706-daq2)"
-    "Run Linux Checks\n(pi4c-cluj-pluto)"
-    "Run Python Tests\n(pi4a-cluj-zed-fmcomms2)"
-    "Run Python Tests\n(pi4b-cluj-zc706-daq2)"
-    "Run Python Tests\n(pi4c-cluj-pluto)"
-    "Process\nLogs\n(master)"
+    "Query Node\n(nuc-01)" 
+    "Query Node\n(nuc-02)" 
+    "Linux Tests\n(nuc-01-pluto)"
+    "Linux Tests\n(nuc-01-zed-fmcomms2)"
+    "Linux Tests\n(nuc-02-zc706-daq2)"
 
-    "START\n(master)" -> "Query Node\n(pi4a-cluj)"
-    "START\n(master)" -> "Query Node\n(pi4b-cluj)"
-    "START\n(master)" -> "Query Node\n(pi4c-cluj)"
+    "START\n(master)" -> "Update Agents\n(nuc-01)"
+    "START\n(master)" -> "Update Agents\n(nuc-02)"
 
-    "Query Node\n(pi4a-cluj)" -> "Check Board\nConfigurations\n(master)"
-    "Query Node\n(pi4b-cluj)" -> "Check Board\nConfigurations\n(master)"
-    "Query Node\n(pi4c-cluj)" -> "Check Board\nConfigurations\n(master)"
+    "Update Agents\n(nuc-01)" -> "Query Node\n(nuc-01)"
+    "Update Agents\n(nuc-02)" -> "Query Node\n(nuc-02)"
 
-    "Check Board\nConfigurations\n(master)" -> "Update Boot\n(pi4a-cluj-zed-fmcomms2)"
-    "Check Board\nConfigurations\n(master)" -> "Update Boot\n(pi4b-cluj-zc706-daq2)"
-    "Check Board\nConfigurations\n(master)" -> "Update Boot\n(pi4c-cluj-pluto)"
+    "Query Node\n(nuc-01)" -> "Check Required\nHardware\n(master)"
+    "Query Node\n(nuc-02)" -> "Check Required\nHardware\n(master)"
+ 
+    "Check Required\nHardware\n(master)" -> "Setup Docker\n(nuc-01-pluto)"
+    "Check Required\nHardware\n(master)" -> "Setup Docker\n(nuc-01-zed-fmcomms2)"
+    "Check Required\nHardware\n(master)" -> "Setup Docker\n(nuc-02-zc706-daq2)"
 
-    "Update Boot\n(pi4a-cluj-zed-fmcomms2)" -> "Run Linux Checks\n(pi4a-cluj-zed-fmcomms2)"
-    "Update Boot\n(pi4b-cluj-zc706-daq2)" -> "Run Linux Checks\n(pi4b-cluj-zc706-daq2)"
-    "Update Boot\n(pi4c-cluj-pluto)" -> "Run Linux Checks\n(pi4c-cluj-pluto)"
+    "Setup Docker\n(nuc-01-pluto)" -> "Linux Tests\n(nuc-01-pluto)"
+    "Setup Docker\n(nuc-01-zed-fmcomms2)" -> "Linux Tests\n(nuc-01-zed-fmcomms2)"
+    "Setup Docker\n(nuc-02-zc706-daq2)" -> "Linux Tests\n(nuc-02-zc706-daq2)"
 
-    "Run Linux Checks\n(pi4a-cluj-zed-fmcomms2)" -> "Run Python Tests\n(pi4a-cluj-zed-fmcomms2)"
-    "Run Linux Checks\n(pi4b-cluj-zc706-daq2)" -> "Run Python Tests\n(pi4b-cluj-zc706-daq2)"
-    "Run Linux Checks\n(pi4c-cluj-pluto)" -> "Run Python Tests\n(pi4c-cluj-pluto)"
-
-    "Run Python Tests\n(pi4a-cluj-zed-fmcomms2)" -> "Collect Logs\n(pi4a-cluj-zed-fmcomms2)"
-    "Run Python Tests\n(pi4b-cluj-zc706-daq2)" -> "Collect Logs\n(pi4b-cluj-zc706-daq2)"
-    "Run Python Tests\n(pi4c-cluj-pluto)" -> "Collect Logs\n(pi4c-cluj-pluto)"
-
-    "Collect Logs\n(pi4a-cluj-zed-fmcomms2)" -> "Process\nLogs\n(master)"
-    "Collect Logs\n(pi4b-cluj-zc706-daq2)" -> "Process\nLogs\n(master)"
-    "Collect Logs\n(pi4c-cluj-pluto)" -> "Process\nLogs\n(master)"
+    "Linux Tests\n(nuc-01-pluto)" -> "Collect Logs\n"
+    "Linux Tests\n(nuc-01-zed-fmcomms2)" -> "Collect Logs\n"
+    "Linux Tests\n(nuc-02-zc706-daq2)" -> "Collect Logs\n"
 
 }
