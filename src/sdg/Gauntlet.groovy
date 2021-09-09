@@ -225,8 +225,12 @@ def stage_library(String stage_name) {
                     get_gitsha(board)
                     //update-boot-files
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
-                    if (board=="pluto")
-                        nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
+                    if (board=="pluto"){
+                        retry(2){
+                            sleep(50)
+                            nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
+                        }
+                    }
                     set_elastic_field(board, 'uboot_reached', 'True')
                     set_elastic_field(board, 'kernel_started', 'True')
                     set_elastic_field(board, 'linux_prompt_reached', 'True')
