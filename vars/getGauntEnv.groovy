@@ -70,6 +70,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             vivado_ver: '2019.1',
             nebula_config_repo: 'https://github.com/sdgtt/nebula-config.git',
             nebula_config_branch: 'master',
+            kuiper_checker_repo: 'https://github.com/sdgtt/kuiper-post-build-checker.git',
+            kuiper_checker_branch: 'master',
             send_results: false,
             elastic_logs : [:],
             log_jira: false,
