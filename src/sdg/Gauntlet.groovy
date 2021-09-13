@@ -531,7 +531,8 @@ def stage_library(String stage_name) {
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
-                {
+                {   
+                    println("Multibranch pipeline. Checkout scm.")
                     retry(3) {
                         sleep(5)
                         checkout scm
@@ -543,6 +544,7 @@ def stage_library(String stage_name) {
                 }
                 else
                 {   
+                    println("Not a multibranch pipeline. Cloning "+gauntEnv.matlab_branch+" branch from "+gauntEnv.matlab_repo)
                     sh 'git clone --recursive -b '+gauntEnv.matlab_branch+' '+gauntEnv.matlab_repo+' Toolbox'
                     dir('Toolbox')
                     {
@@ -855,6 +857,25 @@ def set_job_trigger(trigger) {
 def set_matlab_commands(List matlab_commands) {
     assert matlab_commands instanceof java.util.List
     gauntEnv.matlab_commands = matlab_commands
+}
+
+/**
+ * Check if project is part of a multibranch pipeline using 'checkout scm'
+ * Declaring the GitHub Project url in a non-multibranch pipeline does not conflict with checking.
+ */
+def isMultiBranchPipeline() {
+    isMultiBranch = false
+    println("Checking if multibranch pipeline..")
+    try
+    {
+        checkout scm
+        isMultiBranch = true
+    }
+    catch(all)
+    {
+        println("Not a multibranch pipeline")
+    }
+    return isMultiBranch
 }
 
 /**
@@ -1287,22 +1308,6 @@ private def String getStackTrace(Throwable aThrowable){
     PrintStream ps = new PrintStream(baos, true);
     aThrowable.printStackTrace(ps);
     return baos.toString();
-}
-
-private def isMultiBranchPipeline() {
-    // Utility to check if current project is a multibranch pipeline job
-    isMultiBranch = false
-    println("Checking if multibranch pipeline..")
-    try
-    {
-        checkout scm
-        isMultiBranch = true
-    }
-    catch(all)
-    {
-        println("Not a multibranch pipeline")
-    }
-    return isMultiBranch
 }
 
 private def  createMFile(){
