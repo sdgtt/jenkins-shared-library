@@ -539,8 +539,11 @@ def stage_library(String stage_name) {
                         sh 'git submodule update --init'
                     }
                     createMFile()
-                    sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
-                    junit testResults: '*.xml', allowEmptyResults: true
+                    try{
+                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                    }finally{
+                        junit testResults: '*.xml', allowEmptyResults: true
+                    }
                 }
                 else
                 {   
@@ -549,8 +552,11 @@ def stage_library(String stage_name) {
                     dir('Toolbox')
                     {
                         createMFile()
-                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
-                        junit testResults: '*.xml', allowEmptyResults: true
+                        try{
+                            sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        }finally{
+                            junit testResults: '*.xml', allowEmptyResults: true    
+                        }
                     }
                 }
             }
