@@ -426,13 +426,13 @@ def stage_library(String stage_name) {
                         }catch(Exception ex) {
                             failed_test = failed_test + "[iio_devices check failed: ${ex.getMessage()}]"
                             missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
-                            writeFile(file: board+'_missing_devs.log', text: missing_devs.join(","))
+                            writeFile(file: board+'_missing_devs.log', text: missing_devs.join("\n"))
                             set_elastic_field(board, 'drivers_missing', missing_devs.size().toString())
                         }
                         // get drivers enumerated
                         devs = Eval.me(nebula('update-config driver-config iio_device_names -b '+board, false, true, false))
                         devs = devs.minus(missing_devs)
-                        writeFile(file: board+'_numerated_devs.log', text: devs.join(","))
+                        writeFile(file: board+'_enumerated_devs.log', text: devs.join("\n"))
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
                         
                         try{
