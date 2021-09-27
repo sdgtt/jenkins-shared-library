@@ -43,6 +43,8 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             enable_resource_queuing: false,
             setup_called: false,
             nebula_debug: false,
+            log_jira: false,
+            log_jira_stages: [],
             nebula_local_fs_source_root: '/var/lib/tftpboot',
             elastic_server: '',
             iio_uri_source: 'ip',
@@ -191,6 +193,8 @@ def stage_library(String stage_name) {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
                     println(gauntEnv.branches.toString())
+                    def carrier = nebula('update-config jira-config carrier --board-name='+board )
+                    def daughter = nebula('update-config jira-config daughter --board-name='+board )
                     if (board=="pluto")
                         nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', true, true, true)
                     else
@@ -239,6 +243,8 @@ def stage_library(String stage_name) {
                         stage_library('SendResults').call(board)
                     }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
+                    issueSummary = '['+carrier+'-'+daughter+'] Update BOOT files failed.'
+                    logJira([summary:issueSummary])  
                 }finally{
                     //archive uart logs
                     run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_boot_" + board + ".log; fi")
@@ -379,6 +385,8 @@ def stage_library(String stage_name) {
             println('Added Stage LinuxTests')
             cls = { String board ->
                 stage('Linux Tests') {
+                    def carrier = nebula('update-config jira-config carrier --board-name='+board )
+                    def daughter = nebula('update-config jira-config daughter --board-name='+board )
                     def failed_test = ''
                     try {
                         // run_i('pip3 install pylibiio',true)
@@ -412,6 +420,8 @@ def stage_library(String stage_name) {
                         }
                     }catch(Exception ex) {
                         throw new NominalException(ex.getMessage())
+                        issueSummary = '['+carrier+'-'+daughter+'] Linux tests failed.'
+                        logJira([summary:issueSummary]) 
                     }finally{
                         // count dmesg errs and warns
                         set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
@@ -433,6 +443,8 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
+                        def carrier = nebula('update-config jira-config carrier --board-name='+board )
+                        def daughter = nebula('update-config jira-config daughter --board-name='+board )
                         def uri;
                         println('IP: ' + ip)
                         // temporarily get pytest-libiio from another source
@@ -472,6 +484,8 @@ def stage_library(String stage_name) {
                             }catch(Exception ex){
                                 println(ex)
                                 throw new NominalException('PyADITests Failed')
+                                issueSummary = '['+carrier+'-'+daughter+'] PyADI tests failed'
+                                logJira([summary:issueSummary])  
                             }
                             
                             if ((statusCode != 5) && (statusCode != 0)){
@@ -495,6 +509,8 @@ def stage_library(String stage_name) {
                                         'zynq-adrv9361-z7035-fmc',
                                         'zynq-zed-adv7511-ad9364-fmcomms4',
                                         'pluto']
+                def carrier = nebula('update-config jira-config carrier --board-name='+board )
+                def daughter = nebula('update-config jira-config daughter --board-name='+board )
                 if(supported_boards.contains(board) && gauntEnv.libad9361_iio_branch != null){
                     try{
                         stage("Test libad9361") {
@@ -511,6 +527,9 @@ def stage_library(String stage_name) {
                                 }
                             }
                         }
+                    }catch(all){
+                        issueSummary = '['+carrier+'-'+daughter+'] LibAD9361 tests failed'
+                        logJira([summary:issueSummary])  
                     }
                     finally
                     {
@@ -532,7 +551,7 @@ def stage_library(String stage_name) {
                 def daughter = nebula('update-config jira-config daughter --board-name='+board )
                 println(carrier)
                 println(daughter)
-                
+
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
@@ -559,8 +578,13 @@ def stage_library(String stage_name) {
                         createMFile()
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
-                        }finally{
-                            junit testResults: '*.xml', allowEmptyResults: true    
+                        }
+                        catch(all){
+                            issueSummary = '['+carrier+'-'+daughter+'] MATLAB Toolbox tests failed'
+                            logJira([summary:issueSummary])  
+                        }
+                        finally{
+                            junit testResults: '*.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -796,6 +820,22 @@ def set_nebula_debug(nebula_debug) {
 }
 
 /**
+ * Enable logging issues to Jira. Setting true will update existing Jira issues or create a new issue.
+ * @param log_jira Boolean of enable jira logging.
+ */
+def set_log_jira(log_jira) {
+    gauntEnv.log_jira = log_jira
+}
+
+/**
+ * Set stages where Jira issues should be updated or created.
+ * @param log_jira_stages List of stage names
+ */
+def set_log_jira_stages(log_jira_stages) {
+    gauntEnv.log_jira_stages = log_jira_stages
+}
+
+/**
  * Set nebula downloader local_fs source_path.
  * @param nebula_local_fs_source_root String of path
  */
@@ -887,6 +927,84 @@ def isMultiBranchPipeline() {
         println("Not a multibranch pipeline")
     }
     return isMultiBranch
+}
+
+/**
+ * Creates or updates existing Jira issue for carrier-daughter board
+ * Each stage has its own Jira thread for each carrier-daughter board
+ * Required key: jiraArgs.summary, other fields have default values or optional
+ * attachments is a list of filesnames to upload in the Jira issue
+ * Default values:  Jira site: ADI SDG
+ *                  project: HTH
+ *                  issuetype: Bug
+ *                  assignee: JPineda3
+ *                  component: KuiperTesting
+ */
+
+def logJira(jiraArgs) {
+    defaultFields = [site:'sdg-jira',project:'GTSQA', assignee:'JPineda3', issuetype:'Bug', components:"Testing"]
+    optionalFields = ['assignee','issuetype','description']
+    def key = ''
+
+    // Assign default values if not defined in jiraArgs
+    for (field in defaultFields.keySet()){
+        if (!jiraArgs.containsKey(field)){
+            jiraArgs.put(field,defaultFields."${field}")
+        }
+    }
+
+    echo 'Checking if Jira logging is enabled..'
+    if (gauntEnv.log_jira) {
+        echo 'Checking if stage is included in log_jira_stages'
+        if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
+
+            println('Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
+            existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
+            // Comment on existing Jira ticket
+            if (existingIssuesSearch.data.total != 0){ 
+                echo 'Updating existing issue..'
+                existingIssue = existingIssuesSearch.data.issues
+                key = existingIssue[0].key
+                issueUpdate = '['+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+'] Issue exists in recent build.'
+                comment = [body: issueUpdate]
+                jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+            }
+            // Create new Jira ticket
+            else{
+                echo 'Issue does not exist. Creating new Jira issue..'
+                // Required fields
+                issue = [fields: [
+                    project: [key: jiraArgs.project],
+                    summary: jiraArgs.summary,
+                    assignee: [name: jiraArgs.assignee],
+                    issuetype: [name: jiraArgs.issuetype],
+                    components: [[name:jiraArgs.components]]]]
+                // Optional fields
+                for (field in optionalFields){
+                    if (jiraArgs.containsKey(field)){
+                        if (field == 'description'){
+                            issue.fields.put(field,jiraArgs."${field}")
+                        }else{
+                            issue.fields.put(field,[name:jiraArgs."${field}"])
+                        }
+                    }
+                }
+                def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
+                key = newIssue.data.key
+            }
+            // Upload attachment if any
+            if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                echo 'Uploading attachments..'
+                for (attachmentFile in jiraArgs.attachment){
+                    def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
+                } 
+            }
+        }else{
+            println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
+        }
+    }else{
+        echo 'Jira logging is disabled for all stages.'
+    }
 }
 
 /**
