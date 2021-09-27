@@ -8,7 +8,6 @@ gauntEnv
 /**
  * Imitates a constructor
  * Defines an instance of Consul object. All according to api
- * @param dependencies - List of strings which are names of dependencies
  * @param hdlBranch - String of name of hdl branch to use for bootfile source
  * @param linuxBranch - String of name of linux branch to use for bootfile source
  * @param bootPartitionBranch - String of name of boot partition branch to use for bootfile source, set to 'NA' if hdl and linux is to be used
@@ -16,9 +15,8 @@ gauntEnv
  * @param bootfile_source - String location of bootfiles. Options: sftp, artifactory, http, local
  * @return constructed object
  */
-def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
+def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
     gauntEnv = [
-            dependencies: dependencies,
             hdlBranch: hdlBranch,
             linuxBranch: linuxBranch,
             bootPartitionBranch: bootPartitionBranch,
@@ -215,12 +213,24 @@ def stage_library(String stage_name) {
                 try {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
-                    println(gauntEnv.branches.toString())
-                    if (board=="pluto")
-                        nebula('dl.bootfiles --board-name=' + board + ' --branch=' + gauntEnv.firmwareVersion + ' --firmware', true, true, true)
-                    else
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.branches.toString() + '"', true, true, true)
+                    println("Branch: " + gauntEnv.branches.toString())
+                    if (board=="pluto"){
+                        if (gauntEnv.firmwareVersion == 'NA')
+                            throw new Exception("Firmware must be specified")
+                        nebula('dl.bootfiles --board-name=' + board 
+                                + ' --branch=' + gauntEnv.firmwareVersion 
+                                + ' --firmware', true, true, true)
+                    }else{
+                        if (gauntEnv.branches == ["NA","NA"])
+                            throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
+                        if (gauntEnv.bootfile_source == "NA")
+                            throw new Exception("bootfile_source must be specified")
+                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' 
+                                + gauntEnv.nebula_local_fs_source_root 
+                                + '" --source=' + gauntEnv.bootfile_source
+                                +  ' --branch="' + gauntEnv.branches.toString() 
+                                + '"', true, true, true)
+                    }
                     //get git sha properties of files
                     get_gitsha(board)
                     //update-boot-files
@@ -286,9 +296,13 @@ def stage_library(String stage_name) {
                     echo "Recover stage does not support pluto yet!"
                 }else{
                     dir ('recovery'){
+                        if (gauntEnv.bootfile_source == "NA")
+                            throw new Exception("bootfile_source must be specified")
                         try{
                             echo "Fetching reference boot files"
-                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                            nebula('dl.bootfiles --board-name=' + board 
+                                + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                                + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + ref_branch.toString() + '"') 
                             echo "Extracting reference fsbl and u-boot"
                             dir('outs'){

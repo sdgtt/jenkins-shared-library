@@ -1,5 +1,5 @@
-def call(depends, hdlBranch, linuxBranch, bootPartitionBranch="release", firmwareVersion, bootfile_source) {
+def call(hdlBranch="NA", linuxBranch="NA", bootPartitionBranch="release",firmwareVersion="NA", bootfile_source="artifactory") {
     def harness =  new sdg.Gauntlet()
-    harness.construct(depends, hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
+    harness.construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     return harness
 }
