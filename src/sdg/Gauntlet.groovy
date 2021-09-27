@@ -16,61 +16,8 @@ gauntEnv
  * @return constructed object
  */
 def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
-    gauntEnv = [
-            hdlBranch: hdlBranch,
-            linuxBranch: linuxBranch,
-            bootPartitionBranch: bootPartitionBranch,
-            branches: ( bootPartitionBranch == 'NA')? [linuxBranch, hdlBranch]: ['boot_partition', bootPartitionBranch],
-            firmwareVersion: firmwareVersion,
-            bootfile_source: bootfile_source,
-            job_trigger: 'manual',
-            agents_online: '',
-            debug: false,
-            board_map: [:],
-            stages: [],
-            agents: [],
-            boards: [],
-            required_hardware: [],
-            firmware_boards: ['pluto','m2k'],
-            enable_docker: false,
-            docker_image: 'tfcollins/sw-ci:latest',
-            docker_args: ['MATLAB','Vivado'],
-            docker_host_mode: true,
-            update_nebula_config: true,
-            enable_update_boot_pre_docker: false,
-            lock_agent: false,
-            board_sub_categories : ['rx2tx2'],
-            enable_resource_queuing: false,
-            setup_called: false,
-            nebula_debug: false,
-            nebula_local_fs_source_root: '/var/lib/tftpboot',
-            elastic_server: '',
-            iio_uri_source: 'ip',
-            iio_uri_baudrate: 921600,
-            configure_called: false,
-            pytest_libiio_repo: 'https://github.com/tfcollins/pytest-libiio.git',
-            pytest_libiio_branch: 'master',
-            pyadi_iio_repo: 'https://github.com/analogdevicesinc/pyadi-iio.git',
-            pyadi_iio_branch: 'master',
-            libad9361_iio_repo: 'https://github.com/analogdevicesinc/libad9361-iio.git',
-            libad9361_iio_branch : 'master',
-            nebula_repo: 'https://github.com/tfcollins/nebula.git',
-            nebula_branch: 'master',
-            libiio_repo: 'https://github.com/analogdevicesinc/libiio.git',
-            libiio_branch: 'master',
-            telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
-            telemetry_branch: 'master',
-            matlab_release: 'R2021a',
-            matlab_repo: 'https://github.com/analogdevicesinc/TransceiverToolbox.git',
-            matlab_branch: 'master',
-            matlab_commands: [],
-            nebula_config_repo: 'https://github.com/sdgtt/nebula-config.git',
-            nebula_config_branch: 'master',
-            send_results: false,
-            elastic_logs : [:],
-            max_retry: 3
-    ]
-
+    // initialize gauntEnv
+    gauntEnv = getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
 }
 
@@ -79,46 +26,6 @@ def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, boot
  */
 def print_agents() {
     println(gauntEnv.agents_online)
-}
-
-/* *
- * Env getter method
- */
-def get_env(String param) {
-    return gauntEnv[param]
-}
-
-/* *
- * Env setter method
- */
-def set_env(String param, def value) {
-    gauntEnv[param] = value
-}
-
-/* *
- * Getter method for elastic_logs fields
- */
-def synchronized get_elastic_field(String board, String field, String default_value="") {
-    def value = default_value
-    if (gauntEnv.elastic_logs.containsKey(board)){
-        if(gauntEnv.elastic_logs[board].containsKey(field)){
-            value = gauntEnv.elastic_logs[board][field]
-        }
-    }
-    return value
-}
-
-/* *
- * Setter method for elastic_logs fields
- */
-def synchronized set_elastic_field(String board, String field, String value) {
-    def field_map = [:]
-    field_map[field] = value
-    if (gauntEnv.elastic_logs.containsKey(board)){
-        gauntEnv.elastic_logs[board][field] = value
-    }else{
-        gauntEnv.elastic_logs[board] = field_map
-    }
 }
 
 private def setup_agents() {
@@ -812,6 +719,47 @@ jobs[agent+"-"+board] = {
 
     stage('Update and Test') {
         parallel jobs
+    }
+}
+
+
+/* *
+ * Env getter method
+ */
+def get_env(String param) {
+    return gauntEnv[param]
+}
+
+/* *
+ * Env setter method
+ */
+def set_env(String param, def value) {
+    gauntEnv[param] = value
+}
+
+/* *
+ * Getter method for elastic_logs fields
+ */
+def synchronized get_elastic_field(String board, String field, String default_value="") {
+    def value = default_value
+    if (gauntEnv.elastic_logs.containsKey(board)){
+        if(gauntEnv.elastic_logs[board].containsKey(field)){
+            value = gauntEnv.elastic_logs[board][field]
+        }
+    }
+    return value
+}
+
+/* *
+ * Setter method for elastic_logs fields
+ */
+def synchronized set_elastic_field(String board, String field, String value) {
+    def field_map = [:]
+    field_map[field] = value
+    if (gauntEnv.elastic_logs.containsKey(board)){
+        gauntEnv.elastic_logs[board][field] = value
+    }else{
+        gauntEnv.elastic_logs[board] = field_map
     }
 }
 
