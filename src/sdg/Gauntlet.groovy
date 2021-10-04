@@ -622,6 +622,8 @@ private def run_agents() {
                 docker.image(docker_image_name).inside(docker_args) {
                     try {
                         stage('Setup Docker') {
+                            sh 'apt update'
+                            sh 'apt-get install python3-tk -y'
                             sh 'cp /default/nebula /etc/default/nebula'
                             sh 'cp /default/pip.conf /etc/pip.conf || true'
                             sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
