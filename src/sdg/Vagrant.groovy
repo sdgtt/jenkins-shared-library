@@ -27,7 +27,7 @@ class Vagrant implements Serializable {
         this.send_to_vm(commands)
 
         // Destroy VM
-        ctx.sh 'vagrant destroy'
+        ctx.sh 'vagrant destroy --provider virtualbox'
         ctx.sh 'rm Vagrantfile'
     }
     private def create_vagrantfile(){
