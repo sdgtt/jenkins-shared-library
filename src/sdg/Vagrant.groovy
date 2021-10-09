@@ -32,7 +32,7 @@ class Vagrant implements Serializable {
     }
     private def create_vagrantfile(){
         ctx.sh 'echo \'Vagrant.configure("2") do |config|\' > Vagrantfile'
-        ctx.sh 'echo \'  config.vm.box = \"'+this.box+'\"\' >  Vagrantfile'
+        ctx.sh 'echo \'  config.vm.box = \"'+this.box+'\"\' >>  Vagrantfile'
         ctx.sh 'echo \'end\' >> Vagrantfile'
         
         println("Generated Vagrantfile")
