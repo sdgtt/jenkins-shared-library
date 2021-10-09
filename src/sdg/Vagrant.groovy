@@ -10,7 +10,7 @@ class Vagrant {
     Vagrant (String box='ubuntu/focal64', boolean debug=false) {
         this.box = box
     }
-    def invokeMethod(String commands) {
+    def call(String commands) {
 
         echo 'Commands to run: '+commands
         // Bring VM up from snapshot (for speed)
