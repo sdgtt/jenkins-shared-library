@@ -113,6 +113,10 @@ def synchronized set_elastic_field(String board, String field, String value) {
     }
 }
 
+def vagrant(String command){
+    gauntEnv.vagrant.call(command)
+}
+
 private def setup_agents() {
     def board_map = [:]
 
