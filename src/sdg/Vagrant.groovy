@@ -15,6 +15,7 @@ class Vagrant implements Serializable {
     Vagrant (ctx, String box='ubuntu/focal64', boolean debug=false) {
         this.ctx = ctx
         this.box = box
+        this.debug = debug
     }
     def call(String commands) {
 
@@ -27,7 +28,7 @@ class Vagrant implements Serializable {
         this.send_to_vm(commands)
 
         // Destroy VM
-        ctx.sh 'vagrant destroy --provider virtualbox'
+        ctx.sh 'vagrant destroy -f'
         ctx.sh 'rm Vagrantfile'
     }
     private def create_vagrantfile(){
