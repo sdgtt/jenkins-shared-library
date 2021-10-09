@@ -1,6 +1,7 @@
 package sdg
 import sdg.FailSafeWrapper
 import sdg.NominalException
+import sdg.Vagrant
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
 
@@ -57,7 +58,8 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             telemetry_repo: 'https://github.com/tfcollins/telemetry.git',
             telemetry_branch: 'master',
             send_results: false,
-            elastic_logs : [:]
+            elastic_logs : [:],
+            vagrant_box: 'ubuntu/focal64'
     ]
 
     gauntEnv.agents_online = getOnlineAgents()
@@ -175,6 +177,16 @@ private def update_agent() {
  */
 def stage_library(String stage_name) {
     switch (stage_name) {
+    case 'TestVagrant':
+            print('Added Stage Test Vagrant')
+            cls = { String board ->
+
+                stage('Call vagrant') {
+                    v = new Vagrant(gauntEnv.vagrant_box)
+                    v('echo "Hello from Vagrant"')
+                }
+            };
+            break
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
             cls = { String board ->
