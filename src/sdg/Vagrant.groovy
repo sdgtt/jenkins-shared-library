@@ -25,13 +25,11 @@ class Vagrant {
         sh 'rm Vagrantfile'
     }
     private def create_vagrantfile(){
-        File file = new File("Vagrantfile")
-        file << 'Vagrant.configure("2") do |config|\n'
-        file << '  config.vm.box = \"'+this.box+'\"\n'
-        file << 'end'
+        sh 'echo \'Vagrant.configure("2") do |config|\' > Vagrantfile'
+        sh 'echo \'  config.vm.box = \"'+this.box+'\"\' >  Vagrantfile'
+        sh 'echo \'end\' >> Vagrantfile'
         
         println("Generated Vagrantfile")
-        println file.text
     }
     private def send_to_vm(String commands){
         sh "vagrant ssh -- -t '"+commands+"'"
