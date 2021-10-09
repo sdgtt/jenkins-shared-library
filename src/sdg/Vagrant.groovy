@@ -35,6 +35,7 @@ class Vagrant {
         sh "vagrant ssh -- -t '"+commands+"'"
     }
     private sh(String cmd){
+        println("Running: "+cmd)
         def stdout = cmd.execute()
         println(stdout)
     }
