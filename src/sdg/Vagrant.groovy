@@ -21,14 +21,14 @@ class Vagrant implements Serializable {
         ctx.println('Commands to run: '+commands)
         // Bring VM up from snapshot (for speed)
         this.create_vagrantfile()
-        // sh 'vagrant up'
+        ctx.sh 'vagrant up'
 
         // Run commands
-        // this.send_to_vm(commands)
+        this.send_to_vm(commands)
 
         // Destroy VM
-        // sh 'vagrant destroy'
-        // sh 'rm Vagrantfile'
+        ctx.sh 'vagrant destroy'
+        ctx.sh 'rm Vagrantfile'
     }
     private def create_vagrantfile(){
         ctx.sh 'echo \'Vagrant.configure("2") do |config|\' > Vagrantfile'
