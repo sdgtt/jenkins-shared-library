@@ -11,6 +11,7 @@ import hudson.model.*
 class Vagrant implements Serializable {
     private box
     private debug
+    private ctx
     Vagrant (ctx, String box='ubuntu/focal64', boolean debug=false) {
         this.ctx = ctx
         this.box = box
