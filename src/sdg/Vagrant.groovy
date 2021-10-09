@@ -34,4 +34,8 @@ class Vagrant {
     private def send_to_vm(String commands){
         sh "vagrant ssh -- -t '"+commands+"'"
     }
+    private sh(String cmd){
+        def stdout = cmd.execute()
+        println(stdout)
+    }
 }
