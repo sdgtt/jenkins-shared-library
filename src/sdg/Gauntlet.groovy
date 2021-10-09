@@ -183,7 +183,7 @@ def stage_library(String stage_name) {
 
                 stage('Call vagrant') {
                     v = new Vagrant(gauntEnv.vagrant_box)
-                    v('echo "Hello from Vagrant"')
+                    v.call('echo "Hello from Vagrant"')
                 }
             };
             break
