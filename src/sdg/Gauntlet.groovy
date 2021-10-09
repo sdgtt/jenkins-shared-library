@@ -63,6 +63,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
     ]
 
     gauntEnv.agents_online = getOnlineAgents()
+    gauntEnv.vagrant = new Vagrant(this, gauntEnv.vagrant_box)
 }
 
 /* *
@@ -182,8 +183,9 @@ def stage_library(String stage_name) {
             cls = { String board ->
 
                 stage('Call vagrant') {
-                    v = new Vagrant(this, gauntEnv.vagrant_box)
-                    v('echo "Hello from Vagrant"')
+                    gauntEnv.vagrant('echo "Hello from Vagrant"')
+                    // v = new Vagrant(this, gauntEnv.vagrant_box)
+                    // v('echo "Hello from Vagrant"')
                     // v.call('echo "Hello from Vagrant"')
                 }
             };
