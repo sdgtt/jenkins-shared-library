@@ -187,7 +187,7 @@ def stage_library(String stage_name) {
             cls = { String board ->
 
                 stage('Call vagrant') {
-                    gauntEnv.vagrant('echo "Hello from Vagrant"')
+                    vagrant('echo "Hello from Vagrant"')
                     // v = new Vagrant(this, gauntEnv.vagrant_box)
                     // v('echo "Hello from Vagrant"')
                     // v.call('echo "Hello from Vagrant"')
