@@ -3,6 +3,7 @@
  */
 package sdg
 // import sdg.NominalException
+import hudson.model.*
 
 class Vagrant {
     private box
