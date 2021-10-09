@@ -2,7 +2,7 @@
  * Interface to vagrant VMs
  */
 package sdg
-import sdg.NominalException
+// import sdg.NominalException
 
 class Vagrant {
     private box
@@ -12,7 +12,7 @@ class Vagrant {
     }
     def call(String commands) {
 
-        echo 'Commands to run: '+commands
+        println('Commands to run: '+commands)
         // Bring VM up from snapshot (for speed)
         this.create_vagrantfile()
         sh 'vagrant up'
@@ -23,7 +23,6 @@ class Vagrant {
         // Destroy VM
         sh 'vagrant destroy'
         sh 'rm Vagrantfile'
-
     }
     private def create_vagrantfile(){
         File file = new File("Vagrantfile")
