@@ -182,7 +182,7 @@ def stage_library(String stage_name) {
             cls = { String board ->
 
                 stage('Call vagrant') {
-                    v = new Vagrant(gauntEnv.vagrant_box)
+                    v = new Vagrant(this, gauntEnv.vagrant_box)
                     v.call('echo "Hello from Vagrant"')
                 }
             };
