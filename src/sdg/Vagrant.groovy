@@ -36,6 +36,7 @@ class Vagrant implements Serializable {
         ctx.sh 'echo \'end\' >> Vagrantfile'
         
         println("Generated Vagrantfile")
+        ctx.sh 'cat Vagrantfile'
     }
     private def send_to_vm(String commands){
         ctx.sh "vagrant ssh -- -t '"+commands+"'"
