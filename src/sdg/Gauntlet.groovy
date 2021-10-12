@@ -39,6 +39,7 @@ def construct(List dependencies, hdlBranch, linuxBranch, bootPartitionBranch, fi
             docker_args: ['MATLAB','Vivado'],
             docker_host_mode: true,
             enable_update_boot_pre_docker: false,
+            lock_agent: false,
             board_sub_categories : ['rx2tx2'],
             enable_resource_queuing: false,
             setup_called: false,
@@ -524,6 +525,9 @@ def stage_library(String stage_name) {
             }
             break
     case 'MATLABTests':
+        println('Added Run MATLAB Toolbox Tests')
+        println('Setting lock_agent to true..')
+        gauntEnv.lock_agent = true
         cls = { String board ->
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
@@ -682,9 +686,15 @@ private def run_agents() {
         def stages = gauntEnv.stages
         def docker_image = gauntEnv.docker_image
         def num_stages = stages.size()
-        
+        def lock_agent = ''
+
         println('Agent: ' + agent + ' Board: ' + board)
         println('Number of stages to run: ' + num_stages.toString())
+
+        if (gauntEnv.lock_agent) {
+            println('Locking agent: '+agent+'. Effectively only one test executor is running on the agent.')
+            lock_agent = agent
+        }
 /*
 jobs[agent+"-"+board] = {
   node(agent) {
@@ -701,31 +711,35 @@ jobs[agent+"-"+board] = {
                 jobs[agent + '-' + board] = {
                     def lock_name = extractLockName(board)
                     echo "Acquiring lock for ${lock_name}"
-                    lock(lock_name){
-                        oneNodeDocker(
-                            agent,
-                            num_stages,
-                            stages,
-                            board,
-                            docker_image,
-                            enable_update_boot_pre_docker,
-                            pre_docker_cls, 
-                            docker_status
-                        )
+                    lock(lock_agent){
+                        lock(lock_name){
+                            oneNodeDocker(
+                                agent,
+                                num_stages,
+                                stages,
+                                board,
+                                docker_image,
+                                enable_update_boot_pre_docker,
+                                pre_docker_cls, 
+                                docker_status
+                            )
+                        }
                     }
                  };
             }else{
-                jobs[agent + '-' + board] = { 
-                    oneNodeDocker(
-                            agent,
-                            num_stages,
-                            stages,
-                            board,
-                            docker_image,
-                            enable_update_boot_pre_docker,
-                            pre_docker_cls,
-                            docker_status
-                        )
+                jobs[agent + '-' + board] = {
+                    lock(lock_agent){ 
+                        oneNodeDocker(
+                                agent,
+                                num_stages,
+                                stages,
+                                board,
+                                docker_image,
+                                enable_update_boot_pre_docker,
+                                pre_docker_cls,
+                                docker_status
+                            )
+                    }
                  };
             }
             
@@ -772,6 +786,14 @@ def set_iio_uri_baudrate(iio_uri_baudrate) {
  */
 def set_enable_resource_queuing(enable_resource_queuing) {
     gauntEnv.enable_resource_queuing = enable_resource_queuing
+}
+
+/**
+ * Set lock_agent. Set to true to effectively use just one test executor on agents
+ * @param lock_agent Boolean true to enable
+ */
+def set_lock_agent(lock_agent) {
+    gauntEnv.lock_agent = lock_agent
 }
 
 /**
