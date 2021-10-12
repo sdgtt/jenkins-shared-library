@@ -617,11 +617,18 @@ private def run_agents() {
     def oneNode = { agent, num_stages, stages, board, docker_stat  ->
         def k
         node(agent) {
-            for (k = 0; k < num_stages; k++) {
-                println("Stage called for board: "+board)
-                stages[k].call(board)
+            try{
+                for (k = 0; k < num_stages; k++) {
+                    println("Stage called for board: "+board)
+                    stages[k].call(board)
+                }
+            }catch(NominalException ex){
+                println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
+                println("Stopping execution of stages for ${board}")
+            }finally {
+                println("Cleaning up after board stages");
+                cleanWs();
             }
-            cleanWs();
         }
     }
     
