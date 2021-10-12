@@ -121,25 +121,30 @@ def stage_library(String stage_name) {
                 stage('Update BOOT Files') {
                     println("Board name passed: "+board)
                     println("Branch: " + gauntEnv.branches.toString())
-                    if (board=="pluto"){
-                        if (gauntEnv.firmwareVersion == 'NA')
-                            throw new Exception("Firmware must be specified")
-                        nebula('dl.bootfiles --board-name=' + board 
-                                + ' --branch=' + gauntEnv.firmwareVersion 
-                                + ' --firmware', true, true, true)
-                    }else{
-                        if (gauntEnv.branches == ["NA","NA"])
-                            throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
-                        if (gauntEnv.bootfile_source == "NA")
-                            throw new Exception("bootfile_source must be specified")
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' 
-                                + gauntEnv.nebula_local_fs_source_root 
-                                + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.branches.toString() 
-                                + '"', true, true, true)
+                    try{
+                        if (board=="pluto"){
+                            if (gauntEnv.firmwareVersion == 'NA')
+                                throw new Exception("Firmware must be specified")
+                            nebula('dl.bootfiles --board-name=' + board 
+                                    + ' --branch=' + gauntEnv.firmwareVersion 
+                                    + ' --firmware', true, true, true)
+                        }else{
+                            if (gauntEnv.branches == ["NA","NA"])
+                                throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
+                            if (gauntEnv.bootfile_source == "NA")
+                                throw new Exception("bootfile_source must be specified")
+                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' 
+                                    + gauntEnv.nebula_local_fs_source_root 
+                                    + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.branches.toString() 
+                                    + '"', true, true, true)
+                        }
+                        //get git sha properties of files
+                        get_gitsha(board)
+                    }catch(Exception ex){
+                        throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
-                    //get git sha properties of files
-                    get_gitsha(board)
+                    
                     //update-boot-files
                     nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
                     if (board=="pluto"){
@@ -154,7 +159,7 @@ def stage_library(String stage_name) {
                     set_elastic_field(board, 'post_boot_failure', 'False')
                 }}
                 catch(Exception ex) {
-                    echo getStackTrace(ex)
+                    def is_nominal_exception = false
                     if (ex.getMessage().contains('u-boot not reached')){
                         set_elastic_field(board, 'uboot_reached', 'False')
                         set_elastic_field(board, 'kernel_started', 'False')
@@ -173,6 +178,11 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'kernel_started', 'True')
                         set_elastic_field(board, 'linux_prompt_reached', 'True')
                         set_elastic_field(board, 'post_boot_failure', 'True')
+                    }else if (ex.getMessage().contains('Downloader error')){
+                        set_elastic_field(board, 'uboot_reached', 'False')
+                        set_elastic_field(board, 'kernel_started', 'False')
+                        set_elastic_field(board, 'linux_prompt_reached', 'False')
+                        is_nominal_exception = true
                     }else{
                         echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
                     }
@@ -184,6 +194,8 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'last_failing_stage_failure', failing_msg)
                         stage_library('SendResults').call(board)
                     }
+                    if (is_nominal_exception)
+                        throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
                     //archive uart logs
@@ -638,8 +650,10 @@ private def run_agents() {
                             println("Stage called for board: "+board)
                             stages[k].call(board)
                         }
-                    }
-                    finally {
+                    }catch(NominalException ex){
+                        println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
+                        println("Stopping execution of stages for ${board}")
+                    }finally {
                         println("Cleaning up after board stages");
                         cleanWs();
                     }
