@@ -526,8 +526,6 @@ def stage_library(String stage_name) {
             break
     case 'MATLABTests':
         println('Added Run MATLAB Toolbox Tests')
-        println('Setting lock_agent to true..')
-        gauntEnv.lock_agent = true
         cls = { String board ->
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
