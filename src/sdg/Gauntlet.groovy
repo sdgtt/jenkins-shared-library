@@ -338,7 +338,7 @@ def stage_library(String stage_name) {
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
-                            throw new Exception("Linux Tests Failed: ${failed_test}")
+                            unstable("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
                         throw new NominalException(ex.getMessage())
@@ -421,7 +421,7 @@ def stage_library(String stage_name) {
                             // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
-                                throw new NominalException('PyADITests Failed')
+                                unstable("PyADITests Failed")
                             }                
                         }
                     }
@@ -456,9 +456,9 @@ def stage_library(String stage_name) {
                                 }
                             }
                         }
-                    }
-                    finally
-                    {
+                    }catch(Exception ex){
+                        unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
+                    }finally{
                         dir('libad9361-iio/build'){
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
