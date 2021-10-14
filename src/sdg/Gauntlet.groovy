@@ -1033,7 +1033,7 @@ private def install_libiio() {
             dir('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                sh 'cmake ..'
+                sh 'cmake .. -DHAVE_DNS_SD=OFF'
                 sh 'make'
                 sh 'make install'
                 sh 'ldconfig'
