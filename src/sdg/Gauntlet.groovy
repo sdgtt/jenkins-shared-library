@@ -1271,13 +1271,20 @@ private def setupAgent(deps, skip_cleanup = false, docker_status) {
 }
 
 private def get_gitsha(String board){
-    dir ('outs'){
-        script{ properties = readYaml file: 'properties.yaml' }
+    if (gauntEnv.nebula_local_fs_source_root == "local_fs"){
+        set_elastic_field(board, 'hdl_hash', 'NA')
+        set_elastic_field(board, 'linux_hash', 'NA')
+        return
     }
+
     if (gauntEnv.firmware_boards.contains(board)){
         set_elastic_field(board, 'hdl_hash', 'NA')
         set_elastic_field(board, 'linux_hash', 'NA')
         return
+    }
+    
+    dir ('outs'){
+        script{ properties = readYaml file: 'properties.yaml' }
     }
 
     if (gauntEnv.bootPartitionBranch == 'NA'){
