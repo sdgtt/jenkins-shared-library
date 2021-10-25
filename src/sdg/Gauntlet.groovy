@@ -461,6 +461,7 @@ def stage_library(String stage_name) {
                     }finally{
                         dir('libad9361-iio/build'){
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            archiveArtifacts artifacts: 'Testing/**/*.xml', followSymlinks: false, allowEmptyArchive: true
                         }
                     }
                 }else{
