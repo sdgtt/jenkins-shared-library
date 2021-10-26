@@ -210,7 +210,22 @@ def stage_library(String stage_name) {
         cls = { String board ->
             stage('RecoverBoard'){
                 echo "Recovering ${board}"
-                def ref_branch = ['boot_partition', 'release']
+                def ref_branch = []
+                def nebula_cmd = 'manager.recovery-device-manager --board-name=' + board + ' --folder=outs'
+                switch(gauntEnv.recovery_ref){
+                    case "SD":
+                        nebula_cmd = nebula_cmd + ' --sdcard'
+                        ref_branch = ['boot_partition', 'release']
+                        break;
+                    case "boot_partition_master":
+                        ref_branch = ['boot_partition', 'master']
+                        break;
+                    case "boot_partition_release":
+                        ref_branch = ['boot_partition', 'release']
+                        break;
+                    default:
+                         throw new Exception('Unknown recovery ref branch: ' + gauntEnv.recovery_ref)
+                }
                 if (board=="pluto"){
                     echo "Recover stage does not support pluto yet!"
                 }else{
@@ -229,7 +244,7 @@ def stage_library(String stage_name) {
                             }
                             sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
                             echo "Executing board recovery..."
-                            nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
+                            nebula(nebula_cmd)
                         }catch(Exception ex){
                             echo getStackTrace(ex)
                             throw ex
@@ -908,6 +923,14 @@ def isMultiBranchPipeline() {
         println("Not a multibranch pipeline")
     }
     return isMultiBranch
+}
+
+/**
+ * Set the value of reference branch for the board recovery stage.
+ * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release'
+ */
+def set_recovery_reference(reference) {
+    gauntEnv.recovery_ref = reference
 }
 
 /**
