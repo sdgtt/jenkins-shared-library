@@ -1,7 +1,5 @@
 # jenkins-shared-library
 
-<a href="https://sdgtt.github.io/jenkins-shared-library/">
-<img alt="GitHub Pages" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg">
-</a>
+[![Documentation Status](https://readthedocs.org/projects/jenkins-shared-library/badge/?version=latest)](https://jenkins-shared-library.readthedocs.io/en/latest/?badge=latest)
 
 CI Shared Library
