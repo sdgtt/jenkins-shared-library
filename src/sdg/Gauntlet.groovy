@@ -775,6 +775,18 @@ def set_required_hardware(List board_names) {
 }
 
 /**
+ * Set list of required agent for test
+ * @param agent_names list of strings of names of agent to use
+ * Strings must be associated with an existing agent.
+ * For example: sdg-nuc-01, master
+ */
+def set_required_agent(List agent_names) {
+    assert agent_names instanceof java.util.List
+    gauntEnv.required_agent = agent_names
+    gauntEnv.agents_online = getOnlineAgents()
+}
+
+/**
  * Set URI source. Set URI source. Supported are ip or serial
  * @param iio_uri_source String of URI source
  */
@@ -1017,7 +1029,13 @@ private def getOnlineAgents() {
             continue
         }
         if (!computer.offline) {
-            online_agents.add(computer.name)
+            if (!gauntEnv.required_agent.isEmpty()){
+                if (computer.name in gauntEnv.required_agent){
+                    online_agents.add(computer.name)
+                }
+            }else{
+                online_agents.add(computer.name)
+            }
         }
     }
     println(online_agents)

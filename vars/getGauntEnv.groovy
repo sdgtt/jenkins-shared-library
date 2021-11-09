@@ -23,6 +23,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             agents: [],
             boards: [],
             required_hardware: [],
+            required_agent: [],
             firmware_boards: ['pluto','m2k'],
             enable_docker: false,
             docker_image: 'tfcollins/sw-ci:latest',
