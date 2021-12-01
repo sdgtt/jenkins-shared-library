@@ -300,13 +300,17 @@ def stage_library(String stage_name) {
                     cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
                     // cmd +="jenkins_job_date datetime.datetime.now(),
                     cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
-                    cmd += ' jenkins_project_name ' + env.JOB_NAME
+                    cmd += ' jenkins_project_name ' + '\'' + env.JOB_NAME + '\''
                     cmd += ' jenkins_agent ' + env.NODE_NAME
                     cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
                     cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
                     cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
                     cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
                     cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+                    cmd += ' matlab_errors ' + get_elastic_field(board, 'matlab_errors', '0')
+                    cmd += ' matlab_failures ' + get_elastic_field(board, 'matlab_failures', '0')
+                    cmd += ' matlab_skipped ' + get_elastic_field(board, 'matlab_skipped', '0')
+                    cmd += ' matlab_tests ' + get_elastic_field(board, 'matlab_tests', '0')
                     cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
                     cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
                     sendLogsToElastic(cmd)
@@ -418,15 +422,10 @@ def stage_library(String stage_name) {
                             }
 
                             // get pytest results for logging
-                            if(fileExists('testxml/' + board + '_reports.xml')){
+                            xmlFile = 'testxml/' + board + '_reports.xml'
+                            if(fileExists(xmlFile)){
                                 try{
-                                    def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
-                                    pytest_logs.each {
-                                        cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*' 
-                                        cmd+= it + '="([0-9]+)".*/\\1/p\''
-                                        set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
-                                    }
-                                    // println(gauntEnv.elastic_logs[board.replaceAll('_', '-')])
+                                    parseForLogging ('pytest', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing pytest results failed')
                                     echo getStackTrace(ex)
@@ -504,8 +503,18 @@ def stage_library(String stage_name) {
                     try{
                         sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                     }finally{
-                        junit testResults: '*.xml', allowEmptyResults: true
-                    }
+                            junit testResults: '*.xml', allowEmptyResults: true
+                            // get MATLAB hardware test results for logging
+                            xmlFile = 'HWTestResults.xml'
+                            if(fileExists(xmlFile)){
+                                try{
+                                parseForLogging ('matlab', xmlFile, board)
+                                }catch(Exception ex){
+                                    println('Parsing MATLAB hardware results failed')
+                                    echo getStackTrace(ex)
+                                }
+                            }   
+                        }
                 }
                 else
                 {   
@@ -517,7 +526,17 @@ def stage_library(String stage_name) {
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                         }finally{
-                            junit testResults: '*.xml', allowEmptyResults: true    
+                            junit testResults: '*.xml', allowEmptyResults: true
+                            // get MATLAB hardware test results for logging
+                            xmlFile = 'HWTestResults.xml'
+                            if(fileExists(xmlFile)){
+                                try{
+                                parseForLogging ('matlab', xmlFile, board)
+                                }catch(Exception ex){
+                                    println('Parsing MATLAB hardware results failed')
+                                    echo getStackTrace(ex)
+                                }
+                            }
                         }
                     }
                 }
@@ -1395,4 +1414,20 @@ private def  createMFile(){
     writeFile file: 'matlab_commands.m', text: command_oneline
     sh 'ls -l matlab_commands.m'
     sh 'cat matlab_commands.m'
+}
+
+private def parseForLogging (String stage, String xmlFile, String board) {
+    stage_logs = stage + '_logs'
+    forLogging = [:]
+    forLogging.put(stage_logs,['errors', 'failures', 'skipped', 'tests'])
+    println forLogging.keySet()
+    forLogging."${stage_logs}".each {
+        cmd = 'cat ' + xmlFile + ' | sed -rn \'s/.*' 
+        cmd+= it + '="([0-9]+)".*/\\1/p\''
+        if (stage == 'pytest') {
+            set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
+        }else {
+            set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
+        }
+    }
 }
