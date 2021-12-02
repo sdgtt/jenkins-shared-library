@@ -303,10 +303,10 @@ def stage_library(String stage_name) {
                     cmd += ' jenkins_project_name ' + '\'' + env.JOB_NAME + '\''
                     cmd += ' jenkins_agent ' + env.NODE_NAME
                     cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
-                    cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
-                    cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
-                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
-                    cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+                    cmd += ' pytest_errors ' + get_elastic_field(board, 'pytest_errors', '0')
+                    cmd += ' pytest_failures ' + get_elastic_field(board, 'pytest_failures', '0')
+                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'pytest_skipped', '0')
+                    cmd += ' pytest_tests ' + get_elastic_field(board, 'pytest_tests', '0')
                     cmd += ' matlab_errors ' + get_elastic_field(board, 'matlab_errors', '0')
                     cmd += ' matlab_failures ' + get_elastic_field(board, 'matlab_failures', '0')
                     cmd += ' matlab_skipped ' + get_elastic_field(board, 'matlab_skipped', '0')
@@ -1424,10 +1424,6 @@ private def parseForLogging (String stage, String xmlFile, String board) {
     forLogging."${stage_logs}".each {
         cmd = 'cat ' + xmlFile + ' | sed -rn \'s/.*' 
         cmd+= it + '="([0-9]+)".*/\\1/p\''
-        if (stage == 'pytest') {
-            set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
-        }else {
-            set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
-        }
+        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
     }
 }
