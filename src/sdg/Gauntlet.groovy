@@ -508,7 +508,7 @@ def stage_library(String stage_name) {
                             xmlFile = 'HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
-                                parseForLogging ('matlab', xmlFile, board)
+                                    parseForLogging ('matlab', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
@@ -531,7 +531,7 @@ def stage_library(String stage_name) {
                             xmlFile = 'HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
-                                parseForLogging ('matlab', xmlFile, board)
+                                    parseForLogging ('matlab', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
