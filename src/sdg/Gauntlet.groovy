@@ -664,6 +664,73 @@ def stage_library(String stage_name) {
                 sh 'xml_gen ip:'+ip+' > "'+board+'.xml"'
                 archiveArtifacts artifacts: '*.xml'
             }
+            break
+    case 'noOSTest':
+        cls = { String board ->
+            try{
+            stage('Build NO-OS Project'){
+                def pwd = sh(returnStdout: true, script: 'pwd').trim()
+                withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
+                    def project = nebula('update-config board-config no-os-project --board-name='+board)
+                    def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                    def serial = nebula('update-config uart-config address --board-name='+board)
+                    def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa']
+                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
+                    try{
+                        file = files[gauntEnv.vivado_ver.toString()]
+                    }catch(Exception ex){
+                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
+                    }
+                    try{
+                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                +  ' --branch="' + gauntEnv.branches.toString() + '"')
+                    }catch(Exception ex){
+                        throw new Exception('Downloader error: '+ ex.getMessage()) 
+                    }
+                    retry(3){
+                        sleep(2)
+                        sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+                    }
+                    sh 'cp outs/' +file+ ' no-OS/projects/'+ project +'/'
+                    dir('no-OS'){
+                        dir('projects/'+ project){
+                            try{
+                                if (gauntEnv.vivado_ver == '2020.1'){
+                                    sh 'ln /usr/bin/make /usr/bin/gmake'
+                                }
+                                sh '. /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' TINYIIOD=y'
+                            }catch(Exception ex){
+                                throw new Exception('Build .elf file error: '+ ex.getMessage()) 
+                            }
+                            try{
+                                retry(3){
+                                    sleep(2)
+                                    sh '. /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                                }
+                            }catch(Exception ex){
+                                throw new Exception('Upload .elf file error: '+ ex.getMessage()) 
+                            }
+                        }
+                    }
+                }
+            }
+            stage('Check Context'){
+                try{
+                    retry(3){
+                        echo '---------------------------'
+                        sleep(10);
+                        echo "Check context"
+                        sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
+                    }
+                }catch(Exception ex){
+                    throw new Exception('Failed to check for context: '+ ex.getMessage())
+                }
+            }
+            }catch(Exception ex){
+                def is_nominal_exception = false
+                //add handling of result to send to telemetry
+            }
         }
             break
     default:
