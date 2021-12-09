@@ -1243,7 +1243,7 @@ private def install_libiio() {
             bat('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                bat 'cmake .. -DPYTHON_BINDINGS=ON -DHAVE_DNS_SD=OFF'
+                bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 bat 'cmake --build . --config Release --install'
             }
         }
@@ -1255,7 +1255,7 @@ private def install_libiio() {
             dir('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                sh 'cmake .. -DPYTHON_BINDINGS=ON -DHAVE_DNS_SD=OFF'
+                sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 sh 'make'
                 sh 'make install'
                 sh 'ldconfig'
