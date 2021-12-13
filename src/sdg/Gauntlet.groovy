@@ -502,6 +502,8 @@ def stage_library(String stage_name) {
                     createMFile()
                     try{
                         sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                    }catch (Exception ex){
+                        throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
@@ -525,6 +527,8 @@ def stage_library(String stage_name) {
                         createMFile()
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        }catch (Exception ex){
+                            throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
