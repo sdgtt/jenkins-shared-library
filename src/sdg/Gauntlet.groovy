@@ -1146,7 +1146,7 @@ jobs[agent+"-"+board] = {
             if( enable_resource_queuing ){
                 println("Enable resource queueing")
                 jobs[agent + '-' + board] = {
-                    def lock_name = extractLockName(board)
+                    def lock_name = extractLockName(board, agent)
                     echo "Acquiring lock for ${lock_name}"
                     lock(lock_agent){
                         lock(lock_name){
@@ -2024,7 +2024,7 @@ private def check_for_marker(String board){
     }
 }
 
-private def extractLockName(String bname){
+private def extractLockName(String bname, String agent){
     echo "Extracting resource lockname from ${bname}"
     def lockName = bname
     if (bname.contains("-v")){
@@ -2033,6 +2033,16 @@ private def extractLockName(String bname){
     for (cat in gauntEnv.board_sub_categories){
         if(lockName.contains('-' + cat))
             lockName = lockName.replace('-' + cat, "")
+    }
+    // support carrier with multiple daughter boards, e.g RPi PMOD Hats
+    // use serial-id (if exists) as unique carrier identifier that will be used as lock name.
+    node(agent){
+        try{
+            lockName = nebula("update-config board-config serial-id -b ${bname}")
+        }catch(Exception ex){
+            echo getStackTrace(ex)
+            println("serial-id is not defined. Will use other reference as lockname")
+        }
     }
     return lockName
 }
