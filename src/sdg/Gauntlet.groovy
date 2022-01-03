@@ -14,11 +14,12 @@ gauntEnv
  * @param bootPartitionBranch - String of name of boot partition branch to use for bootfile source, set to 'NA' if hdl and linux is to be used
  * @param firmwareVersion - String of name of firmware version branch to use for pluto and m2k
  * @param bootfile_source - String location of bootfiles. Options: sftp, artifactory, http, local
+ * @param rpi_branch - String name of branch to use to fetch rpi boot files and overlays.
  * @return constructed object
  */
-def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
+def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source, rpi_branch) {
     // initialize gauntEnv
-    gauntEnv = getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
+    gauntEnv = getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source, rpi_branch)
     gauntEnv.agents_online = getOnlineAgents()
 }
 
@@ -860,6 +861,47 @@ def stage_library(String stage_name) {
                         }
                     }else{
                         println('Auto SD Reflash does not support non-rpi boards yet!')
+                    }
+                }
+            };
+            break
+    
+    case 'loadOverlay':
+            println('Added Stage Load Overlay')
+            cls = { String board ->
+                stage("Load Overlay"){
+                    // get board info
+                    def overlay = nebula('update-config board-config overlay --board-name='+board)
+                    def kernel = nebula('update-config board-config kernel --board-name='+board)
+                    try{
+                        nebula("dl.bootfiles -s artifactory -o artifactory.analog.com -f rpi -b ${gauntEnv.rpi_branch} --board-name=${board}")
+                    }catch(Exception ex){
+                        getStackTrace(ex)
+                        throw new NominalException(ex.getMessage())
+                    }
+                    dir("outs"){
+                        def overlay_path = sh(returnStdout: true, script: "ls . | grep ${overlay}").trim()
+                        def kernel_path = sh(returnStdout: true, script: "ls . | grep ${kernel}").trim()
+                        nebula("manager.load-overlay-manager --devtreepath=${overlay_path} --kernelpath=${kernel_path} --board-name=${board}")
+                        sh("mv vcdbglog.txt ${board}_vcdbglog.txt")
+                        archiveArtifacts artifacts: '*_vcdbglog.txt', followSymlinks: false, allowEmptyArchive: true
+                    }
+                }
+            };
+            break
+    case 'unLoadOverlay':
+            println('Added Stage to Unload Overlay')
+            cls = { String board ->
+                stage("UnLoad Overlay"){
+                    try{
+                        // get board info
+                        def overlay = nebula('update-config board-config overlay --board-name='+board)
+                        def overlay_path = overlay + '.dtbo'
+                        //def kernel = harness.nebula('update-config board-config overlay --board-name='+board)
+                        nebula("manager.load-overlay-manager --devtreepath=${overlay_path} -u --board-name=${board}")
+                    }catch(Exception ex){
+                        getStackTrace(ex)
+                        throw new NominalException("UnLoad Overlay failed. ${ex.getMessage()}")
                     }
                 }
             };
