@@ -470,9 +470,8 @@ def stage_library(String stage_name) {
                     try
                     {
                         //def ip = nebula('uart.get-ip')
-                        def ip = nebula('update-config network-config dutip --board-name='+board)
-                        def serial = nebula('update-config uart-config address --board-name='+board)
-                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                        def ip;
+                        def serial;
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -490,22 +489,13 @@ def stage_library(String stage_name) {
                             run_i('pip3 install pylibiio', true)
                             run_i('mkdir testxml')
                             run_i('mkdir testhtml')
-                            if (gauntEnv.iio_uri_source == "ip")
+                            if (gauntEnv.iio_uri_source == "ip"){
+                                ip = nebula('update-config network-config dutip --board-name='+board)
                                 uri = "ip:" + ip;
-                            else
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString() //baudrate from gauntEnv default
-                                uri_custom = "serial:" + serial + "," + baudrate //baudrate from nebula-config
-                                try{
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri
-                                        uri = uri
-                                    }
-                                }catch(Exception ex){
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri_custom
-                                        uri = uri_custom
-                                    }
-                                }
+                            }else{
+                                serial = nebula('update-config uart-config address --board-name='+board)
+                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                            }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
