@@ -422,9 +422,15 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
                         
                         try{
-                            if (!gauntEnv.firmware_boards.contains(board))
-                                nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                            if (!gauntEnv.firmware_boards.contains(board)){
+                                try{
+                                    nebula('update-config board-config serial-id --board-name='+board)
+                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
+                                }catch(Exception ex){
+                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                                }
                                 archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+                            }
                         }catch(Exception ex) {
                             failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
