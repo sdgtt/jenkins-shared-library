@@ -694,7 +694,7 @@ def stage_library(String stage_name) {
             }
             }catch(Exception ex){
                 def is_nominal_exception = false
-                //add handling of result to send to telemetry
+                echo "Send to telemetry"//add handling of result to send to telemetry
             }
         }
             break
@@ -1640,8 +1640,12 @@ private def get_gitsha(String board){
         return
     }
     
-    dir ('outs'){
-        script{ properties = readYaml file: 'properties.yaml' }
+    if (fileExists('outs/properties.yaml')){
+        dir ('outs'){
+            script{ properties = readYaml file: 'properties.yaml' }
+        }
+    } else {
+        return
     }
 
     if (gauntEnv.bootPartitionBranch == 'NA'){
