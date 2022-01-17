@@ -684,7 +684,7 @@ def stage_library(String stage_name) {
                     }
                     try{
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.branches.toString() + '"')
+                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
                     }catch(Exception ex){
                         throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
