@@ -507,7 +507,7 @@ def stage_library(String stage_name) {
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
-                            xmlFile = 'HWTestResults.xml'
+                            xmlFile = board+'_HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
@@ -532,7 +532,7 @@ def stage_library(String stage_name) {
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
-                            xmlFile = 'HWTestResults.xml'
+                            xmlFile = board+'_HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
