@@ -197,15 +197,12 @@ def stage_library(String stage_name) {
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
                     // log Jira
-                    try {
-                        carrier = nebula('update-config board-config carrier --board-name='+board )
-                        daughter = nebula('update-config board-config daughter --board-name='+board )
+                    try{
                         description = failing_msg
-                        description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                     }catch(Exception desc){
                         println('Error updating description.')
                     }finally{
-                        logJira([summary:'['+carrier+'-'+daughter+'] Update BOOT files failed.', description:description, attachment:[board+".log"]]) 
+                        logJira([board:board, summary:'Update BOOT files failed.', description:description, attachment:[board+".log"]]) 
                     }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
@@ -370,17 +367,14 @@ def stage_library(String stage_name) {
                         if(failed_test && !failed_test.allWhitespace){
                             // log Jira
                             def description = ""
-                            try {
-                                carrier = nebula('update-config board-config carrier --board-name='+board )
-                                daughter = nebula('update-config board-config daughter --board-name='+board )
+                            try{
                                 description += "*Missing drivers: " + missing_devs.size().toString() + "* (" + missing_devs.join(", ") + ")\n"
                                 dmesg_errs = readFile("dmesg_err_filtered.log").readLines()
                                 description += "*dmesg errors: ${dmesg_errs.size()}*\n" + dmesg_errs.join("\n")
-                                description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                             }catch(Exception desc){
                                 println('Error updating description.')
                             }finally{
-                                logJira([summary:'['+carrier+'-'+daughter+'] Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2"]]) 
+                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2"]]) 
                             }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
@@ -408,8 +402,6 @@ def stage_library(String stage_name) {
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def uri;
-                        def carrier = nebula('update-config board-config carrier --board-name='+board )
-                        def daughter = nebula('update-config board-config daughter --board-name='+board )
                         def description = ""
                         def pytest_attachment = null
                         println('IP: ' + ip)
@@ -472,11 +464,10 @@ def stage_library(String stage_name) {
                                     try{
                                         sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
                                         description += readFile 'failures.txt'
-                                        description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                                     }catch(Exception desc){
                                         println('Error updating description.')
                                     }finally{
-                                        logJira([summary:'['+carrier+'-'+daughter+'] PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
+                                        logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
                                     }
                                 } 
                                 unstable("PyADITests Failed")
@@ -517,14 +508,11 @@ def stage_library(String stage_name) {
                     }catch(Exception ex){
                         // log Jira
                         try{
-                            carrier = nebula('update-config board-config carrier --board-name='+board )
-                            daughter = nebula('update-config board-config daughter --board-name='+board )
                             description = "LibAD9361Tests Failed: ${ex.getMessage()}"
-                            description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                         } catch(Exception desc){
                                 println('Error updating description.')
                         } finally{
-                            logJira([summary:'['+carrier+'-'+daughter+'] libad9361 tests failed.', description:description]) 
+                            logJira([board:board, summary:'libad9361 tests failed.', description:description]) 
                         }
                         unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
                     }finally{
@@ -545,8 +533,6 @@ def stage_library(String stage_name) {
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
-                def carrier = nebula('update-config board-config carrier --board-name='+board )
-                def daughter = nebula('update-config board-config daughter --board-name='+board )
                 def description = ""
                 def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
@@ -566,11 +552,10 @@ def stage_library(String stage_name) {
                         // log Jira
                         try{
                             description += readFile 'failures.txt'
-                            description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                         }catch(Exception desc){
                             println('Error updating description.')
                         }finally{
-                            logJira([summary:'['+carrier+'-'+daughter+'] MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                            logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
                         }
                         throw new NominalException(ex.getMessage())
                     }finally{
@@ -599,11 +584,10 @@ def stage_library(String stage_name) {
                             // log Jira
                             try{
                                 description += readFile 'failures.txt'
-                                description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
                             }catch(Exception desc){
                                 println('Error updating description.')
                             }finally{
-                                logJira([summary:'['+carrier+'-'+daughter+'] MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                                logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
                             }
                             throw new NominalException(ex.getMessage())
                         }finally{
@@ -1075,7 +1059,7 @@ def set_log_jira_stages(log_jira_stages) {
  */
 
 def logJira(jiraArgs) {
-    defaultFields = [site:'sdg-jira',project:'GTSQA', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
+    defaultFields = [site:'sdg-jira',project:'HTH', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
     optionalFields = ['assignee','issuetype','description']
     def key = ''
     // Assign default values if not defined in jiraArgs
@@ -1083,6 +1067,20 @@ def logJira(jiraArgs) {
         if (!jiraArgs.containsKey(field)){
             jiraArgs.put(field,defaultFields."${field}")
         }
+    }
+    // Append [carier-daugther] to summary
+    try{
+        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+board )+"-"+nebula('update-config board-config daughter --board-name='+board )+" ".concat(jiraArgs.summary)
+    }catch(Exception summary){
+        println('Jira: Cannot append [carier-daugther] to summary.')
+    }
+    // Include hdl and linux hash if available
+    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
+    try{
+        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
+        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
+    }catch(Exception desc){
+        println('Jira: Cannot include hdl and linux hash to description.')
     }
     echo 'Checking if Jira logging is enabled..'
     if (gauntEnv.log_jira) {
@@ -1095,7 +1093,7 @@ def logJira(jiraArgs) {
                 echo 'Updating existing issue..'
                 existingIssue = existingIssuesSearch.data.issues
                 key = existingIssue[0].key
-                issueUpdate = '['+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+']\n' + jiraArgs.description
+                issueUpdate = jiraArgs.description
                 comment = [body: issueUpdate]
                 jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
             }
