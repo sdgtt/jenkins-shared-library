@@ -1457,6 +1457,7 @@ private def get_gitsha(String board){
         set_elastic_field(board, 'hdl_hash', hdl_hash)
         set_elastic_field(board, 'linux_hash', linux_hash)
     }
+    return [hdl_hash:hdl_hash, linux_hash:linux_hash]
 }
 
 private def check_for_marker(String board){
