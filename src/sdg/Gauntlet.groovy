@@ -545,6 +545,10 @@ def stage_library(String stage_name) {
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
+                def carrier = nebula('update-config board-config carrier --board-name='+board )
+                def daughter = nebula('update-config board-config daughter --board-name='+board )
+                def description = ""
+                def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
@@ -559,11 +563,19 @@ def stage_library(String stage_name) {
                     try{
                         sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                     }catch (Exception ex){
+                        // log Jira
+                        try{
+                            description += readFile 'failures.txt'
+                            description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
+                        }catch(Exception desc){
+                            println('Error updating description.')
+                        }finally{
+                            logJira([summary:'['+carrier+'-'+daughter+'] MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                        }
                         throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
-                            xmlFile = board+'_HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
@@ -584,11 +596,19 @@ def stage_library(String stage_name) {
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                         }catch (Exception ex){
+                            // log Jira
+                            try{
+                                description += readFile 'failures.txt'
+                                description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
+                            }catch(Exception desc){
+                                println('Error updating description.')
+                            }finally{
+                                logJira([summary:'['+carrier+'-'+daughter+'] MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                            }
                             throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
                             // get MATLAB hardware test results for logging
-                            xmlFile = board+'_HWTestResults.xml'
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
