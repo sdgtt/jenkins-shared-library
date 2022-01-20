@@ -368,6 +368,20 @@ def stage_library(String stage_name) {
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
+                            // log Jira
+                            def description = ""
+                            try {
+                                carrier = nebula('update-config board-config carrier --board-name='+board )
+                                daughter = nebula('update-config board-config daughter --board-name='+board )
+                                description += "*Missing drivers: " + missing_devs.size().toString() + "* (" + missing_devs.join(", ") + ")\n"
+                                dmesg_errs = readFile("dmesg_err_filtered.log").readLines()
+                                description += "*dmesg errors: ${dmesg_errs.size()}*\n" + dmesg_errs.join("\n")
+                                description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
+                            }catch(Exception desc){
+                                println('Error updating description.')
+                            }finally{
+                                logJira([summary:'['+carrier+'-'+daughter+'] Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2"]]) 
+                            }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
