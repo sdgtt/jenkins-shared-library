@@ -408,6 +408,10 @@ def stage_library(String stage_name) {
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def uri;
+                        def carrier = nebula('update-config board-config carrier --board-name='+board )
+                        def daughter = nebula('update-config board-config daughter --board-name='+board )
+                        def description = ""
+                        def pytest_attachment = null
                         println('IP: ' + ip)
                         // temporarily get pytest-libiio from another source
                         run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
@@ -457,11 +461,24 @@ def stage_library(String stage_name) {
                                     println('Parsing pytest results failed')
                                     echo getStackTrace(ex)
                                 }
+                                pytest_attachment = board+"_reports.xml"
                             }
                             
                             // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
+                                // log Jira
+                                dir('testxml'){
+                                    try{
+                                        sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
+                                        description += readFile 'failures.txt'
+                                        description = "\n{color:#de350b}*"+get_gitsha(board).toMapString()+"*{color}\n".concat(description)
+                                    }catch(Exception desc){
+                                        println('Error updating description.')
+                                    }finally{
+                                        logJira([summary:'['+carrier+'-'+daughter+'] PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
+                                    }
+                                } 
                                 unstable("PyADITests Failed")
                             }                
                         }
