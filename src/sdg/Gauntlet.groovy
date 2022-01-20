@@ -974,6 +974,97 @@ def set_recovery_reference(reference) {
 }
 
 /**
+ * Enable logging issues to Jira. Setting true will update existing Jira issues or create a new issue.
+ * @param log_jira Boolean of enable jira logging.
+ */
+def set_log_jira(log_jira) {
+    gauntEnv.log_jira = log_jira
+}
+
+/**
+ * Set stages where Jira issues should be updated or created.
+ * @param log_jira_stages List of stage names
+ */
+def set_log_jira_stages(log_jira_stages) {
+    gauntEnv.log_jira_stages = log_jira_stages
+}
+
+/**
+ * Creates or updates existing Jira issue for carrier-daughter board
+ * Each stage has its own Jira thread for each carrier-daughter board
+ * Required key: jiraArgs.summary, other fields have default values or optional
+ * attachments is a list of filesnames to upload in the Jira issue
+ * Default values:  Jira site: ADI SDG
+ *                  project: HTH
+ *                  issuetype: Bug
+ *                  assignee: JPineda3
+ *                  component: KuiperTesting
+ */
+
+def logJira(jiraArgs) {
+    defaultFields = [site:'sdg-jira',project:'GTSQA', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
+    optionalFields = ['assignee','issuetype','description']
+    def key = ''
+    // Assign default values if not defined in jiraArgs
+    for (field in defaultFields.keySet()){
+        if (!jiraArgs.containsKey(field)){
+            jiraArgs.put(field,defaultFields."${field}")
+        }
+    }
+    echo 'Checking if Jira logging is enabled..'
+    if (gauntEnv.log_jira) {
+        echo 'Checking if stage is included in log_jira_stages'
+        if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
+            println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
+            existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
+            // Comment on existing Jira ticket
+            if (existingIssuesSearch.data.total != 0){ 
+                echo 'Updating existing issue..'
+                existingIssue = existingIssuesSearch.data.issues
+                key = existingIssue[0].key
+                issueUpdate = '['+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+']\n' + jiraArgs.description
+                comment = [body: issueUpdate]
+                jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+            }
+            // Create new Jira ticket
+            else{
+                echo 'Issue does not exist. Creating new Jira issue..'
+                // Required fields
+                issue = [fields: [
+                    project: [key: jiraArgs.project],
+                    summary: jiraArgs.summary,
+                    assignee: [name: jiraArgs.assignee],
+                    issuetype: [name: jiraArgs.issuetype],
+                    components: [[name:jiraArgs.components]]]]
+                // Optional fields
+                for (field in optionalFields){
+                    if (jiraArgs.containsKey(field)){
+                        if (field == 'description'){
+                            issue.fields.put(field,jiraArgs."${field}")
+                        }else{
+                            issue.fields.put(field,[name:jiraArgs."${field}"])
+                        }
+                    }
+                }
+                def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
+                key = newIssue.data.key
+            }
+            // Upload attachment if any
+            if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                echo 'Uploading attachments..'
+                for (attachmentFile in jiraArgs.attachment){
+                    def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
+                } 
+            }
+        }else{
+            println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
+        }
+    }else{
+        echo 'Jira logging is disabled for all stages.'
+    }
+}
+
+/**
  * Main method for starting pipeline once configuration is complete
  * Once called all agents are queried for attached boards and parallel stages
  * will generated and mapped to relevant agents
