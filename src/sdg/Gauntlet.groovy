@@ -1083,55 +1083,59 @@ def logJira(jiraArgs) {
         println('Jira: Cannot include hdl and linux hash to description.')
     }
     echo 'Checking if Jira logging is enabled..'
-    if (gauntEnv.log_jira) {
-        echo 'Checking if stage is included in log_jira_stages'
-        if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
-            println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
-            existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
-            // Comment on existing Jira ticket
-            if (existingIssuesSearch.data.total != 0){ 
-                echo 'Updating existing issue..'
-                existingIssue = existingIssuesSearch.data.issues
-                key = existingIssue[0].key
-                issueUpdate = jiraArgs.description
-                comment = [body: issueUpdate]
-                jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
-            }
-            // Create new Jira ticket
-            else{
-                echo 'Issue does not exist. Creating new Jira issue..'
-                // Required fields
-                issue = [fields: [
-                    project: [key: jiraArgs.project],
-                    summary: jiraArgs.summary,
-                    assignee: [name: jiraArgs.assignee],
-                    issuetype: [name: jiraArgs.issuetype],
-                    components: [[name:jiraArgs.components]]]]
-                // Optional fields
-                for (field in optionalFields){
-                    if (jiraArgs.containsKey(field)){
-                        if (field == 'description'){
-                            issue.fields.put(field,jiraArgs."${field}")
-                        }else{
-                            issue.fields.put(field,[name:jiraArgs."${field}"])
+    try{
+        if (gauntEnv.log_jira) {
+            echo 'Checking if stage is included in log_jira_stages'
+            if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
+                println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
+                existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
+                // Comment on existing Jira ticket
+                if (existingIssuesSearch.data.total != 0){ 
+                    echo 'Updating existing issue..'
+                    existingIssue = existingIssuesSearch.data.issues
+                    key = existingIssue[0].key
+                    issueUpdate = jiraArgs.description
+                    comment = [body: issueUpdate]
+                    jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+                }
+                // Create new Jira ticket
+                else{
+                    echo 'Issue does not exist. Creating new Jira issue..'
+                    // Required fields
+                    issue = [fields: [
+                        project: [key: jiraArgs.project],
+                        summary: jiraArgs.summary,
+                        assignee: [name: jiraArgs.assignee],
+                        issuetype: [name: jiraArgs.issuetype],
+                        components: [[name:jiraArgs.components]]]]
+                    // Optional fields
+                    for (field in optionalFields){
+                        if (jiraArgs.containsKey(field)){
+                            if (field == 'description'){
+                                issue.fields.put(field,jiraArgs."${field}")
+                            }else{
+                                issue.fields.put(field,[name:jiraArgs."${field}"])
+                            }
                         }
                     }
+                    def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
+                    key = newIssue.data.key
                 }
-                def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
-                key = newIssue.data.key
-            }
-            // Upload attachment if any
-            if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
-                echo 'Uploading attachments..'
-                for (attachmentFile in jiraArgs.attachment){
-                    def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
-                } 
+                // Upload attachment if any
+                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                    echo 'Uploading attachments..'
+                    for (attachmentFile in jiraArgs.attachment){
+                        def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
+                    } 
+                }
+            }else{
+                println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
             }
         }else{
-            println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
+            echo 'Jira logging is disabled for all stages.'
         }
-    }else{
-        echo 'Jira logging is disabled for all stages.'
+    }catch(Exception jiraError){
+        println('Error creating/updating Jira issue.')
     }
 }
 
