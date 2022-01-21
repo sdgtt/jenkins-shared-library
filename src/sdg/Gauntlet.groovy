@@ -1069,13 +1069,13 @@ def logJira(jiraArgs) {
         }
     }
     // Append [carier-daugther] to summary
+    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
     try{
-        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+board )+"-"+nebula('update-config board-config daughter --board-name='+board )+" ".concat(jiraArgs.summary)
+        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+jiraArgs.board )+"-"+nebula('update-config board-config daughter --board-name='+jiraArgs.board )+"] ".concat(jiraArgs.summary)
     }catch(Exception summary){
         println('Jira: Cannot append [carier-daugther] to summary.')
     }
     // Include hdl and linux hash if available
-    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
     try{
         jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
         jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
