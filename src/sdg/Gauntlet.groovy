@@ -673,8 +673,6 @@ def stage_library(String stage_name) {
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def serial = nebula('update-config uart-config address --board-name='+board)
-                    def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
                     def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa']
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     try{
@@ -688,10 +686,10 @@ def stage_library(String stage_name) {
                     }catch(Exception ex){
                         throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
-                    retry(3){
-                        sleep(2)
-                        sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
-                    }
+                    //retry(3){
+                    //    sleep(2)
+                    //    sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+                    //}
                     sh 'cp outs/' +file+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         dir('projects/'+ project){
@@ -716,6 +714,7 @@ def stage_library(String stage_name) {
                 }
             }
             stage('Check Context'){
+                def serial = nebula('update-config uart-config address --board-name='+board)
                 try{
                     retry(3){
                         echo '---------------------------'
