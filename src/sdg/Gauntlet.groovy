@@ -697,14 +697,14 @@ def stage_library(String stage_name) {
                                 if (gauntEnv.vivado_ver == '2020.1'){
                                     sh 'ln /usr/bin/make /usr/bin/gmake'
                                 }
-                                sh '. /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' TINYIIOD=y'
+                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' TINYIIOD=y'
                             }catch(Exception ex){
                                 throw new Exception('Build .elf file error: '+ ex.getMessage()) 
                             }
                             try{
                                 retry(3){
                                     sleep(2)
-                                    sh '. /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                                    sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                                 }
                             }catch(Exception ex){
                                 throw new Exception('Upload .elf file error: '+ ex.getMessage()) 
