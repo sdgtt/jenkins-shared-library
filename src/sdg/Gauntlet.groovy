@@ -443,7 +443,7 @@ def stage_library(String stage_name) {
                     }
                     finally
                     {
-                        // archiveArtifacts artifacts: 'pyadi-iio/testxml/*.xml', followSymlinks: false, allowEmptyArchive: true
+                        archiveArtifacts artifacts: 'pyadi-iio/testxml/*.xml', followSymlinks: false, allowEmptyArchive: true
                         junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true                    
                     }
                 }
@@ -476,8 +476,9 @@ def stage_library(String stage_name) {
                         unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
                     }finally{
                         dir('libad9361-iio/build'){
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
-                            archiveArtifacts artifacts: 'Testing/**/*.xml', followSymlinks: false, allowEmptyArchive: true
+                            sh "mv Testing ${board}"
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: "${board}/**/*.xml", skipNoTestFiles: false, stopProcessingIfError: true)])
+                            archiveArtifacts artifacts: "${board}/**/*.xml", followSymlinks: false, allowEmptyArchive: true
                         }
                     }
                 }else{
