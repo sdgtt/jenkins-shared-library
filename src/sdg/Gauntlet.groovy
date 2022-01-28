@@ -374,7 +374,7 @@ def stage_library(String stage_name) {
                             }catch(Exception desc){
                                 println('Error updating description.')
                             }finally{
-                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2"]]) 
+                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2","dmesg.log"]]) 
                             }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
