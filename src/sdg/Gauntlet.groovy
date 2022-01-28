@@ -609,6 +609,8 @@ private def run_agents() {
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
     docker_args.add('-v /usr/app:/app')
+    docker_args.add('-v /etc/timezone:/etc/timezone:ro')
+    docker_args.add('-v /etc/localtime:/etc/localtime:ro')
     if (gauntEnv.docker_host_mode) {
         docker_args.add('--network host')
     }
