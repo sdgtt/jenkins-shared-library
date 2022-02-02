@@ -673,7 +673,7 @@ def stage_library(String stage_name) {
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa']
+                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     try{
                         file = files[gauntEnv.vivado_ver.toString()]
@@ -694,7 +694,7 @@ def stage_library(String stage_name) {
                     dir('no-OS'){
                         dir('projects/'+ project){
                             try{
-                                if (gauntEnv.vivado_ver == '2020.1'){
+                                if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
                                     sh 'ln /usr/bin/make /usr/bin/gmake'
                                 }
                                 sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' TINYIIOD=y'
