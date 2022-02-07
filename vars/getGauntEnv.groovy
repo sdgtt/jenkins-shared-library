@@ -61,6 +61,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             nebula_config_branch: 'master',
             send_results: false,
             elastic_logs : [:],
+            log_jira: false,
+            log_jira_stages: [],
             max_retry: 3,
             recovery_ref: "SD"
     ]
