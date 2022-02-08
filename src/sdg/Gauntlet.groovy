@@ -654,6 +654,20 @@ private def collect_logs() {
     
 }
 
+private def log_artifacts(){
+    // execute to one of available agents
+    def agent = gauntEnv.agents[0]
+    node(agent){
+        stage('Log Artifacts'){
+            def command = "telemetry grab-and-log-artifacts"
+            command += " --jenkins-server ${JENKINS_URL}"
+            command += " --es-server ${gauntEnv.elastic_server}"
+            command += " --job-name ${env.JOB_NAME} --job ${env.BUILD_NUMBER}"
+            run_i(command)
+        }
+    }
+}
+
 private def run_agents() {
     // Start stages for each node with a board
     def docker_status = gauntEnv.enable_docker
@@ -1047,6 +1061,16 @@ def set_log_jira_stages(log_jira_stages) {
 }
 
 /**
+ * Enables logging of test build artifacts to telemetry at the end of the build
+ * @param enable boolean replaces default gauntEnv.log_artifacts
+ * set to true to log artifacts data to telemetry, or set to false(default) otherwise
+ */
+def set_log_artifacts(boolean enable) {
+    gauntEnv.log_artifacts = enable
+}
+
+
+/**
  * Creates or updates existing Jira issue for carrier-daughter board
  * Each stage has its own Jira thread for each carrier-daughter board
  * Required key: jiraArgs.summary, other fields have default values or optional
@@ -1152,7 +1176,10 @@ def run_stages() {
         check_required_hardware()
         run_agents()
     }
-    collect_logs()
+    // collect_logs()
+    if (gauntEnv.log_artifacts){
+        log_artifacts()
+    }
 }
 
 def update_agents() {
