@@ -64,6 +64,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             log_jira: false,
             log_jira_stages: [],
             max_retry: 3,
-            recovery_ref: "SD"
+            recovery_ref: "SD",
+            log_artifacts: false
     ]
 }
