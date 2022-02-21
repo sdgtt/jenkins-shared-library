@@ -1,6 +1,7 @@
 package sdg
 import sdg.FailSafeWrapper
 import sdg.NominalException
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
@@ -134,46 +135,54 @@ def stage_library(String stage_name) {
             println('Added Stage UpdateBOOTFiles')
             cls = { String board ->
                 try {
-                stage('Update BOOT Files') {
-                    println("Board name passed: "+board)
-                    println("Branch: " + gauntEnv.branches.toString())
-                    try{
-                        if (board=="pluto"){
-                            if (gauntEnv.firmwareVersion == 'NA')
-                                throw new Exception("Firmware must be specified")
-                            nebula('dl.bootfiles --board-name=' + board 
-                                    +  ' --branch="' + gauntEnv.firmwareVersion  
-                                    +  '" --filetype="firmware"', true, true, true)
+                    stage('Update BOOT Files') {
+                        def boolean trxPluto = gauntEnv.docker_args.contains("MATLAB") && (board=="pluto")
+                        println trxPluto
+                        if (trxPluto) {
+                            println("Skip pluto firmware update.")
+                            Utils.markStageSkippedForConditional('Update BOOT Files')
                         }else{
-                            if (gauntEnv.branches == ["NA","NA"])
-                                throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
-                            if (gauntEnv.bootfile_source == "NA")
-                                throw new Exception("bootfile_source must be specified")
-                            nebula('dl.bootfiles --board-name=' + board 
-                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                                    + '" --source=' + gauntEnv.bootfile_source
-                                    +  ' --branch="' + gauntEnv.branches.toString()
-                                    +  '"' + gauntEnv.filetype, true, true, true) 
+                            println("Board name passed: "+board)
+                            println("Branch: " + gauntEnv.branches.toString())
+                            try{
+                                if (board=="pluto"){
+                                    if (gauntEnv.firmwareVersion == 'NA')
+                                        throw new Exception("Firmware must be specified")
+                                    nebula('dl.bootfiles --board-name=' + board 
+                                            +  ' --branch="' + gauntEnv.firmwareVersion  
+                                            +  '" --filetype="firmware"', true, true, true)
+                                }else{
+                                    if (gauntEnv.branches == ["NA","NA"])
+                                        throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
+                                    if (gauntEnv.bootfile_source == "NA")
+                                        throw new Exception("bootfile_source must be specified")
+                                    nebula('dl.bootfiles --board-name=' + board 
+                                            + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                                            + '" --source=' + gauntEnv.bootfile_source
+                                            +  ' --branch="' + gauntEnv.branches.toString()
+                                            +  '"' + gauntEnv.filetype, true, true, true) 
+                                }
+                                //get git sha properties of files
+                                get_gitsha(board)
+                            }catch(Exception ex){
+                                throw new Exception('Downloader error: '+ ex.getMessage()) 
+                            }
+                            
+                            //update-boot-files
+                            nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
+                            if (board=="pluto"){
+                                retry(2){
+                                    sleep(50)
+                                    nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
+                                }
+                            }
+                            set_elastic_field(board, 'uboot_reached', 'True')
+                            set_elastic_field(board, 'kernel_started', 'True')
+                            set_elastic_field(board, 'linux_prompt_reached', 'True')
+                            set_elastic_field(board, 'post_boot_failure', 'False')
                         }
-                        //get git sha properties of files
-                        get_gitsha(board)
-                    }catch(Exception ex){
-                        throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
-                    
-                    //update-boot-files
-                    nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
-                    if (board=="pluto"){
-                        retry(2){
-                            sleep(50)
-                            nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
-                        }
-                    }
-                    set_elastic_field(board, 'uboot_reached', 'True')
-                    set_elastic_field(board, 'kernel_started', 'True')
-                    set_elastic_field(board, 'linux_prompt_reached', 'True')
-                    set_elastic_field(board, 'post_boot_failure', 'False')
-                }}
+                }
                 catch(Exception ex) {
                     def is_nominal_exception = false
                     if (ex.getMessage().contains('u-boot not reached')){
