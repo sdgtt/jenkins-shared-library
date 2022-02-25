@@ -68,6 +68,27 @@ def call(project, filepattern) {
             target = target + 'dev/' + branch
     }
   }
+  else if (project == 'RFMicrowaveToolbox') {
+        ext = '.mltbx'
+        name = 'rfm-toolbox'
+        target = root + 'RFMicrowaveToolbox/'
+
+        def branch = env.BRANCH_NAME
+        if (!env.BRANCH_NAME) {
+            println('Branch name not found in environment, checking through git')
+            sh 'git branch > branchname'
+            sh 'sed -i "s/[*]//" branchname'
+            branch = readFile('branchname').trim()
+        }
+
+        println('Found branch: ' + branch)
+        if (branch == 'master') {
+            target = target + 'master'
+        }
+    else {
+            target = target + 'dev/' + branch
+    }
+  }
   else {
         println('Unknown project. Not uploading artifacts')
         return
