@@ -9,6 +9,7 @@ def call(project, filepattern) {
         ext = '.mltbx'
         name = 'trx-toolbox'
         target = root + 'TransceiverToolbox/'
+        log_target = target
 
         def branch = env.BRANCH_NAME
         if (!env.BRANCH_NAME) {
@@ -30,6 +31,7 @@ def call(project, filepattern) {
         ext = '.mltbx'
         name = 'hsx-toolbox'
         target = root + 'HighSpeedConverterToolbox/'
+        log_target = target
 
         def branch = env.BRANCH_NAME
         if (!env.BRANCH_NAME) {
@@ -51,6 +53,7 @@ def call(project, filepattern) {
         ext = '.mltbx'
         name = 'sensor-toolbox'
         target = root + 'SensorToolbox/'
+        log_target = target
 
         def branch = env.BRANCH_NAME
         if (!env.BRANCH_NAME) {
@@ -72,7 +75,8 @@ def call(project, filepattern) {
         ext = '.mltbx'
         name = 'rfm-toolbox'
         target = root + 'RFMicrowaveToolbox/'
-
+        log_target = target
+        
         def branch = env.BRANCH_NAME
         if (!env.BRANCH_NAME) {
             println('Branch name not found in environment, checking through git')
@@ -125,6 +129,9 @@ def call(project, filepattern) {
 
     // Build folder/filename
     target = target + '/' + env.BUILD_ID + '-' + commit + '/'
+    if (filepattern == '*.log'){
+        target = log_target
+    }
 
     def uploadSpec = """{
     "files": [
