@@ -444,7 +444,7 @@ def stage_library(String stage_name) {
                             board_name = check.board_name.replaceAll('-', '_')
                             marker = check.marker
                             cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml"
-                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri='ip:"+ip+"' -m " + board_name
+                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri="+uri+" -m " + board_name
                             cmd += " --scan-verbose --capture=tee-sys" + marker
                             def statusCode = sh script:cmd, returnStatus:true
 
