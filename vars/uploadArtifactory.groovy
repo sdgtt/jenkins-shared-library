@@ -163,6 +163,8 @@ def call(project, filepattern) {
 
 // Publish the build to Artifactory
 //server.publishBuildInfo buildInfo
+
+    return target
 }
 
 @NonCPS
