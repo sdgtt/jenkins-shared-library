@@ -76,7 +76,7 @@ def call(project, filepattern) {
         name = 'rfm-toolbox'
         target = root + 'RFMicrowaveToolbox/'
         log_target = target
-        
+
         def branch = env.BRANCH_NAME
         if (!env.BRANCH_NAME) {
             println('Branch name not found in environment, checking through git')
@@ -132,6 +132,9 @@ def call(project, filepattern) {
     if (filepattern == '*.log'){
         target = log_target
     }
+    else if (filepattern == '*BOOT.BIN'){
+        target = target + 'bootfiles/'
+    } 
 
     def uploadSpec = """{
     "files": [
