@@ -252,6 +252,9 @@ def stage_library(String stage_name) {
                             }
                             sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
                             echo "Executing board recovery..."
+                            if (gauntEnv.force_recover){
+                                nebula_cmd = nebula_cmd + ' --force' 
+                            }
                             nebula(nebula_cmd)
                         }catch(Exception ex){
                             echo getStackTrace(ex)
@@ -1042,6 +1045,14 @@ def isMultiBranchPipeline() {
  */
 def set_recovery_reference(reference) {
     gauntEnv.recovery_ref = reference
+}
+
+/**
+ * Enable force recover mode during board recovery.
+ * @param force boolean True will enable force recover mode
+ */
+def set_force_recover(force) {
+    gauntEnv.force_recover = force
 }
 
 /**
