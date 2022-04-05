@@ -1479,7 +1479,7 @@ private def install_telemetry() {
         // bat 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            run_i('pip install elasticsearch', true)
+            run_i('pip install -r requirements.txt', true)
             run_i('python setup.py install', true)
         }
     }
@@ -1488,7 +1488,7 @@ private def install_telemetry() {
         // sh 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            run_i('pip3 install elasticsearch', true)
+            run_i('pip3 install -r requirements.txt', true)
             run_i('python3 setup.py install', true)
         }
     }
