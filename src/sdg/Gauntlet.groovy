@@ -126,18 +126,18 @@ def stage_library(String stage_name) {
                             if (gauntEnv.firmwareVersion == 'NA')
                                 throw new Exception("Firmware must be specified")
                             nebula('dl.bootfiles --board-name=' + board 
-                                    + ' --branch=' + gauntEnv.firmwareVersion 
-                                    + ' --firmware', true, true, true)
+                                    +  ' --branch="' + gauntEnv.firmwareVersion  
+                                    +  '" --filetype="firmware"', true, true, true)
                         }else{
                             if (gauntEnv.branches == ["NA","NA"])
                                 throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
                             if (gauntEnv.bootfile_source == "NA")
                                 throw new Exception("bootfile_source must be specified")
-                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' 
-                                    + gauntEnv.nebula_local_fs_source_root 
+                            nebula('dl.bootfiles --board-name=' + board 
+                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
                                     + '" --source=' + gauntEnv.bootfile_source
-                                    +  ' --branch="' + gauntEnv.branches.toString() 
-                                    + '"', true, true, true)
+                                    +  ' --branch="' + gauntEnv.branches.toString()
+                                    +  '"' + gauntEnv.filetype, true, true, true) 
                         }
                         //get git sha properties of files
                         get_gitsha(board)
@@ -223,13 +223,13 @@ def stage_library(String stage_name) {
                 switch(gauntEnv.recovery_ref){
                     case "SD":
                         nebula_cmd = nebula_cmd + ' --sdcard'
-                        ref_branch = ['boot_partition', 'release']
+                        ref_branch = 'release'
                         break;
                     case "boot_partition_master":
-                        ref_branch = ['boot_partition', 'master']
+                        ref_branch = 'master'
                         break;
                     case "boot_partition_release":
-                        ref_branch = ['boot_partition', 'release']
+                        ref_branch = 'release'
                         break;
                     default:
                          throw new Exception('Unknown recovery ref branch: ' + gauntEnv.recovery_ref)
@@ -245,7 +245,8 @@ def stage_library(String stage_name) {
                             nebula('dl.bootfiles --board-name=' + board 
                                 + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
                                 + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + ref_branch.toString() + '"') 
+                                +  ' --branch="' + ref_branch.toString()
+                                +  '" --filetype="boot_partition"', true, true, true)
                             echo "Extracting reference fsbl and u-boot"
                             dir('outs'){
                                 sh("cp bootgen_sysfiles.tgz ..")
