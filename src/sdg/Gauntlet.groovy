@@ -187,15 +187,23 @@ def stage_library(String stage_name) {
                         echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
                     }
                     get_gitsha(board)
+                    failing_msg = "'" + ex.getMessage().split('\n').last().replaceAll( /(['])/, '"') + "'"
                     // send logs to elastic
                     if (gauntEnv.send_results){
                         set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
-                        failing_msg = "'" + ex.getMessage().split('\n').last().replaceAll( /(['])/, '"') + "'" 
                         set_elastic_field(board, 'last_failing_stage_failure', failing_msg)
                         stage_library('SendResults').call(board)
                     }
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
+                    // log Jira
+                    try{
+                        description = failing_msg
+                    }catch(Exception desc){
+                        println('Error updating description.')
+                    }finally{
+                        logJira([board:board, summary:'Update BOOT files failed.', description:description, attachment:[board+".log"]]) 
+                    }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
                     //archive uart logs
@@ -210,7 +218,22 @@ def stage_library(String stage_name) {
         cls = { String board ->
             stage('RecoverBoard'){
                 echo "Recovering ${board}"
-                def ref_branch = ['boot_partition', 'release']
+                def ref_branch = []
+                def nebula_cmd = 'manager.recovery-device-manager --board-name=' + board + ' --folder=outs'
+                switch(gauntEnv.recovery_ref){
+                    case "SD":
+                        nebula_cmd = nebula_cmd + ' --sdcard'
+                        ref_branch = ['boot_partition', 'release']
+                        break;
+                    case "boot_partition_master":
+                        ref_branch = ['boot_partition', 'master']
+                        break;
+                    case "boot_partition_release":
+                        ref_branch = ['boot_partition', 'release']
+                        break;
+                    default:
+                         throw new Exception('Unknown recovery ref branch: ' + gauntEnv.recovery_ref)
+                }
                 if (board=="pluto"){
                     echo "Recover stage does not support pluto yet!"
                 }else{
@@ -229,7 +252,7 @@ def stage_library(String stage_name) {
                             }
                             sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
                             echo "Executing board recovery..."
-                            nebula('manager.recovery-device-manager --board-name=' + board + ' --folder=outs' + ' --sdcard')
+                            nebula(nebula_cmd)
                         }catch(Exception ex){
                             echo getStackTrace(ex)
                             throw ex
@@ -285,13 +308,17 @@ def stage_library(String stage_name) {
                     cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
                     // cmd +="jenkins_job_date datetime.datetime.now(),
                     cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
-                    cmd += ' jenkins_project_name ' + env.JOB_NAME
+                    cmd += ' jenkins_project_name ' + '\'' + env.JOB_NAME + '\''
                     cmd += ' jenkins_agent ' + env.NODE_NAME
                     cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
-                    cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
-                    cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
-                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
-                    cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+                    cmd += ' pytest_errors ' + get_elastic_field(board, 'pytest_errors', '0')
+                    cmd += ' pytest_failures ' + get_elastic_field(board, 'pytest_failures', '0')
+                    cmd += ' pytest_skipped ' + get_elastic_field(board, 'pytest_skipped', '0')
+                    cmd += ' pytest_tests ' + get_elastic_field(board, 'pytest_tests', '0')
+                    cmd += ' matlab_errors ' + get_elastic_field(board, 'matlab_errors', '0')
+                    cmd += ' matlab_failures ' + get_elastic_field(board, 'matlab_failures', '0')
+                    cmd += ' matlab_skipped ' + get_elastic_field(board, 'matlab_skipped', '0')
+                    cmd += ' matlab_tests ' + get_elastic_field(board, 'matlab_tests', '0')
                     cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
                     cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
                     sendLogsToElastic(cmd)
@@ -338,6 +365,17 @@ def stage_library(String stage_name) {
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
+                            // log Jira
+                            def description = ""
+                            try{
+                                description += "*Missing drivers: " + missing_devs.size().toString() + "* (" + missing_devs.join(", ") + ")\n"
+                                dmesg_errs = readFile("dmesg_err_filtered.log").readLines()
+                                description += "*dmesg errors: ${dmesg_errs.size()}*\n" + dmesg_errs.join("\n")
+                            }catch(Exception desc){
+                                println('Error updating description.')
+                            }finally{
+                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2","dmesg.log"]]) 
+                            }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
@@ -364,6 +402,8 @@ def stage_library(String stage_name) {
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def uri;
+                        def description = ""
+                        def pytest_attachment = null
                         println('IP: ' + ip)
                         // temporarily get pytest-libiio from another source
                         run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
@@ -386,7 +426,9 @@ def stage_library(String stage_name) {
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
                             marker = check.marker
-                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml --adi-hw-map -v -k 'not stress' -s --uri='ip:"+ip+"' -m " + board_name + " --capture=tee-sys" + marker
+                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml"
+                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri='ip:"+ip+"' -m " + board_name
+                            cmd += " --scan-verbose --capture=tee-sys" + marker
                             def statusCode = sh script:cmd, returnStatus:true
 
                             // generate html report
@@ -403,31 +445,38 @@ def stage_library(String stage_name) {
                             }
 
                             // get pytest results for logging
-                            if(fileExists('testxml/' + board + '_reports.xml')){
+                            xmlFile = 'testxml/' + board + '_reports.xml'
+                            if(fileExists(xmlFile)){
                                 try{
-                                    def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
-                                    pytest_logs.each {
-                                        cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*' 
-                                        cmd+= it + '="([0-9]+)".*/\\1/p\''
-                                        set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
-                                    }
-                                    // println(gauntEnv.elastic_logs[board.replaceAll('_', '-')])
+                                    parseForLogging ('pytest', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing pytest results failed')
                                     echo getStackTrace(ex)
                                 }
+                                pytest_attachment = board+"_reports.xml"
                             }
                             
                             // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
+                                // log Jira
+                                dir('testxml'){
+                                    try{
+                                        sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
+                                        description += readFile 'failures.txt'
+                                    }catch(Exception desc){
+                                        println('Error updating description.')
+                                    }finally{
+                                        logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
+                                    }
+                                } 
                                 unstable("PyADITests Failed")
                             }                
                         }
                     }
                     finally
                     {
-                        // archiveArtifacts artifacts: 'pyadi-iio/testxml/*.xml', followSymlinks: false, allowEmptyArchive: true
+                        archiveArtifacts artifacts: 'pyadi-iio/testxml/*.xml', followSymlinks: false, allowEmptyArchive: true
                         junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true                    
                     }
                 }
@@ -457,10 +506,20 @@ def stage_library(String stage_name) {
                             }
                         }
                     }catch(Exception ex){
+                        // log Jira
+                        try{
+                            description = "LibAD9361Tests Failed: ${ex.getMessage()}"
+                        } catch(Exception desc){
+                                println('Error updating description.')
+                        } finally{
+                            logJira([board:board, summary:'libad9361 tests failed.', description:description]) 
+                        }
                         unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
                     }finally{
                         dir('libad9361-iio/build'){
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            sh "mv Testing ${board}"
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: "${board}/**/*.xml", skipNoTestFiles: false, stopProcessingIfError: true)])
+                            archiveArtifacts artifacts: "${board}/**/*.xml", followSymlinks: false, allowEmptyArchive: true
                         }
                     }
                 }else{
@@ -474,6 +533,8 @@ def stage_library(String stage_name) {
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
+                def description = ""
+                def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
@@ -487,9 +548,28 @@ def stage_library(String stage_name) {
                     createMFile()
                     try{
                         sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                    }catch (Exception ex){
+                        // log Jira
+                        try{
+                            description += readFile 'failures.txt'
+                        }catch(Exception desc){
+                            println('Error updating description.')
+                        }finally{
+                            logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                        }
+                        throw new NominalException(ex.getMessage())
                     }finally{
-                        junit testResults: '*.xml', allowEmptyResults: true
-                    }
+                            junit testResults: '*.xml', allowEmptyResults: true
+                            // get MATLAB hardware test results for logging
+                            if(fileExists(xmlFile)){
+                                try{
+                                    parseForLogging ('matlab', xmlFile, board)
+                                }catch(Exception ex){
+                                    println('Parsing MATLAB hardware results failed')
+                                    echo getStackTrace(ex)
+                                }
+                            }   
+                        }
                 }
                 else
                 {   
@@ -500,8 +580,27 @@ def stage_library(String stage_name) {
                         createMFile()
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        }catch (Exception ex){
+                            // log Jira
+                            try{
+                                description += readFile 'failures.txt'
+                            }catch(Exception desc){
+                                println('Error updating description.')
+                            }finally{
+                                logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
+                            }
+                            throw new NominalException(ex.getMessage())
                         }finally{
-                            junit testResults: '*.xml', allowEmptyResults: true    
+                            junit testResults: '*.xml', allowEmptyResults: true
+                            // get MATLAB hardware test results for logging
+                            if(fileExists(xmlFile)){
+                                try{
+                                    parseForLogging ('matlab', xmlFile, board)
+                                }catch(Exception ex){
+                                    println('Parsing MATLAB hardware results failed')
+                                    echo getStackTrace(ex)
+                                }
+                            }
                         }
                     }
                 }
@@ -555,6 +654,20 @@ private def collect_logs() {
     
 }
 
+private def log_artifacts(){
+    // execute to one of available agents
+    def agent = gauntEnv.agents[0]
+    node(agent){
+        stage('Log Artifacts'){
+            def command = "telemetry grab-and-log-artifacts"
+            command += " --jenkins-server ${JENKINS_URL}"
+            command += " --es-server ${gauntEnv.elastic_server}"
+            command += " --job-name ${env.JOB_NAME} --job ${env.BUILD_NUMBER}"
+            run_i(command)
+        }
+    }
+}
+
 private def run_agents() {
     // Start stages for each node with a board
     def docker_status = gauntEnv.enable_docker
@@ -567,6 +680,8 @@ private def run_agents() {
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
     docker_args.add('-v /usr/app:/app')
+    docker_args.add('-v /etc/timezone:/etc/timezone:ro')
+    docker_args.add('-v /etc/localtime:/etc/localtime:ro')
     if (gauntEnv.docker_host_mode) {
         docker_args.add('--network host')
     }
@@ -759,6 +874,18 @@ def set_required_hardware(List board_names) {
 }
 
 /**
+ * Set list of required agent for test
+ * @param agent_names list of strings of names of agent to use
+ * Strings must be associated with an existing agent.
+ * For example: sdg-nuc-01, master
+ */
+def set_required_agent(List agent_names) {
+    assert agent_names instanceof java.util.List
+    gauntEnv.required_agent = agent_names
+    gauntEnv.agents_online = getOnlineAgents()
+}
+
+/**
  * Set URI source. Set URI source. Supported are ip or serial
  * @param iio_uri_source String of URI source
  */
@@ -910,6 +1037,133 @@ def isMultiBranchPipeline() {
 }
 
 /**
+ * Set the value of reference branch for the board recovery stage.
+ * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release'
+ */
+def set_recovery_reference(reference) {
+    gauntEnv.recovery_ref = reference
+}
+
+/**
+ * Enable logging issues to Jira. Setting true will update existing Jira issues or create a new issue.
+ * @param log_jira Boolean of enable jira logging.
+ */
+def set_log_jira(log_jira) {
+    gauntEnv.log_jira = log_jira
+}
+
+/**
+ * Set stages where Jira issues should be updated or created.
+ * @param log_jira_stages List of stage names
+ */
+def set_log_jira_stages(log_jira_stages) {
+    gauntEnv.log_jira_stages = log_jira_stages
+}
+
+/**
+ * Enables logging of test build artifacts to telemetry at the end of the build
+ * @param enable boolean replaces default gauntEnv.log_artifacts
+ * set to true to log artifacts data to telemetry, or set to false(default) otherwise
+ */
+def set_log_artifacts(boolean enable) {
+    gauntEnv.log_artifacts = enable
+}
+
+
+/**
+ * Creates or updates existing Jira issue for carrier-daughter board
+ * Each stage has its own Jira thread for each carrier-daughter board
+ * Required key: jiraArgs.summary, other fields have default values or optional
+ * attachments is a list of filesnames to upload in the Jira issue
+ * Default values:  Jira site: ADI SDG
+ *                  project: HTH
+ *                  issuetype: Bug
+ *                  assignee: JPineda3
+ *                  component: KuiperTesting
+ */
+
+def logJira(jiraArgs) {
+    defaultFields = [site:'sdg-jira',project:'HTH', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
+    optionalFields = ['assignee','issuetype','description']
+    def key = ''
+    // Assign default values if not defined in jiraArgs
+    for (field in defaultFields.keySet()){
+        if (!jiraArgs.containsKey(field)){
+            jiraArgs.put(field,defaultFields."${field}")
+        }
+    }
+    // Append [carier-daugther] to summary
+    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
+    try{
+        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+jiraArgs.board )+"-"+nebula('update-config board-config daughter --board-name='+jiraArgs.board )+"] ".concat(jiraArgs.summary)
+    }catch(Exception summary){
+        println('Jira: Cannot append [carier-daugther] to summary.')
+    }
+    // Include hdl and linux hash if available
+    try{
+        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
+        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
+    }catch(Exception desc){
+        println('Jira: Cannot include hdl and linux hash to description.')
+    }
+    echo 'Checking if Jira logging is enabled..'
+    try{
+        if (gauntEnv.log_jira) {
+            echo 'Checking if stage is included in log_jira_stages'
+            if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
+                println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
+                existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
+                // Comment on existing Jira ticket
+                if (existingIssuesSearch.data.total != 0){ 
+                    echo 'Updating existing issue..'
+                    existingIssue = existingIssuesSearch.data.issues
+                    key = existingIssue[0].key
+                    issueUpdate = jiraArgs.description
+                    comment = [body: issueUpdate]
+                    jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+                }
+                // Create new Jira ticket
+                else{
+                    echo 'Issue does not exist. Creating new Jira issue..'
+                    // Required fields
+                    issue = [fields: [
+                        project: [key: jiraArgs.project],
+                        summary: jiraArgs.summary,
+                        assignee: [name: jiraArgs.assignee],
+                        issuetype: [name: jiraArgs.issuetype],
+                        components: [[name:jiraArgs.components]]]]
+                    // Optional fields
+                    for (field in optionalFields){
+                        if (jiraArgs.containsKey(field)){
+                            if (field == 'description'){
+                                issue.fields.put(field,jiraArgs."${field}")
+                            }else{
+                                issue.fields.put(field,[name:jiraArgs."${field}"])
+                            }
+                        }
+                    }
+                    def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
+                    key = newIssue.data.key
+                }
+                // Upload attachment if any
+                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                    echo 'Uploading attachments..'
+                    for (attachmentFile in jiraArgs.attachment){
+                        def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
+                    } 
+                }
+            }else{
+                println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
+            }
+        }else{
+            echo 'Jira logging is disabled for all stages.'
+        }
+    }catch(Exception jiraError){
+        println('Error creating/updating Jira issue.')
+    }
+}
+
+/**
  * Main method for starting pipeline once configuration is complete
  * Once called all agents are queried for attached boards and parallel stages
  * will generated and mapped to relevant agents
@@ -922,7 +1176,10 @@ def run_stages() {
         check_required_hardware()
         run_agents()
     }
-    collect_logs()
+    // collect_logs()
+    if (gauntEnv.log_artifacts){
+        log_artifacts()
+    }
 }
 
 def update_agents() {
@@ -993,7 +1250,13 @@ private def getOnlineAgents() {
             continue
         }
         if (!computer.offline) {
-            online_agents.add(computer.name)
+            if (!gauntEnv.required_agent.isEmpty()){
+                if (computer.name in gauntEnv.required_agent){
+                    online_agents.add(computer.name)
+                }
+            }else{
+                online_agents.add(computer.name)
+            }
         }
     }
     println(online_agents)
@@ -1173,7 +1436,7 @@ private def install_libiio() {
             bat('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                bat 'cmake .. -DPYTHON_BINDINGS=ON -DHAVE_DNS_SD=OFF'
+                bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 bat 'cmake --build . --config Release --install'
             }
         }
@@ -1185,7 +1448,7 @@ private def install_libiio() {
             dir('build')
             {
                 //sh 'cmake .. -DPYTHON_BINDINGS=ON'
-                sh 'cmake .. -DPYTHON_BINDINGS=ON -DHAVE_DNS_SD=OFF'
+                sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 sh 'make'
                 sh 'make install'
                 sh 'ldconfig'
@@ -1216,7 +1479,7 @@ private def install_telemetry() {
         // bat 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            run_i('pip install elasticsearch', true)
+            run_i('pip install -r requirements.txt', true)
             run_i('python setup.py install', true)
         }
     }
@@ -1225,7 +1488,7 @@ private def install_telemetry() {
         // sh 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            run_i('pip3 install elasticsearch', true)
+            run_i('pip3 install -r requirements.txt', true)
             run_i('python3 setup.py install', true)
         }
     }
@@ -1353,4 +1616,16 @@ private def  createMFile(){
     writeFile file: 'matlab_commands.m', text: command_oneline
     sh 'ls -l matlab_commands.m'
     sh 'cat matlab_commands.m'
+}
+
+private def parseForLogging (String stage, String xmlFile, String board) {
+    stage_logs = stage + '_logs'
+    forLogging = [:]
+    forLogging.put(stage_logs,['errors', 'failures', 'skipped', 'tests'])
+    println forLogging.keySet()
+    forLogging."${stage_logs}".each {
+        cmd = 'cat ' + xmlFile + ' | sed -rn \'s/.*' 
+        cmd+= it + '="([0-9]+)".*/\\1/p\''
+        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
+    }
 }
