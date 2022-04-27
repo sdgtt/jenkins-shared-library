@@ -564,6 +564,7 @@ def stage_library(String stage_name) {
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
+                                    archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
@@ -596,6 +597,7 @@ def stage_library(String stage_name) {
                             if(fileExists(xmlFile)){
                                 try{
                                     parseForLogging ('matlab', xmlFile, board)
+                                    archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
