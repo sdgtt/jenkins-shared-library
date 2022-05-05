@@ -535,7 +535,7 @@ def stage_library(String stage_name) {
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
                 def description = ""
-                def xmlFile = board+'_HWTestResults.xml'
+                def xmlFile = null
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
@@ -549,8 +549,10 @@ def stage_library(String stage_name) {
                     createMFile()
                     try{
                         sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                     }catch (Exception ex){
                         // log Jira
+                        xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                         try{
                             description += readFile 'failures.txt'
                         }catch(Exception desc){
@@ -561,6 +563,7 @@ def stage_library(String stage_name) {
                         throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
+                            archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
@@ -581,8 +584,10 @@ def stage_library(String stage_name) {
                         createMFile()
                         try{
                             sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                            xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                         }catch (Exception ex){
                             // log Jira
+                            xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                             try{
                                 description += readFile 'failures.txt'
                             }catch(Exception desc){
@@ -593,6 +598,7 @@ def stage_library(String stage_name) {
                             throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
+                            archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
