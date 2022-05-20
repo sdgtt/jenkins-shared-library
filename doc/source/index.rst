@@ -40,6 +40,7 @@ Required Packages
    stages
    nebula
    artifacts
+   vagrant
 
 Indices and tables
 ==================
