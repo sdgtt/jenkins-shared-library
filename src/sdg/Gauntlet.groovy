@@ -667,12 +667,12 @@ def stage_library(String stage_name) {
             break
     case 'noOSTest':
         cls = { String board ->
-            try{
             stage('Build NO-OS Project'){
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                    def example = nebula('update-config board-config example --board-name='+board)
                     def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     try{
@@ -686,50 +686,51 @@ def stage_library(String stage_name) {
                     }catch(Exception ex){
                         throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
-                    //retry(3){
-                    //    sleep(2)
-                    //    sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
-                    //}
+                    retry(3){
+                       sleep(2)
+                       sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+                    }
                     sh 'cp outs/' +file+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
+                        if (gauntEnv.vivado_ver == '2020.1'){
+                            sh 'git revert 76c709e'
+                        }
                         dir('projects/'+ project){
-                            try{
-                                if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
-                                    sh 'ln /usr/bin/make /usr/bin/gmake'
-                                }
-                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' TINYIIOD=y'
-                            }catch(Exception ex){
-                                throw new Exception('Build .elf file error: '+ ex.getMessage()) 
+                            def buildfile = readJSON file: 'builds.json'
+                            flag = buildfile['xilinx'][example]['flags']
+                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                                sh 'ln /usr/bin/make /usr/bin/gmake'
                             }
-                            try{
-                                retry(3){
-                                    sleep(2)
-                                    sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
-                                }
-                            }catch(Exception ex){
-                                throw new Exception('Upload .elf file error: '+ ex.getMessage()) 
+                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
+                            retry(3){
+                                sleep(2)
+                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                             }
                         }
                     }
                 }
             }
-            stage('Check Context'){
-                def serial = nebula('update-config uart-config address --board-name='+board)
-                try{
-                    retry(3){
-                        echo '---------------------------'
-                        sleep(10);
-                        echo "Check context"
-                        sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
+            switch (example){
+                case 'iio':
+                    stage('Check Context'){
+                        def serial = nebula('update-config uart-config address --board-name='+board)
+                        try{
+                            retry(3){
+                                echo '---------------------------'
+                                sleep(10);
+                                echo "Check context"
+                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
+                            }
+                        }catch(Exception ex){
+                            throw new Exception('Failed to check for context: '+ ex.getMessage())
+                            }
                     }
-                }catch(Exception ex){
-                    throw new Exception('Failed to check for context: '+ ex.getMessage())
-                }
-            }
-            }catch(Exception ex){
-                def is_nominal_exception = false
-                echo "Send to telemetry"//add handling of result to send to telemetry
-            }
+                    break
+                case 'dma_example':
+                    // TODO
+                default:
+                    throw new Exception('Unknown stage execution type: ' + option)
+            }    
         }
             break
     default:
@@ -850,6 +851,8 @@ private def run_agents() {
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
                             sh 'cp -r /app/* "${PWD}"/'
+                            setup_locale()
+                            setup_libserialport()
                             setupAgent(['libiio','nebula','telemetry'], true, docker_status);
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
@@ -1621,6 +1624,25 @@ private def install_telemetry() {
             run_i('pip3 install -r requirements.txt', true)
             run_i('python3 setup.py install', true)
         }
+    }
+}
+
+private def setup_locale() {
+    sh 'sudo apt-get install -y locales'
+    sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
+}
+
+private def setup_libserialport() {
+    sh 'sudo apt-get install -y autoconf automake libtool'
+    sh 'git clone https://github.com/sigrokproject/libserialport.git'
+    dir('libserialport'){
+        sh './autogen.sh'
+        sh './configure --prefix=/usr/sp'
+        sh 'make'
+        sh 'make install'
+        sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
+        sh 'cp /usr/sp/include/* /usr/include/'
+        sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
     }
 }
 
