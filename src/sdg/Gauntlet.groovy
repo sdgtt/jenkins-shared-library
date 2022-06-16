@@ -632,12 +632,12 @@ def stage_library(String stage_name) {
             break
     case 'noOSTest':
         cls = { String board ->
+            def example = nebula('update-config board-config example --board-name='+board)
             stage('Build NO-OS Project'){
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def example = nebula('update-config board-config example --board-name='+board)
                     def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     try{
@@ -694,7 +694,7 @@ def stage_library(String stage_name) {
                 case 'dma_example':
                     // TODO
                 default:
-                    throw new Exception('Unknown stage execution type: ' + option)
+                    throw new Exception('Example not yet supported: ' + example)
             }    
         }
             break
