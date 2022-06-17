@@ -632,6 +632,7 @@ def stage_library(String stage_name) {
             break
     case 'noOSTest':
         cls = { String board ->
+            def under_scm = true
             def example = nebula('update-config board-config example --board-name='+board)
             stage('Build NO-OS Project'){
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
@@ -651,10 +652,24 @@ def stage_library(String stage_name) {
                     }catch(Exception ex){
                         throw new Exception('Downloader error: '+ ex.getMessage()) 
                     }
-                    retry(3){
-                       sleep(2)
-                       sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+
+                    under_scm = isMultiBranchPipeline()
+                    if (under_scm){
+                        println("Multibranch pipeline. Checkout scm.")
+                        retry(3) {
+                            sleep(5)
+                            checkout scm
+                            sh 'git submodule update --recursive --init'
+                        }
                     }
+                    else {
+                        println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                        retry(3) {
+                            sleep(2)
+                            sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+                        }
+                    }
+
                     sh 'cp outs/' +file+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         if (gauntEnv.vivado_ver == '2020.1'){
