@@ -690,10 +690,8 @@ def stage_library(String stage_name) {
 
                     under_scm = isMultiBranchPipeline()
                     if (under_scm){
-                        println("Multibranch pipeline. Checkout scm.")
                         retry(3) {
                             sleep(5)
-                            checkout scm
                             sh 'git submodule update --recursive --init'
                         }
                     }
