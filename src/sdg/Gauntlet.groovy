@@ -745,6 +745,12 @@ def stage_library(String stage_name) {
                     // TODO
                 default:
                     throw new Exception('Example not yet supported: ' + example)
+            }
+
+            stage('Power Cycle'){
+                def pdutype = nebula('update-config pdu-config pdu_type --board-name='+board)
+                def outlet = nebula('update-config pdu-config outlet --board-name='+board)
+                nebula('pdu.power-cycle --board-name=' + board + ' --pdu-type="' + pdutype + '" --outlet=' + outlet)
             }    
         }
             break
