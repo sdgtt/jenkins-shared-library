@@ -700,11 +700,10 @@ def stage_library(String stage_name) {
                             println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
                             retry(3) {
                                 sleep(2)
-                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+''
+                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
                             }
                         }
                     }
-                    
                     sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         if (gauntEnv.vivado_ver == '2020.1'){
