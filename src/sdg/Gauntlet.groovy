@@ -84,7 +84,22 @@ private def update_agent() {
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
                         run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
-                        run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                        if(gauntEnv.nebula_config_source == 'github'){
+                            run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                        }else if(gauntEnv.nebula_config_source == 'netbox'){
+                            run_i('mkdir nebula-config')
+                            dir('nebula-config'){
+                                nebula('gen-config-netbox --jenkins-agent=' + agent_name
+                                    + ' --netbox-ip=' + gauntEnv.netbox_ip
+                                    + ' --netbox-port=' + gauntEnv.netbox_port
+                                    + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
+                                    + ' --netbox-token=' + gauntEnv.netbox_token
+                                    + ' --outfile='+ agent_name, true, true, false)
+                            }
+                        }else{
+                            println(gauntEnv.nebula_config_source + ' as config source is not supported yet.')
+                        }
+                        
                         if (fileExists('nebula-config/' + agent_name)){
                             run_i('sudo mv nebula-config/' + agent_name + ' /etc/default/nebula')
                         }else{
