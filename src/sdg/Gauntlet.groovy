@@ -728,6 +728,7 @@ def stage_library(String stage_name) {
                 case 'iio':
                     stage('Check Context'){
                         def serial = nebula('update-config uart-config address --board-name='+board)
+                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
                         try{
                             retry(3){
                                 echo '---------------------------'
@@ -736,8 +737,13 @@ def stage_library(String stage_name) {
                                 sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
                             }
                         }catch(Exception ex){
-                            throw new Exception('Failed to check for context: '+ ex.getMessage())
+                            retry(3){
+                                echo '---------------------------'
+                                sleep(10);
+                                echo "Check context"
+                                sh 'iio_info -u serial:' + serial + ',' +baudrate
                             }
+                        }
                     }
                     break
                 case 'dma_example':
