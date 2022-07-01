@@ -94,6 +94,7 @@ private def update_agent() {
                                     + ' --netbox-port=' + gauntEnv.netbox_port
                                     + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
                                     + ' --netbox-token=' + gauntEnv.netbox_token
+                                    + ' --devices-tag=' + gauntEnv.netbox_devices_tag
                                     + ' --outfile='+ agent_name, true, true, false)
                             }
                         }else{
