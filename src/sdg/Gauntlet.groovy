@@ -1218,21 +1218,26 @@ private def check_required_hardware() {
         def filtered_board_list = []
         def filtered_agent_list = []
 
-        println("Found boards:")
-        for (k = 0; k < b; k++) {
-            println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
-            if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
-                filtered_board_list.add(gauntEnv.boards[k])
-                filtered_agent_list.add(gauntEnv.agents[k])
-                rh.remove(rh.indexOf(gauntEnv.boards[k]))
-            }// else do nothing
-        }
-        gauntEnv.boards = filtered_board_list
-        gauntEnv.agents = filtered_agent_list
+        if (s != 0){
+            // if required_hardware is not set, required hardware will be taken from nebula-config
+            println("Found boards:")
+            for (k = 0; k < b; k++) {
+                println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
+                if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
+                    filtered_board_list.add(gauntEnv.boards[k])
+                    filtered_agent_list.add(gauntEnv.agents[k])
+                    rh.remove(rh.indexOf(gauntEnv.boards[k]))
+                }// else do nothing
+            }
+            gauntEnv.boards = filtered_board_list
+            gauntEnv.agents = filtered_agent_list
 
-        if(rh.size() > 0){
-            println("Some required hardwares cannot be found :" + rh.toString())
-            currentBuild.result = "UNSTABLE"
+            if(rh.size() > 0){
+                println("Some required hardwares cannot be found :" + rh.toString())
+                currentBuild.result = "UNSTABLE"
+            }
+        }else{
+            println("required_hardware not set, will skip check.")
         }
     }
 }
