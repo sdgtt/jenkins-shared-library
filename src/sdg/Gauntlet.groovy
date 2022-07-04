@@ -418,6 +418,7 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
+                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -439,6 +440,18 @@ def stage_library(String stage_name) {
                                 uri = "ip:" + ip;
                             else
                                 uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                                uri2 = "serial:" + serial + "," + baudrate
+                                try{
+                                    retry(3){
+                                        sh 'iio_info -u ' +uri
+                                        uri = uri
+                                    }
+                                }catch(Exception ex){
+                                    retry(3){
+                                        sh 'iio_info -u ' +uri2
+                                        uri = uri2
+                                    }
+                                }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
