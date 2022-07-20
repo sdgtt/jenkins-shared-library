@@ -84,7 +84,23 @@ private def update_agent() {
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
                         run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
-                        run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                        if(gauntEnv.nebula_config_source == 'github'){
+                            run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                        }else if(gauntEnv.nebula_config_source == 'netbox'){
+                            run_i('mkdir nebula-config')
+                            dir('nebula-config'){
+                                nebula('gen-config-netbox --jenkins-agent=' + agent_name
+                                    + ' --netbox-ip=' + gauntEnv.netbox_ip
+                                    + ' --netbox-port=' + gauntEnv.netbox_port
+                                    + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
+                                    + ' --netbox-token=' + gauntEnv.netbox_token
+                                    + ' --devices-tag=' + gauntEnv.netbox_devices_tag
+                                    + ' --outfile='+ agent_name, true, true, false)
+                            }
+                        }else{
+                            println(gauntEnv.nebula_config_source + ' as config source is not supported yet.')
+                        }
+                        
                         if (fileExists('nebula-config/' + agent_name)){
                             run_i('sudo mv nebula-config/' + agent_name + ' /etc/default/nebula')
                         }else{
@@ -1202,21 +1218,26 @@ private def check_required_hardware() {
         def filtered_board_list = []
         def filtered_agent_list = []
 
-        println("Found boards:")
-        for (k = 0; k < b; k++) {
-            println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
-            if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
-                filtered_board_list.add(gauntEnv.boards[k])
-                filtered_agent_list.add(gauntEnv.agents[k])
-                rh.remove(rh.indexOf(gauntEnv.boards[k]))
-            }// else do nothing
-        }
-        gauntEnv.boards = filtered_board_list
-        gauntEnv.agents = filtered_agent_list
+        if (s != 0){
+            // if required_hardware is not set, required hardware will be taken from nebula-config
+            println("Found boards:")
+            for (k = 0; k < b; k++) {
+                println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
+                if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
+                    filtered_board_list.add(gauntEnv.boards[k])
+                    filtered_agent_list.add(gauntEnv.agents[k])
+                    rh.remove(rh.indexOf(gauntEnv.boards[k]))
+                }// else do nothing
+            }
+            gauntEnv.boards = filtered_board_list
+            gauntEnv.agents = filtered_agent_list
 
-        if(rh.size() > 0){
-            println("Some required hardwares cannot be found :" + rh.toString())
-            currentBuild.result = "UNSTABLE"
+            if(rh.size() > 0){
+                println("Some required hardwares cannot be found :" + rh.toString())
+                currentBuild.result = "UNSTABLE"
+            }
+        }else{
+            println("required_hardware not set, will skip check.")
         }
     }
 }
