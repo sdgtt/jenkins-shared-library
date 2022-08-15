@@ -682,6 +682,9 @@ def stage_library(String stage_name) {
         cls = { String board ->
             def under_scm = true
             def example = nebula('update-config board-config example --board-name='+board)
+            stage('Check JTAG connection'){
+                nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+            }
             stage('Build NO-OS Project'){
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
