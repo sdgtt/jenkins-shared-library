@@ -439,8 +439,8 @@ def stage_library(String stage_name) {
                             if (gauntEnv.iio_uri_source == "ip")
                                 uri = "ip:" + ip;
                             else
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
-                                uri2 = "serial:" + serial + "," + baudrate
+                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString() //baudrate from gauntEnv default
+                                uri_custom = "serial:" + serial + "," + baudrate //baudrate from nebula-config
                                 try{
                                     retry(3){
                                         sh 'iio_info -u ' +uri
@@ -448,8 +448,8 @@ def stage_library(String stage_name) {
                                     }
                                 }catch(Exception ex){
                                     retry(3){
-                                        sh 'iio_info -u ' +uri2
-                                        uri = uri2
+                                        sh 'iio_info -u ' +uri_custom
+                                        uri = uri_custom
                                     }
                                 }
                             check = check_for_marker(board)
