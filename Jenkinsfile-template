@@ -9,12 +9,22 @@ lock(label: 'adgt_test_harness_boards'){
     def bootfile_source = 'artifactory' 
     def harness = getGauntlet(hdlBranch, linuxBranch, bootPartitionBranch, bootfile_source)
 
+    //update nebula config from netbox or github
+    harness.set_update_nebula_config(true)
+    harness.set_env('nebula_config_source','netbox') //use 'github' if getting nebula config from github
+    harness.set_env('netbox_ip','192.168.10.11') //comment out if using github source
+    harness.set_env('netbox_port','8000') //comment out if using github source
+    harness.set_env('netbox_base_url','netbox') //comment out if using github source
+    harness.set_env('netbox_token', netbox_token) //comment out if using github source
+                                                  //edit netbox_token to respective value
+    harness.set_env('netbox_devices_tag','active') //comment out if using github source
+
     //udpate repos
     harness.set_env('nebula_repo','https://github.com/sdgtt/nebula.git')
     harness.set_env('nebula_branch','dev')
-	harness.set_env('nebula_config_branch','release')
     harness.set_env('libiio_branch','v0.23')
-    
+    //harness.set_env('nebula_config_branch','release') //uncomment if using github source
+
     //update first the agent with the required deps
 	harness.set_required_agent(["sdg-nuc-01", "sdg-nuc-02", "sdg-machine-02"])
     harness.update_agents()
@@ -27,7 +37,7 @@ lock(label: 'adgt_test_harness_boards'){
     harness.set_enable_resource_queuing(true)
     harness.set_log_jira(false)
 
-    harness.set_elastic_server('192.168.10.11')
+    harness.set_elastic_server('192.168.10.1')
 
     harness.set_required_hardware(["zynq-zc706-adv7511-fmcdaq2"]) 
     harness.set_docker_args(['Vivado']) 
