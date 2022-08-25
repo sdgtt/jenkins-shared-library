@@ -96,6 +96,7 @@ private def update_agent() {
                                     + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
                                     + ' --netbox-token=' + gauntEnv.netbox_token
                                     + ' --devices-tag=' + gauntEnv.netbox_devices_tag
+                                    + ' --template=' + gauntEnv.netbox_nebula_template
                                     + ' --outfile='+ agent_name, true, true, false)
                             }
                         }else{
