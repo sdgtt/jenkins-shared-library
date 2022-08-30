@@ -1238,15 +1238,24 @@ def set_log_artifacts(boolean enable) {
  */
 
 def logJira(jiraArgs) {
-    defaultFields = [site:'sdg-jira',project:'HTH', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
+    defaultFields = [site:'sdg-jira',project:'GTSQA', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
     optionalFields = ['assignee','issuetype','description']
     def key = ''
+    def issueKey = ''
+    def issueExists = false
+    def createIssue = true
+    def baseURL = "https://jira.analog.com/rest/api/"
     // Assign default values if not defined in jiraArgs
     for (field in defaultFields.keySet()){
         if (!jiraArgs.containsKey(field)){
             jiraArgs.put(field,defaultFields."${field}")
         }
     }
+
+    // Debug description value
+    jiraArgs.description = "test_adrv9002_tx_data[False-0-adi.adrv9002]"
+    jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \\\n".concat(jiraArgs.description)
+
     // Append [carier-daugther] to summary
     jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
     try{
@@ -1254,59 +1263,110 @@ def logJira(jiraArgs) {
     }catch(Exception summary){
         println('Jira: Cannot append [carier-daugther] to summary.')
     }
-    // Include hdl and linux hash if available
-    try{
-        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
-        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
-    }catch(Exception desc){
-        println('Jira: Cannot include hdl and linux hash to description.')
-    }
+
+    // // Include hdl and linux hash if available
+    // try{
+    //     jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
+    //     jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
+    // }catch(Exception desc){
+    //     println('Jira: Cannot include hdl and linux hash to description.')
+    // }
+
     echo 'Checking if Jira logging is enabled..'
     try{
         if (gauntEnv.log_jira) {
             echo 'Checking if stage is included in log_jira_stages'
             if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
-                println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
-                existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
-                // Comment on existing Jira ticket
-                if (existingIssuesSearch.data.total != 0){ 
-                    echo 'Updating existing issue..'
-                    existingIssue = existingIssuesSearch.data.issues
-                    key = existingIssue[0].key
-                    issueUpdate = jiraArgs.description
-                    comment = [body: issueUpdate]
-                    jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+
+                // Search issue using curl
+                sh "pwd"
+                // create jql search file
+                sh 'printf "{\\"jql\\":\\"project = '+jiraArgs.project+'\\",\\"startAt\\":0,\\"fields\\":[\\"key\\",\\"summary\\"]}" > search_jql.txt'
+                sh "cat search_jql.txt"
+                // search issues in project
+                withCredentials([string(credentialsId: 'jira-basic-authentication', variable: 'JIRA_AUTH')]) {
+                    sh 'curl -D- -X POST -H \"Authorization: Basic '+JIRA_AUTH+'\" -H \"Content-Type: application/json\" --data @search_jql.txt '+baseURL+'latest/search >> search_response.txt'
                 }
-                // Create new Jira ticket
-                else{
-                    echo 'Issue does not exist. Creating new Jira issue..'
-                    // Required fields
-                    issue = [fields: [
-                        project: [key: jiraArgs.project],
-                        summary: jiraArgs.summary,
-                        assignee: [name: jiraArgs.assignee],
-                        issuetype: [name: jiraArgs.issuetype],
-                        components: [[name:jiraArgs.components]]]]
-                    // Optional fields
-                    for (field in optionalFields){
-                        if (jiraArgs.containsKey(field)){
-                            if (field == 'description'){
-                                issue.fields.put(field,jiraArgs."${field}")
-                            }else{
-                                issue.fields.put(field,[name:jiraArgs."${field}"])
-                            }
-                        }
+                sh "cat search_response.txt"
+                // parse search response to return issue key of existing issue that matches summary
+                issueSummary = jiraArgs.summary.replace("[","\\[").replace("]","\\]")
+                println(issueSummary)
+                //'+credentials('dummy-credentials')+'
+                def parseCommand = "tr -d \"\\n\\r\" < search_response.txt"
+                parseCommand += " | sed 's/^\\(.*\\)\\(\"key\":\"\\)\\([A-Z]*-[0-9]*\\)\\(\",\"fields\":{\"summary\":\""
+                parseCommand += issueSummary + ".\\)\\(.*\\)/\\3 /g'"
+                parseCommand += " | grep [A-Z]*-[0-9]*"
+                issueKey = sh script:parseCommand, returnStdout:true
+                issueKey=issueKey.replaceAll("\\s","")
+                println(issueKey)
+                
+                // validate returned issue key
+                if (issueKey =~ '^'+jiraArgs.project+'-[0-9]+') { // valid issueKey, Jira issue exists
+                    println "Pattern matched. Jira issue exists."
+                    issueExists = true
+                } else {
+                    println "Invalid issue key. Jira issue does not exist."
+                }
+                
+                // Add comment or create issue depending on returned issueKey
+                if (issueExists) {
+                    sh 'printf "{\\"body\\": \\"'+jiraArgs.description+'\\"}" > comment.txt'
+                    sh "cat comment.txt"
+                    withCredentials([string(credentialsId: 'jira-basic-authentication', variable: 'JIRA_AUTH')]) {
+                        sh 'curl -D- -X POST --data @comment.txt -H \"Authorization: Basic '+JIRA_AUTH+'\" -H \"Content-Type: application/json\" '+baseURL+'2/issue/'+issueKey+'/comment'
                     }
-                    def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
-                    key = newIssue.data.key
                 }
-                // Upload attachment if any
-                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
-                    echo 'Uploading attachments..'
-                    for (attachmentFile in jiraArgs.attachment){
-                        def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
-                    } 
+                else{
+                    sh 'printf "{\\"fields\\":{\\"project\\":{\\"key\\":\\"'+jiraArgs.project+'\\" },\\"summary\\":\\"'+jiraArgs.summary+'\\",\\"description\\":\\"'+jiraArgs.description+'",\\"issuetype\\":{\\"name\\":\\"Bug\\" },\\"assignee\\":{\\"name\\":\\"'+jiraArgs.assignee+'\\" },\\"components\\":[{\\"name\\":\\"'+jiraArgs.components+'\\"}]}}" > issue_data.txt'
+                    sh "cat issue_data.txt"
+                    withCredentials([string(credentialsId: 'jira-basic-authentication', variable: 'JIRA_AUTH')]) {
+                        sh 'curl -D- -X POST --data @issue_data.txt -H \"Authorization: Basic '+JIRA_AUTH+'\" -H \"Content-Type: application/json\" '+baseURL+'2/issue/'
+                    }
                 }
+/////////////////////////////////////////////// Using plugin /////////////////////////////////////////////////////////////
+                // // Search using plugin
+                // println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
+                // existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
+                
+                // // Comment on existing Jira ticket
+                // if (existingIssuesSearch.data.total != 0){ 
+                //     echo 'Updating existing issue..'
+                //     existingIssue = existingIssuesSearch.data.issues
+                //     key = existingIssue[0].key
+                //     issueUpdate = jiraArgs.description
+                //     comment = [body: issueUpdate]
+                //     jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
+                // }
+                // // Create new Jira ticket
+                // else{
+                //     echo 'Issue does not exist. Creating new Jira issue..'
+                //     // Required fields
+                //     issue = [fields: [
+                //         project: [key: jiraArgs.project],
+                //         summary: jiraArgs.summary,
+                //         assignee: [name: jiraArgs.assignee],
+                //         issuetype: [name: jiraArgs.issuetype],
+                //         components: [[name:jiraArgs.components]]]]
+                //     // Optional fields
+                //     for (field in optionalFields){
+                //         if (jiraArgs.containsKey(field)){
+                //             if (field == 'description'){
+                //                 issue.fields.put(field,jiraArgs."${field}")
+                //             }else{
+                //                 issue.fields.put(field,[name:jiraArgs."${field}"])
+                //             }
+                //         }
+                //     }
+                //     def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
+                //     key = newIssue.data.key
+                // }
+                // // Upload attachment if any
+                // if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                //     echo 'Uploading attachments..'
+                //     for (attachmentFile in jiraArgs.attachment){
+                //         def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
+                //     } 
+                // }
             }else{
                 println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
             }
