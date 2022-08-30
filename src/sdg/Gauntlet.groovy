@@ -826,6 +826,7 @@ private def run_agents() {
     def enable_update_boot_pre_docker = gauntEnv.enable_update_boot_pre_docker
     def enable_resource_queuing = gauntEnv.enable_resource_queuing
     def pre_docker_cls = stage_library("UpdateBOOTFiles")
+    docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
     docker_args.add('-v /usr/app:/app')
@@ -866,6 +867,9 @@ private def run_agents() {
                 docker.image(docker_image_name).inside(docker_args) {
                     try {
                         stage('Setup Docker') {
+                            sh 'apt-get clean'
+                            sh 'cd /var/lib/apt && mv lists lists.bak; mkdir -p lists/partial'
+                            sh 'apt-get clean'
                             sh 'apt update'
                             sh 'apt-get install python3-tk -y'
                             sh 'cp /default/nebula /etc/default/nebula'
