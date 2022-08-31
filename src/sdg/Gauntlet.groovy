@@ -1244,6 +1244,7 @@ def logJira(jiraArgs) {
     def issueKey = ''
     def issueExists = false
     def createIssue = true
+    def newIssue = false
     def baseURL = "https://jira.analog.com/rest/api/"
     // Assign default values if not defined in jiraArgs
     for (field in defaultFields.keySet()){
@@ -1322,6 +1323,16 @@ def logJira(jiraArgs) {
                     withCredentials([string(credentialsId: 'jira-basic-authentication', variable: 'JIRA_AUTH')]) {
                         sh 'curl -D- -X POST --data @issue_data.txt -H \"Authorization: Basic '+JIRA_AUTH+'\" -H \"Content-Type: application/json\" '+baseURL+'2/issue/'
                     }
+                }
+
+                // Upload attachment if any
+                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
+                    echo 'Uploading attachments..'
+                    for (attachmentFile in jiraArgs.attachment){
+                        withCredentials([string(credentialsId: 'jira-basic-authentication', variable: 'JIRA_AUTH')]) {
+                            sh 'curl -D- -X POST -H \"Authorization: Basic '+JIRA_AUTH+'\" -H \"X-Atlassian-Token: no-check\" -F \"file=@'+attachmentFile+'\" '+baseURL+'2/issue/'+issueKey+'/attachments'
+                        }
+                    } 
                 }
 /////////////////////////////////////////////// Using plugin /////////////////////////////////////////////////////////////
                 // // Search using plugin
