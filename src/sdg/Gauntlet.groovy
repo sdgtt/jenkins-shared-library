@@ -418,6 +418,7 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
                         def serial = nebula('update-config uart-config address --board-name='+board)
+                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -438,13 +439,25 @@ def stage_library(String stage_name) {
                             if (gauntEnv.iio_uri_source == "ip")
                                 uri = "ip:" + ip;
                             else
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString() //baudrate from gauntEnv default
+                                uri_custom = "serial:" + serial + "," + baudrate //baudrate from nebula-config
+                                try{
+                                    retry(3){
+                                        sh 'iio_info -u ' +uri
+                                        uri = uri
+                                    }
+                                }catch(Exception ex){
+                                    retry(3){
+                                        sh 'iio_info -u ' +uri_custom
+                                        uri = uri_custom
+                                    }
+                                }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
                             marker = check.marker
                             cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml"
-                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri='ip:"+ip+"' -m " + board_name
+                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri="+uri+" -m " + board_name
                             cmd += " --scan-verbose --capture=tee-sys" + marker
                             def statusCode = sh script:cmd, returnStatus:true
 
@@ -630,6 +643,109 @@ def stage_library(String stage_name) {
             }
         }
             break
+    case 'noOSTest':
+        cls = { String board ->
+            def under_scm = true
+            def example = nebula('update-config board-config example --board-name='+board)
+            stage('Check JTAG connection'){
+                nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+            }
+            stage('Build NO-OS Project'){
+                def pwd = sh(returnStdout: true, script: 'pwd').trim()
+                withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
+                    def project = nebula('update-config board-config no-os-project --board-name='+board)
+                    def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
+                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
+                    try{
+                        file = files[gauntEnv.vivado_ver.toString()]
+                    }catch(Exception ex){
+                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
+                    }
+                    try{
+                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                    }catch(Exception ex){
+                        throw new Exception('Downloader error: '+ ex.getMessage()) 
+                    }
+
+                    dir('no-OS'){
+                        under_scm = isMultiBranchPipeline()
+                        if (under_scm){
+                            retry(3) {
+                                sleep(5)
+                                sh 'git submodule update --recursive --init'
+                            }
+                        }
+                        else {
+                            println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                            retry(3) {
+                                sleep(2)
+                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
+                            }
+                        }
+                    }
+                    sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
+                    dir('no-OS'){
+                        if (gauntEnv.vivado_ver == '2020.1'){
+                            sh 'git revert 76c709e'
+                        }
+                        dir('projects/'+ project){
+                            def buildfile = readJSON file: 'builds.json'
+                            flag = buildfile['xilinx'][example]['flags']
+                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                                sh 'ln /usr/bin/make /usr/bin/gmake'
+                            }
+                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
+                            retry(3){
+                                sleep(2)
+                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                            }
+                        }
+                    }
+                }
+            }
+            switch (example){
+                case 'iio':
+                    stage('Check Context'){
+                        def serial = nebula('update-config uart-config address --board-name='+board)
+                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                        try{
+                            retry(3){
+                                echo '---------------------------'
+                                sleep(10);
+                                echo "Check context"
+                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
+                            }
+                        }catch(Exception ex){
+                            retry(3){
+                                echo '---------------------------'
+                                sleep(10);
+                                echo "Check context"
+                                sh 'iio_info -u serial:' + serial + ',' +baudrate
+                            }
+                        }
+                    }
+                    break
+                case 'dma_example':
+                    // TODO
+                default:
+                    throw new Exception('Example not yet supported: ' + example)
+            }
+
+             
+        }
+            break
+    case 'PowerCycleBoard':
+        println('Added Stage Power Cycle Board through PDU')
+        cls = { String board ->
+            stage('Power Cycle'){
+                def pdutype = nebula('update-config pdu-config pdu_type --board-name='+board)
+                def outlet = nebula('update-config pdu-config outlet --board-name='+board)
+                nebula('pdu.power-cycle -b ' + board + ' -p ' + pdutype + ' -o ' + outlet)
+            }   
+        }
+            break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
@@ -748,6 +864,8 @@ private def run_agents() {
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
                             sh 'cp -r /app/* "${PWD}"/'
+                            setup_locale()
+                            setup_libserialport()
                             setupAgent(['libiio','nebula','telemetry'], true, docker_status);
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
@@ -1522,6 +1640,25 @@ private def install_telemetry() {
     }
 }
 
+private def setup_locale() {
+    sh 'sudo apt-get install -y locales'
+    sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
+}
+
+private def setup_libserialport() {
+    sh 'sudo apt-get install -y autoconf automake libtool'
+    sh 'git clone https://github.com/sigrokproject/libserialport.git'
+    dir('libserialport'){
+        sh './autogen.sh'
+        sh './configure --prefix=/usr/sp'
+        sh 'make'
+        sh 'make install'
+        sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
+        sh 'cp /usr/sp/include/* /usr/include/'
+        sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
+    }
+}
+
 private def setupAgent(deps, skip_cleanup = false, docker_status) {
     try {
         def i;
@@ -1572,8 +1709,12 @@ private def get_gitsha(String board){
         return
     }
     
-    dir ('outs'){
-        script{ properties = readYaml file: 'properties.yaml' }
+    if (fileExists('outs/properties.yaml')){
+        dir ('outs'){
+            script{ properties = readYaml file: 'properties.yaml' }
+        }
+    } else {
+        return
     }
 
     if (gauntEnv.bootPartitionBranch == 'NA'){
