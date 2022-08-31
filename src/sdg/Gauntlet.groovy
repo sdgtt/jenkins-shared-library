@@ -1264,6 +1264,7 @@ def logJira(jiraArgs) {
     }catch(Exception summary){
         println('Jira: Cannot append [carier-daugther] to summary.')
     }
+    println(description)
 
     // // Include hdl and linux hash if available
     // try{
@@ -1292,7 +1293,6 @@ def logJira(jiraArgs) {
                 // parse search response to return issue key of existing issue that matches summary
                 issueSummary = jiraArgs.summary.replace("[","\\[").replace("]","\\]")
                 println(issueSummary)
-                jiraArgs.description = jiraArgs.description.replace("[","\\[").replace("]","\\]")
 
                 def parseCommand = "tr -d \"\\n\\r\" < search_response.txt"
                 parseCommand += " | sed 's/^\\(.*\\)\\(\"key\":\"\\)\\([A-Z]*-[0-9]*\\)\\(\",\"fields\":{\"summary\":\""
