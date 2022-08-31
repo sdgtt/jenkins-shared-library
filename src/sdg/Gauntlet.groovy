@@ -1292,7 +1292,8 @@ def logJira(jiraArgs) {
                 // parse search response to return issue key of existing issue that matches summary
                 issueSummary = jiraArgs.summary.replace("[","\\[").replace("]","\\]")
                 println(issueSummary)
-                //'+credentials('dummy-credentials')+'
+                jiraArgs.description = jiraArgs.description.replace("[","\\[").replace("]","\\]")
+
                 def parseCommand = "tr -d \"\\n\\r\" < search_response.txt"
                 parseCommand += " | sed 's/^\\(.*\\)\\(\"key\":\"\\)\\([A-Z]*-[0-9]*\\)\\(\",\"fields\":{\"summary\":\""
                 parseCommand += issueSummary + ".\\)\\(.*\\)/\\3 /g'"
