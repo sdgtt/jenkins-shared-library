@@ -1253,9 +1253,9 @@ def logJira(jiraArgs) {
         }
     }
 
-    // Debug description value
-    jiraArgs.description = "test_adrv9002_tx_data[False-0-adi.adrv9002]"
-    jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \\\n".concat(jiraArgs.description)
+    // // Debug description value
+    // jiraArgs.description = "test_adrv9002_tx_data[False-0-adi.adrv9002]"
+    // jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \\\n".concat(jiraArgs.description)
 
     // Append [carier-daugther] to summary
     jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
