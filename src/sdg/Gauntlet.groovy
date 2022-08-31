@@ -1265,13 +1265,13 @@ def logJira(jiraArgs) {
         println('Jira: Cannot append [carier-daugther] to summary.')
     }
 
-    // // Include hdl and linux hash if available
-    // try{
-    //     jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color} \n".concat(jiraArgs.description)
-    //     jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \n".concat(jiraArgs.description)
-    // }catch(Exception desc){
-    //     println('Jira: Cannot include hdl and linux hash to description.')
-    // }
+    // Include hdl and linux hash if available
+    try{
+        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color} \n".concat(jiraArgs.description)
+        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \n".concat(jiraArgs.description)
+    }catch(Exception desc){
+        println('Jira: Cannot include hdl and linux hash to description.')
+    }
 
     echo 'Checking if Jira logging is enabled..'
     try{
