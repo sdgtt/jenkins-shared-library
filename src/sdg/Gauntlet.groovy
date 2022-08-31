@@ -1267,8 +1267,8 @@ def logJira(jiraArgs) {
 
     // // Include hdl and linux hash if available
     // try{
-    //     jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
-    //     jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
+    //     jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color} \n".concat(jiraArgs.description)
+    //     jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"] \n".concat(jiraArgs.description)
     // }catch(Exception desc){
     //     println('Jira: Cannot include hdl and linux hash to description.')
     // }
@@ -1292,6 +1292,7 @@ def logJira(jiraArgs) {
                 // parse search response to return issue key of existing issue that matches summary
                 issueSummary = jiraArgs.summary.replace("[","\\[").replace("]","\\]")
                 println(issueSummary)
+                jiraArgs.description = jiraArgs.description.replace("]","] \n")
                 println(jiraArgs.description)
                 def parseCommand = "tr -d \"\\n\\r\" < search_response.txt"
                 parseCommand += " | sed 's/^\\(.*\\)\\(\"key\":\"\\)\\([A-Z]*-[0-9]*\\)\\(\",\"fields\":{\"summary\":\""
