@@ -277,7 +277,7 @@ def stage_library(String stage_name) {
                             dir('outs'){
                                 sh("cp bootgen_sysfiles.tgz ..")
                             }
-                            sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot-*.elf u-boot.elf")
+                            sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot*.elf u-boot.elf")
                             echo "Executing board recovery..."
                             nebula(nebula_cmd)
                         }catch(Exception ex){
