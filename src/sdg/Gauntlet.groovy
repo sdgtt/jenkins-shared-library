@@ -665,20 +665,10 @@ def stage_library(String stage_name) {
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
-                    try{
-                        file = files[gauntEnv.vivado_ver.toString()]
-                    }catch(Exception ex){
-                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
-                    }
-                    try{
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                    file = gauntEnv.vivado_ver.toString() == "2019.1" ? "system_top.hdf" : "system_top.xsa"
+                    nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                 +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-                    }catch(Exception ex){
-                        throw new Exception('Downloader error: '+ ex.getMessage()) 
-                    }
-
                     dir('no-OS'){
                         under_scm = isMultiBranchPipeline()
                         if (under_scm){
