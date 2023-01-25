@@ -607,6 +607,42 @@ def stage_library(String stage_name) {
             }
         }
             break
+    case 'CaptureIIOContext':
+        println('Added Capture IIO Context with iio-emu')
+        cls = { String board ->
+            stage("Install iio-emu") {
+                sh 'git clone https://github.com/analogdevicesinc/libtinyiiod.git'
+                dir('libtinyiiod')
+                {
+                    sh 'mkdir build'
+                    dir('build')
+                    {
+                        sh 'cmake -DBUILD_EXAMPLES=OFF ..'
+                        sh 'make'
+                        sh 'make install'
+                        sh 'ldconfig'
+                    }
+                }
+                sh 'git clone -b v0.1.0 https://github.com/analogdevicesinc/iio-emu.git'
+                dir('iio-emu')
+                {
+                    sh 'mkdir build'
+                    dir('build')
+                    {
+                        sh 'cmake -DBUILD_TOOLS=ON ..'
+                        sh 'make'
+                        sh 'make install'
+                        sh 'ldconfig'
+                    }
+                }
+            }
+            stage("Capture IIO Context with iio-emu") {
+                def ip = nebula('update-config network-config dutip --board-name='+board)
+                sh 'xml_gen ip:'+ip+' > "'+board+'.xml"'
+                archiveArtifacts artifacts: '*.xml'
+            }
+        }
+            break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
