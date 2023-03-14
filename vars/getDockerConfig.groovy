@@ -43,6 +43,10 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             // https://stackoverflow.com/questions/55733058/vivado-synthesis-hangs-in-docker-container-spawned-by-jenkins
             args.add('--init')
         }
+        else if (listOfResources[i].equalsIgnoreCase( 'ToF' )) {
+            echo '----Adding Time of Flight Resources----'
+            args.add('-v /usr/images:/images')
+        }
         else {
             args.add(listOfResources[i])
         }
