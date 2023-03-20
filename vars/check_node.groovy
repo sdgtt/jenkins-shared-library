@@ -13,8 +13,7 @@ def get_agents(){
 
 def call(agentName){
     retries = 5
-    sh 'echo "Checking service status"'
-    sh "vagrant winrm --command \"Get-Service -Name "JenkinsAgent"\""
+    sh 'vagrant winrm --command \"Get-Service -Name "JenkinsAgent"\"'
     for(int i = 0;i<retries;i++) {
         
         agents = get_agents()
@@ -30,7 +29,6 @@ def call(agentName){
     println("ERROR: Agent not found. Trying to display logs")
     sh 'vagrant winrm --command "dir C:\\jenkins"'
     sh 'vagrant winrm --command "dir C:\\jenkins\\log"'
-    sh 'vagrant winrm --command "type C:\\jenkins\\log\\winsw.out.log"'
-    sh 'vagrant winrm --command "type C:\\jenkins\\log\\winsw.err.log"'
+    sh 'vagrant winrm --command "type C:\\jenkins\\log\\*.log"'
     throw new Exception("Agent not found")
 }
