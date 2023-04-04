@@ -91,6 +91,13 @@ private def update_agent() {
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
                             run_i('mkdir nebula-config')
                             dir('nebula-config'){
+                                def custom = ""
+                                if(gauntEnv.netbox_include_variants == false){
+                                    custom = custom + " --no-include-variants"
+                                }
+                                if(gauntEnv.netbox_include_children == false){
+                                    custom = custom + " --no-include-children"
+                                }
                                 nebula('gen-config-netbox --jenkins-agent=' + agent_name
                                     + ' --netbox-ip=' + gauntEnv.netbox_ip
                                     + ' --netbox-port=' + gauntEnv.netbox_port
@@ -98,6 +105,7 @@ private def update_agent() {
                                     + ' --netbox-token=' + gauntEnv.netbox_token
                                     + ' --devices-tag=' + gauntEnv.netbox_devices_tag
                                     + ' --template=' + gauntEnv.netbox_nebula_template
+                                    + custom
                                     + ' --outfile='+ agent_name, true, true, false)
                             }
                         }else{
