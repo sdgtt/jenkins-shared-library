@@ -847,7 +847,17 @@ private def log_artifacts(){
             command += " --jenkins-server ${JENKINS_URL}"
             command += " --es-server ${gauntEnv.elastic_server}"
             command += " --job-name ${env.JOB_NAME} --job ${env.BUILD_NUMBER}"
-            run_i(command)
+
+            // Pass Jenkins credentials if jenkins_credentials (credentials id) is set
+            if (gauntEnv.credentials_id != ''){
+                withCredentials([usernamePassword(credentialsId: gauntEnv.credentials_id, 
+                                usernameVariable: 'JENKINS_USER',
+                                passwordVariable: 'JENKINS_PASS')]) {
+                    run_i(command + " --jenkins-username " + JENKINS_USER + " --jenkins-password " + JENKINS_PASS )
+                }
+            } else {
+                run_i(command)
+            }
         }
     }
 }
@@ -1186,6 +1196,15 @@ def set_max_retry(max_retry) {
  */
 def set_job_trigger(trigger) {
     gauntEnv.job_trigger = trigger
+}
+
+/**
+ * Set the credentials_id variable of gauntEnv used in downloading artifacts in Log Artifacts stage
+ * @param credentials_id is a username-password credentials stored in Jenkins with read access
+ * set to '' by default 
+ */
+def set_credentials_id(credentials_id) {
+    gauntEnv.credentials_id = credentials_id
 }
 
 /**
