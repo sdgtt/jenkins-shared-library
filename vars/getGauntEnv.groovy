@@ -5,10 +5,9 @@
  * @param bootPartitionBranch - String of name of boot partition branch to use for bootfile source, set to 'NA' if hdl and linux is to be used
  * @param firmwareVersion - String of name of firmware version branch to use for pluto and m2k
  * @param bootfile_source - String location of bootfiles. Options: sftp, artifactory, http, local
- * @param rpi_branch - String name of branch to use to fetch rpi boot files and overlays.
  * @return map of initially populated field/value pairs
  */
-private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bootfile_source, rpi_branch) {
+private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bootfile_source) {
     return [
             hdlBranch: hdlBranch,
             linuxBranch: linuxBranch,
@@ -17,7 +16,6 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             filetype: ( bootPartitionBranch == 'NA')? ' --filetype="hdl_linux"' : ' --filetype="boot_partition"',
             firmwareVersion: firmwareVersion,
             bootfile_source: bootfile_source,
-            rpi_branch: ( rpi_branch == 'NA')? null: rpi_branch,
             job_trigger: 'manual',
             agents_online: '',
             debug: false,
