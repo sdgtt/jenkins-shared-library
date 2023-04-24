@@ -810,66 +810,8 @@ def stage_library(String stage_name) {
                 nebula('pdu.power-cycle -b ' + board + ' -p ' + pdutype + ' -o ' + outlet)
             }   
         }
-    case 'ReflashSD':
-            println("Calling stage ReflashSD")
-            // This stage assumes, an image is alread loaded on the borg imaging service
-            cls = { String board ->
-                stage("Reflashing SD"){
-                    if(board.contains('rpi')){
-                        // check if an image is loaded in borg
-                        sh("curl -Sfs http://$gauntEnv.borg_server/imgs/loaded")
-                        def serial = nebula('update-config board-config serial-id --board-name='+board)
-                        def ip = nebula('update-config network-config dutip --board-name='+board)
-                        def pdutype = nebula("update-config pdu-config pdu_type --board-name=$board")
-                        def outlet = nebula("update-config pdu-config outlet --board-name=$board")
-                        println("Reflashing SD of $board with serial $serial")
-                        try{
-                            println("Adding $serial to borg imaging service")
-                            sh("curl -Sfs http://$gauntEnv.borg_server/add/$serial")
-                            println("Activating $serial")
-                            sh("curl -Sfs http://$gauntEnv.borg_server/set/$serial/true")
-                            println("Verifying $serial")
-                            sh("curl -Sfs http://$gauntEnv.borg_server/status/$serial")
-                            println("Executing SD card reflashing for $board")
-                            def cmd = "manager.recovery-device-manager --board-name=$board --folder=out --force-recover"
-                            if (gauntEnv.rpi_enable_uart)
-                                cmd = cmd + " --enable_uart"
-                            nebula(cmd)
-                        }catch(Exception ex){
-                            throw ex 
-                        }finally{
-                            println("Deactivating $serial")
-                            sh("curl -Sfs http://$gauntEnv.borg_server/set/$serial/false")
-                            println("Removing $serial")
-                            sh("curl -Sfs http://$gauntEnv.borg_server/remove/$serial")
-                        }
-                        println("Powercycling $board")
-                        nebula("pdu.power-cycle --pdutype=$pdutype --outlet=$outlet --board-name=$board")
-                        // println("Reboot $board")
-                        // nebula("net.restart-board --ip=$ip --user=pi --password=raspberry --board-name=$board")
-                        // sleep for sometime for board to completely boot
-                        sleep(120)
-                        // set static ip
-                        if (gauntEnv.rpi_set_static_ip){
-                            println("Setting static ip for $board")
-                            nebula("uart.set-static-ip --ip=$ip --nic=eth0 --board-name=$board")
-                            println("Powercycling $board")
-                            nebula("pdu.power-cycle --pdutype=$pdutype --outlet=$outlet --board-name=$board")
-                            // sleep for sometime for board to completely boot
-                            sleep(120)
-                        }
-                        retry(2){
-                            println("Verifying $board")
-                            sh("ping -c 4 $ip")
-                            sleep(10)
-                        }
-                    }else{
-                        println('Auto SD Reflash does not support non-rpi boards yet!')
-                    }
-                }
-            };
-            break
-    
+        break
+
     case 'loadOverlay':
             println('Added Stage Load Overlay')
             cls = { String board ->
@@ -1245,14 +1187,6 @@ def set_elastic_server(elastic_server) {
 }
 
 /**
- * Set borg server address
- * @param borg_server String of server IP. Port can be included using format <ip>:<port>
- */
-def set_borg_server(borg_server) {
-    gauntEnv.borg_server = borg_server
-}
-
-/**
  * Set nebula debug mode. Setting true will add show-log to nebula commands
  * @param nebula_debug Boolean of debug mode
  */
@@ -1352,26 +1286,6 @@ def set_matlab_commands(List matlab_commands) {
 def set_update_nebula_config(boolean enable) {
     gauntEnv.update_nebula_config = enable
 }
-
-/**
- * Enables rpi uart by appending enable_uart=1 tp /boot/config.txt
- * @param enable boolean replaces default gauntEnv.rpi_enable_uart
- * set to true to enable uart to rpi else false(default) if otherwise
- */
-def set_rpi_enable_uart(boolean enable) {
-    gauntEnv.rpi_enable_uart = enable
-}
-
-/**
- * Enables seting of static ip of rpi by calling /usr/local/bin/enable_static_ip.sh
- * @param enable boolean replaces default gauntEnv.rpi_set_static_ip
- * set to true to set static ip false(default) otherwise
- */
-def set_rpi_static_ip(boolean enable) {
-    gauntEnv.rpi_set_static_ip = enable
-}
-
-
 
 /**
  * Check if project is part of a multibranch pipeline using 'checkout scm'
