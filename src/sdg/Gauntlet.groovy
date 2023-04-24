@@ -395,7 +395,7 @@ def stage_library(String stage_name) {
                         try{
                             if (!gauntEnv.firmware_boards.contains(board)){
                                 try{
-                                    nebula('update-config board-config serial-id --board-name='+board)
+                                    nebula('update-config board-config serial --board-name='+board)
                                     nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
                                 }catch(Exception ex){
                                     nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
@@ -1893,7 +1893,7 @@ private def extractLockName(String bname, String agent){
     // use serial-id (if exists) as unique carrier identifier that will be used as lock name.
     node(agent){
         try{
-            lockName = nebula("update-config board-config serial-id -b ${bname}")
+            lockName = nebula("update-config board-config serial -b ${bname}")
         }catch(Exception ex){
             echo getStackTrace(ex)
             println("serial-id is not defined. Will use other reference as lockname")
