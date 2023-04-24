@@ -47,6 +47,11 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             echo '----Adding Time of Flight Resources----'
             args.add('-v /usr/images:/images')
         }
+        else if (listOfResources[i].equalsIgnoreCase( 'udev' )) {
+            echo '----Adding udev resources of the host----'
+            args.add('-v /etc/udev/rules.d:/etc/udev/rules.d')
+            args.add('-v /run/udev/data:/run/udev/data')
+        }
         else {
             args.add(listOfResources[i])
         }
