@@ -22,7 +22,8 @@ class FailSafeWrapper {
         this.nextDelegate = nextDelegate
     }
     def invokeMethod(String name, args) {
-
+        if (name == 'maximumNumberOfParameters')
+            return delegate.maximumNumberOfParameters
         try{
             delegate.invokeMethod(name, args)
         }catch(NominalException ex){
