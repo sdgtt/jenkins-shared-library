@@ -656,6 +656,7 @@ def stage_library(String stage_name) {
     case 'noOSTest':
         cls = { String board ->
             def under_scm = true
+            def platform = nebula('update-config board-config example --board-name='+board)
             def example = nebula('update-config board-config example --board-name='+board)
             stage('Check JTAG connection'){
                 nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
@@ -665,6 +666,8 @@ def stage_library(String stage_name) {
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                    def serial = nebula('update-config uart-config address --board-name='+board)
+                    def baudrate = nebula('update-config uart-config baudrate --board-name='+board) 
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     file = gauntEnv.vivado_ver.toString() == "2019.1" ? "system_top.hdf" : "system_top.xsa"
                     nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
@@ -692,13 +695,18 @@ def stage_library(String stage_name) {
                         }
                         dir('projects/'+ project){
                             def buildfile = readJSON file: 'builds.json'
-                            flag = buildfile['xilinx'][example]['flags']
+                            flag = buildfile[platform][example]['flags']
+                            sh 'screen -v'
+                            sh 'script /dev/null'
+                            sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' '+baudrate
                             if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
                                 sh 'ln /usr/bin/make /usr/bin/gmake'
                             }
+                            //build .elf
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
                             retry(3){
                                 sleep(2)
+                                //download .elf to board
                                 sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                             }
                         }
