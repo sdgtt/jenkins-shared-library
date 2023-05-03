@@ -664,6 +664,7 @@ def stage_library(String stage_name) {
             stage('Build NO-OS Project'){
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
+                    def flag = ''
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
                     def serial = nebula('update-config uart-config address --board-name='+board)
@@ -696,6 +697,7 @@ def stage_library(String stage_name) {
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
                             sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                            flag = 'HARDWARE=' +file+' '
                         default:
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     }
@@ -706,13 +708,13 @@ def stage_library(String stage_name) {
                         }
                         dir('projects/'+ project){
                             def buildfile = readJSON file: 'builds.json'
-                            flag = buildfile[platform][example]['flags']
+                            flags = flag + buildfile[platform][example]['flags']
                             sh 'screen -v'
                             sh 'script /dev/null'
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
                             //build .elf
-                            sh env+' && make HARDWARE=' +file+ ' '+flag
+                            sh env+' && make '+flags
                             retry(3){
                                 sleep(2)
                                 //download .elf to board
