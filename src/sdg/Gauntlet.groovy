@@ -698,6 +698,8 @@ def stage_library(String stage_name) {
                             sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                             flag = 'HARDWARE=' +file+' '
+                        case 'maxim':
+                            env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
                         default:
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     }
