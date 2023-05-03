@@ -669,10 +669,10 @@ def stage_library(String stage_name) {
                     def serial = nebula('update-config uart-config address --board-name='+board)
                     sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
                     file = gauntEnv.vivado_ver.toString() == "2019.1" ? "system_top.hdf" : "system_top.xsa"
-                    //download hdl file if with hdl file
-                    nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-
+                    if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                        sh 'ln /usr/bin/make /usr/bin/gmake'
+                    }
+                    
                     dir('no-OS'){
                         under_scm = isMultiBranchPipeline()
                         if (under_scm){
@@ -689,8 +689,16 @@ def stage_library(String stage_name) {
                             }
                         }
                     }
-                    //if with hdl file
-                    sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
+
+                    switch (platform){
+                        case 'xilinx':
+                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                            sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
+                            env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                        default:
+                            env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                    }
 
                     dir('no-OS'){
                         if (gauntEnv.vivado_ver == '2020.1'){
@@ -702,15 +710,13 @@ def stage_library(String stage_name) {
                             sh 'screen -v'
                             sh 'script /dev/null'
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
-                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
-                                sh 'ln /usr/bin/make /usr/bin/gmake'
-                            }
+                            
                             //build .elf
-                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
+                            sh env+' && make HARDWARE=' +file+ ' '+flag
                             retry(3){
                                 sleep(2)
                                 //download .elf to board
-                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                                sh env+' && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                             }
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
