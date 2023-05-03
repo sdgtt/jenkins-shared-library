@@ -701,7 +701,7 @@ def stage_library(String stage_name) {
                             flag = buildfile[platform][example]['flags']
                             sh 'screen -v'
                             sh 'script /dev/null'
-                            sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ '115200'
+                            sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
                                 sh 'ln /usr/bin/make /usr/bin/gmake'
                             }
