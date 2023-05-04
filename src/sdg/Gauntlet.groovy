@@ -183,6 +183,7 @@ def stage_library(String stage_name) {
                                 def ml_bootfiles = sh (script: "ls   ml_bootbins", returnStdout: true).trim()
                                 println("ml_bootfiles: " + ml_bootfiles)
                                 // Filter bootbin for specific case (rx,tx,rxtx)
+                                def found = false;
                                 for (String bootfile : ml_bootfiles.split("\\r?\\n")) {
                                     println("Inspecting " + bootfile + " for " + ml_bootbin_case + "_BOOT.BIN")
                                     println("Must contain board: " + board)
@@ -191,8 +192,16 @@ def stage_library(String stage_name) {
                                         // Copy bootbin to outs folder
                                         println("Copy " + bootfile + " to outs folder")
                                         sh "cp ml_bootbins/${bootfile} outs/BOOT.BIN"
+                                        found = true;
                                         break
                                     }
+                                }
+                                if (!found) {
+                                    println("No bootbin found for " + ml_bootbin_case + " case")
+                                    println("Skipping Update BOOT Files stage")
+                                    println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
+                                    gauntEnv.internal_stages_to_skip = gauntEnv.ml_test_stages;
+                                    return;
                                 }
                             }
 
@@ -919,6 +928,11 @@ private def run_agents() {
         node(agent) {
             try{
                 for (k = 0; k < num_stages; k++) {
+                    if (gauntEnv.internal_stages_to_skip > 0) {
+                        println("Skipping test stage")
+                        gauntEnv.internal_stages_to_skip--
+                        continue;
+                    }
                     println("Stage called for board: "+board)
                     println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
                     if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
