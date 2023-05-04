@@ -1888,22 +1888,49 @@ private def setupAgent(deps, skip_cleanup = false, docker_status) {
     }
 }
 
-private def get_gitsha(String board){
+def get_gitsha(String board){
+
+    hdl_hash = "NA"
+    linux_hash = "NA"
+    linux_git_sha = "NA"
+    linux_folder = "NA"
+
     if (gauntEnv.nebula_local_fs_source_root == "local_fs"){
-        set_elastic_field(board, 'hdl_hash', 'NA')
-        set_elastic_field(board, 'linux_hash', 'NA')
+        set_elastic_field(board, 'hdl_hash', hdl_hash)
+        set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
 
     if (gauntEnv.firmware_boards.contains(board)){
-        set_elastic_field(board, 'hdl_hash', 'NA')
-        set_elastic_field(board, 'linux_hash', 'NA')
+        set_elastic_field(board, 'hdl_hash', hdl_hash)
+        set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
+
+    // properties.hdl_git_sha = null
+    // properties.hdl_folder = null
+    // properties.linux_git_sha = null
+    // properties.linux_folder = null
     
     if (fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
+        }
+    } else if(fileExists('outs/properties.txt')){
+        dir ('outs'){
+            def file = readFile 'properties.txt'
+            lines = file.readLines()
+            for (line in lines){
+                echo line
+                if (line.contains("git_sha=")){
+                    echo "git_sha found"
+                    linux_git_sha = line.replace("git_sha=","")
+                }
+                if (line.contains("git_sha_date=")){
+                    echo "git_sha_date found"
+                    linux_folder = line.replace("git_sha_date=","")
+                }
+            }
         }
     } else {
         return
@@ -1911,15 +1938,20 @@ private def get_gitsha(String board){
 
     if (gauntEnv.bootPartitionBranch == 'NA'){
         hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")"
-        set_elastic_field(board, 'hdl_hash', hdl_hash)
-        set_elastic_field(board, 'linux_hash', linux_hash)
+        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
     }else{
         hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
         linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
-        set_elastic_field(board, 'hdl_hash', hdl_hash)
-        set_elastic_field(board, 'linux_hash', linux_hash)
     }
+
+    if (linux_git_sha != null){
+        linux_hash = linux_git_sha + " (" + linux_folder + ")"
+        hdl_hash = "NA"
+    }
+
+    echo "Hashes set hdl: ${hdl_hash}, linux: ${linux_hash}"
+    set_elastic_field(board, 'hdl_hash', hdl_hash)
+    set_elastic_field(board, 'linux_hash', linux_hash)
 }
 
 private def check_for_marker(String board){
