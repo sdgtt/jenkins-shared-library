@@ -667,6 +667,7 @@ def stage_library(String stage_name) {
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def flag = ''
+                    def target_flag = ''
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
                     def serial = nebula('update-config uart-config address --board-name='+board)
@@ -692,7 +693,7 @@ def stage_library(String stage_name) {
                             }
                         }
                     }
-
+                    echo platform
                     switch (platform){
                         case 'xilinx':
                             nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
@@ -703,6 +704,9 @@ def stage_library(String stage_name) {
                             break
                         case 'maxim':
                             env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
+                            //get target
+                            target = board.split('_')[0]
+                            target_flag = ' TARGET='+target
                             break
                         default:
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
@@ -722,12 +726,13 @@ def stage_library(String stage_name) {
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
                             //build .elf
+                            echo env
                             sh env+' && make PLATFORM='+platform+ ' ' +flags
-                            retry(3){
-                                sleep(2)
-                                //download .elf to board
-                                sh env+' && make run PLATFORM='+platform+' JTAG_CABLE_ID='+jtag_cable_id
-                            }
+                            sleep(2)
+                            //download .elf to board
+                            echo env
+                            sh env+' && make run PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id
+                            
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                             sh 'screen -XS '+board+ ' kill'
