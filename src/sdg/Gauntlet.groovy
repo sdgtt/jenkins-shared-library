@@ -719,7 +719,6 @@ def stage_library(String stage_name) {
                             def buildfile = readJSON file: 'builds.json'
                             flags = flag + buildfile[platform][example]['flags']
                             sh 'screen -v'
-                            sh 'script /dev/null'
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
                             //build .elf
