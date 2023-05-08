@@ -747,7 +747,7 @@ def stage_library(String stage_name) {
                             //sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
 
                            
-                            sh env+ ' && make -C PLATFORM=maxim TARGET=max32650'
+                            sh env+ ' && make PLATFORM=maxim TARGET=max32650'
                             sh env+ ' && make JTAG_CABLE_ID=040917027bab086900000000000000000000000097969906 run'
                             
                             sleep(120)
