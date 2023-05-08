@@ -700,11 +700,16 @@ def stage_library(String stage_name) {
                             sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                             flag = 'HARDWARE=' +file+' '
+                            break
                         case 'maxim':
                             env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
+                            break
                         default:
                             env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     }
+                    
+                    //set building environment
+
 
                     dir('no-OS'){
                         if (gauntEnv.vivado_ver == '2020.1'){
@@ -718,7 +723,7 @@ def stage_library(String stage_name) {
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
                             //build .elf
-                            sh env+' && make '+flags
+                            sh env+' && make PLATFORM='+platform+ ' ' +flags
                             retry(3){
                                 sleep(2)
                                 //download .elf to board
