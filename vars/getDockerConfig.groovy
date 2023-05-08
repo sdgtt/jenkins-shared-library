@@ -43,9 +43,12 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             // https://stackoverflow.com/questions/55733058/vivado-synthesis-hangs-in-docker-container-spawned-by-jenkins
             args.add('--init')
         }
-        else if (listOfResources[i].equalsIgnoreCase( 'MaximSDK' )) {
-            echo '----Adding MaximSDK Resources----'
+        else if (listOfResources[i].equalsIgnoreCase( 'no-OS' )) {
+            echo '----Adding no-OS Resources----'
             args.add('-v "/opt/MaximSDK":"/opt/MaximSDK":ro')
+            args.add('-v "/opt/STM32CubeMX":"/opt/STM32CubeMX":ro')
+            args.add('-v "/opt/analog/cces/2.11.0":"/opt/analog/cces/2.11.0":ro')
+            args.add('-v "/root/.analog":"/root/.analog":ro')
         }
         else if (listOfResources[i].equalsIgnoreCase( 'images' )) {
             echo '----Adding Time of Flight Resources----'
