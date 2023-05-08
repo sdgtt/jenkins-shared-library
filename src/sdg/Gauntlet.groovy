@@ -726,7 +726,7 @@ def stage_library(String stage_name) {
                             retry(3){
                                 sleep(2)
                                 //download .elf to board
-                                sh env+' && make run PLATFORM='+platform+' +' JTAG_CABLE_ID='+jtag_cable_id
+                                sh env+' && make run PLATFORM='+platform+' JTAG_CABLE_ID='+jtag_cable_id
                             }
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
