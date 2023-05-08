@@ -668,6 +668,7 @@ def stage_library(String stage_name) {
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def flag = ''
                     def target_flag = ''
+                    def env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
                     def serial = nebula('update-config uart-config address --board-name='+board)
