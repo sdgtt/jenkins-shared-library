@@ -694,26 +694,38 @@ def stage_library(String stage_name) {
                         }
                     }
                     echo platform
-                    switch (platform){
-                        case 'xilinx':
-                            nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-                            sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
-                            env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
-                            flag = 'HARDWARE=' +file+' '
-                            break
-                        case 'maxim':
-                            env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
-                            //get target
-                            target = board.split('_')[0]
-                            target_flag = ' TARGET='+target
-                            break
-                        default:
-                            env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
-                    }
-                    
+                    // switch (platform){
+                    //     case 'xilinx':
+                    //         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                    //                 +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                    //         sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
+                    //         env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                    //         flag = 'HARDWARE=' +file+' '
+                    //         break
+                    //     case 'maxim':
+                    //         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
+                    //         //get target
+                    //         target = board.split('_')[0]
+                    //         target_flag = ' TARGET='+target
+                    //         break
+                    //     default:
+                    //         env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                    // }
+
                     //set building environment
 
+                    if (platform == 'xilinx'){
+                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                        sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
+                        env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
+                        flag = 'HARDWARE=' +file+' '
+                    } elif (platform == 'maxim') {
+                        env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
+                        //get target
+                        target = board.split('_')[0]
+                        target_flag = ' TARGET='+target
+                    } 
 
                     dir('no-OS'){
                         if (gauntEnv.vivado_ver == '2020.1'){
@@ -731,7 +743,7 @@ def stage_library(String stage_name) {
                             sleep(2)
                             //download .elf to board
                             echo env
-                            sh env+' && make run PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id
+                            sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
                             
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
