@@ -720,7 +720,7 @@ def stage_library(String stage_name) {
                         sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                         env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                         flag = 'HARDWARE=' +file+' '
-                    } elif (platform == 'maxim') {
+                    } else if (platform == 'maxim') {
                         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
                         //get target
                         target = board.split('_')[0]
