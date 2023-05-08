@@ -740,11 +740,11 @@ def stage_library(String stage_name) {
                             
                             //build .elf
                             echo env
-                            sh env+' && make PLATFORM='+platform+ ' ' +flags
+                            //sh env+' && make PLATFORM='+platform+ ' ' +flags
                             sleep(2)
                             //download .elf to board
                             echo env
-                            sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
+                            //sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
 
                             sh env+' && make reset'
                             sh env+ ' && make PLATFORM=maxim TARGET=max32650'
