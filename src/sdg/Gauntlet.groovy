@@ -681,14 +681,14 @@ def stage_library(String stage_name) {
                         if (under_scm){
                             retry(3) {
                                 sleep(5)
-                                sh 'git submodule update --recursive --init'
+                                sh 'git submodule update --jobs=4 --depth=1 --recursive --init'
                             }
                         }
                         else {
                             println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
                             retry(3) {
                                 sleep(2)
-                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
+                                sh 'git clone --jobs=4 --depth=1 --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
                             }
                         }
                     }
