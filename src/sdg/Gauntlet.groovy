@@ -739,19 +739,15 @@ def stage_library(String stage_name) {
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
                             //build .elf
-                            echo env
-                            //sh env+' && make PLATFORM='+platform+ ' ' +flags
+                            sh env+' && make PLATFORM='+platform+ ' ' +flags
                             sleep(2)
-                            //download .elf to board
-                            echo env
-                            //sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
+                            //download .elf to board1q                                                                                                                                      2r5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq56........................................76
+                            sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
 
-                           
-                            sh env+ ' && make PLATFORM=maxim TARGET=max32650'
-                            sh env+ ' && make JTAG_CABLE_ID=040917027bab086900000000000000000000000097969906 run'
                             
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                            archiveArtifacts artifacts: "*.elf", followSymlinks: false, allowEmptyArchive: true
                             sh 'screen -XS '+board+ ' kill'
                         }
                     }
