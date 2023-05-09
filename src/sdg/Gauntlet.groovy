@@ -672,7 +672,7 @@ def stage_library(String stage_name) {
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
                     def serial = nebula('update-config uart-config address --board-name='+board)
-                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
+                    sh 'apt-get install libncurses5-dev libncurses5 libhidapi-dev -y' //remove once docker image is updated
                     file = gauntEnv.vivado_ver.toString() == "2019.1" ? "system_top.hdf" : "system_top.xsa"
                     if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
                         sh 'ln /usr/bin/make /usr/bin/gmake'
