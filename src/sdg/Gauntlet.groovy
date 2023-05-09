@@ -587,7 +587,7 @@ def stage_library(String stage_name) {
                     }
                     createMFile()
                     try{
-                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                         xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                     }catch (Exception ex){
                         // log Jira
@@ -622,7 +622,7 @@ def stage_library(String stage_name) {
                     {
                         createMFile()
                         try{
-                            sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+                            sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
                             xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
                         }catch (Exception ex){
                             // log Jira
@@ -1215,6 +1215,15 @@ def set_credentials_id(credentials_id) {
 def set_matlab_commands(List matlab_commands) {
     assert matlab_commands instanceof java.util.List
     gauntEnv.matlab_commands = matlab_commands
+}
+
+/**
+ * Set timeout for MATLAB process
+ * @param matlab_timeout string in format <value><unit> for running MATLAB executable
+ * For example: "10m" (default)
+ */
+def set_matlab_timeout(matlab_timeout) {
+    gauntEnv.matlab_timeout = matlab_timeout
 }
 
 /**
