@@ -742,7 +742,7 @@ def stage_library(String stage_name) {
                             sh env+' && make PLATFORM='+platform+ ' ' +flags
                             sleep(2)
                             //download .elf to board1q                                                                                                                                      2r5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq56........................................76
-                            sh env+' && make PLATFORM='+platform+target_flag+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
+                            sh env+' && make PLATFORM='+platform+' ' +flags+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
 
                             
                             sleep(120)
