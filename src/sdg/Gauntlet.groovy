@@ -746,7 +746,7 @@ def stage_library(String stage_name) {
                             sh env+' && make PLATFORM='+platform+' ' +flags+' JTAG_CABLE_ID='+jtag_cable_id+ ' run'
 
                             
-                            sleep(120)
+                            sleep(300)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                             archiveArtifacts artifacts: "*.elf", followSymlinks: false, allowEmptyArchive: true
                             sh 'screen -XS '+board+ ' kill'
