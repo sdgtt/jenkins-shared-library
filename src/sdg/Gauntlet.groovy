@@ -667,6 +667,7 @@ def stage_library(String stage_name) {
                 def pwd = sh(returnStdout: true, script: 'pwd').trim()
                 withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
                     def flag = ''
+                    def flags = ''
                     def target_flag = ''
                     def env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
