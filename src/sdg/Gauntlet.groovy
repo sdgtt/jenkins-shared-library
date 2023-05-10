@@ -755,6 +755,9 @@ def stage_library(String stage_name) {
                 }
             }
             //add check if iio in example
+            if (example.contains('iio')){
+                example = 'iio'
+            }
             switch (example){
                 case 'iio':
                     stage('Check Context'){
