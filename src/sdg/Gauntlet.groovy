@@ -669,6 +669,7 @@ def stage_library(String stage_name) {
                     def flag = ''
                     def flags = ''
                     def target_flag = ''
+                    def path = ''
                     def env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     def project = nebula('update-config board-config no-os-project --board-name='+board)
                     def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
@@ -715,11 +716,12 @@ def stage_library(String stage_name) {
 
                     if (platform == 'xilinx'){
                         dir('no-OS'){
-                            def path = sh(returnStdout: true, script: 'pwd').trim() 
+                            path = sh(returnStdout: true, script: 'pwd').trim() 
                             echo path
                             path = path + '/libraries/iio/libtinyiiod'
                             echo path
                         }
+                        echo path
                         sh 'git submodule update --init '+path
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
