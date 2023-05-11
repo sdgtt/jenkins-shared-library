@@ -724,9 +724,8 @@ def stage_library(String stage_name) {
                         flag = 'HARDWARE=' +file+' '
                     } else if (platform == 'maxim') {
                         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
-                        //get target
-                        target = board.split('_')[0]
-                        target_flag = ' TARGET='+target
+                    } else if (platform == 'aducm3029') {
+                        env = 'export CCES_HOME=/opt/analog/cces/2.11.0'
                     } 
 
                     dir('no-OS'){
