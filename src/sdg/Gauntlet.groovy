@@ -682,10 +682,7 @@ def stage_library(String stage_name) {
                     dir('no-OS'){
                         under_scm = isMultiBranchPipeline()
                         if (under_scm){
-                            retry(3) {
-                                sleep(5)
-                                sh 'git submodule update --jobs=4 --depth=1 --recursive --init'
-                            }
+                            echo "Cloning scm"
                         }
                         else {
                             println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
@@ -717,6 +714,11 @@ def stage_library(String stage_name) {
                     //set building environment
 
                     if (platform == 'xilinx'){
+                        def path = sh(returnStdout: true, script: 'pwd').trim() 
+                        echo path
+                        path = path + '/no-OS/libraries/iio/libtinyiiod'
+                        echo path
+                        sh 'git submodule update --init '+path
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
                         sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
