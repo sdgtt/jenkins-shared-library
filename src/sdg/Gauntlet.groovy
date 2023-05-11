@@ -691,7 +691,7 @@ def stage_library(String stage_name) {
                             println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
                             retry(3) {
                                 sleep(2)
-                                sh 'git clone --jobs=4 --depth=1 --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
+                                sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
                             }
                         }
                     }
