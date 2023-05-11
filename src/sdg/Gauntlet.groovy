@@ -714,10 +714,12 @@ def stage_library(String stage_name) {
                     //set building environment
 
                     if (platform == 'xilinx'){
-                        def path = sh(returnStdout: true, script: 'pwd').trim() 
-                        echo path
-                        path = path + '/no-OS/libraries/iio/libtinyiiod'
-                        echo path
+                        dir('no-OS'){
+                            def path = sh(returnStdout: true, script: 'pwd').trim() 
+                            echo path
+                            path = path + '/libraries/iio/libtinyiiod'
+                            echo path
+                        }
                         sh 'git submodule update --init '+path
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
