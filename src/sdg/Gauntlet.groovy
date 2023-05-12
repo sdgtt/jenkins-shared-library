@@ -731,7 +731,7 @@ def stage_library(String stage_name) {
                         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
                     } else if (platform == 'aducm3029') {
                         env = 'export CCES_HOME=/opt/analog/cces/2.11.0'
-                        flag = 'HARDWARE=pinmux_config.c '
+                        flag = 'HARDWARE="pinmux_config.c" '
                     } 
 
                     dir('no-OS'){
@@ -743,8 +743,7 @@ def stage_library(String stage_name) {
                             flags = flag + buildfile[platform][example]['flags']
                             sh 'screen -v'
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
-                            
-                            sleep(120)
+  
                             //build .elf
                             sh env+' && make PLATFORM='+platform+ ' ' +flags
                             sleep(2)
