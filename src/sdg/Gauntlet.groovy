@@ -752,10 +752,10 @@ def stage_library(String stage_name) {
                             
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
-                            archiveArtifacts artifacts: pwd+"/*.elf", followSymlinks: false, allowEmptyArchive: true
                             sh 'screen -XS '+board+ ' kill'
                         }
                     }
+                    archiveArtifacts artifacts: "*.elf", followSymlinks: false, allowEmptyArchive: true
                 }
             }
             //add check if iio in example
