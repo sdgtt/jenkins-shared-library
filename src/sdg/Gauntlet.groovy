@@ -715,13 +715,13 @@ def stage_library(String stage_name) {
                     //set building environment
 
                     if (platform == 'xilinx'){
-                        dir('no-OS'){
-                            path = sh(returnStdout: true, script: 'pwd').trim() 
-                            echo path
-                            path = path + '/libraries/iio/libtinyiiod'
-                            echo path
-                            sh 'git submodule update --init '+path
-                        }                        
+                        // dir('no-OS'){
+                        //     path = sh(returnStdout: true, script: 'pwd').trim() 
+                        //     echo path
+                        //     path = path + '/libraries/iio/libtinyiiod'
+                        //     echo path
+                        //     sh 'git submodule update --init '+path
+                        // }                        
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
                         sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
@@ -752,7 +752,7 @@ def stage_library(String stage_name) {
                             
                             sleep(300)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
-                            archiveArtifacts artifacts: "*.elf", followSymlinks: false, allowEmptyArchive: true
+                            archiveArtifacts artifacts: pwd+"/*.elf", followSymlinks: false, allowEmptyArchive: true
                             sh 'screen -XS '+board+ ' kill'
                         }
                     }
