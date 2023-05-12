@@ -744,6 +744,7 @@ def stage_library(String stage_name) {
                             sh 'screen -v'
                             sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                             
+                            sleep(120)
                             //build .elf
                             sh env+' && make PLATFORM='+platform+ ' ' +flags
                             sleep(2)
