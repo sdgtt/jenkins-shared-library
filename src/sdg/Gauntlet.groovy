@@ -720,9 +720,8 @@ def stage_library(String stage_name) {
                             echo path
                             path = path + '/libraries/iio/libtinyiiod'
                             echo path
-                        }
-                        echo path
-                        sh 'git submodule update --init '+path
+                            sh 'git submodule update --init '+path
+                        }                        
                         nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
                         sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
