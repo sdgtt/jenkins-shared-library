@@ -979,6 +979,11 @@ private def run_agents() {
                             sh 'cd /tmp'
                         }
                         for (k = 0; k < num_stages; k++) {
+                            if (gauntEnv.internal_stages_to_skip > 0) {
+                                println("Skipping test stage")
+                                gauntEnv.internal_stages_to_skip--
+                                continue;
+                            }
                             println("Stage called for board: "+board)
                             println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
                             if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
