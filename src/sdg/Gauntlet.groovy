@@ -173,9 +173,9 @@ def stage_library(String stage_name) {
 //                                 }
 //                                 //get git sha properties of files
 //                                 get_gitsha(board)
-//                             }catch(Exception ex){
-//                                 throw new Exception('Downloader error: '+ ex.getMessage()) 
-//                             }
+                            }catch(Exception ex){
+                                throw new Exception('Downloader error: '+ ex.getMessage()) 
+                            }
                             
                             if(gauntEnv.toolbox_generated_bootbin) {
                                 println("Replace bootbin with one generated from toolbox")
