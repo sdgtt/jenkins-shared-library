@@ -200,7 +200,7 @@ def stage_library(String stage_name) {
                                     println("No bootbin found for " + ml_bootbin_case + " case")
                                     println("Skipping Update BOOT Files stage")
                                     println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
-                                    gauntEnv.internal_stages_to_skip = gauntEnv.ml_test_stages;
+                                    gauntEnv.internal_stages_to_skip[board] = gauntEnv.ml_test_stages;
                                     return;
                                 }
                             }
@@ -927,10 +927,11 @@ private def run_agents() {
         def ml_variant_index = 0
         node(agent) {
             try{
+                gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                 for (k = 0; k < num_stages; k++) {
-                    if (gauntEnv.internal_stages_to_skip > 0) {
+                    if (gauntEnv.internal_stages_to_skip[board] > 0) {
                         println("Skipping test stage")
-                        gauntEnv.internal_stages_to_skip--
+                        gauntEnv.internal_stages_to_skip[board]--
                         continue;
                     }
                     println("Stage called for board: "+board)
@@ -978,10 +979,11 @@ private def run_agents() {
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
                         }
+                        gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                         for (k = 0; k < num_stages; k++) {
-                            if (gauntEnv.internal_stages_to_skip > 0) {
+                            if (gauntEnv.internal_stages_to_skip[board] > 0) {
                                 println("Skipping test stage")
-                                gauntEnv.internal_stages_to_skip--
+                                gauntEnv.internal_stages_to_skip[board]--
                                 continue;
                             }
                             println("Stage called for board: "+board)
