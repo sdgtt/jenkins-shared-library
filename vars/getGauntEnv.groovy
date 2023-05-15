@@ -83,6 +83,6 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             ml_branch: '',
             ml_build: '',
             ml_test_stages: 0,
-            internal_stages_to_skip: 0 // Number of stages to skip. Used for test skipping for MATLAB
+            internal_stages_to_skip: [:] // Number of stages to skip. Used for test skipping for MATLAB
     ]
 }
