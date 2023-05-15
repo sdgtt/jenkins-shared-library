@@ -154,28 +154,28 @@ def stage_library(String stage_name) {
                                         '" -b "'+gauntEnv.ml_branch+
                                         '" -u "'+gauntEnv.ml_build+'"')
                                 }
-                                if (board=="pluto"){
-                                    if (gauntEnv.firmwareVersion == 'NA')
-                                        throw new Exception("Firmware must be specified")
-                                    nebula('dl.bootfiles --board-name=' + board 
-                                            +  ' --branch="' + gauntEnv.firmwareVersion  
-                                            +  '" --filetype="firmware"', true, true, true)
-                                }else{
-                                    if (gauntEnv.branches == ["NA","NA"])
-                                        throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
-                                    if (gauntEnv.bootfile_source == "NA")
-                                        throw new Exception("bootfile_source must be specified")
-                                    nebula('dl.bootfiles --board-name=' + board 
-                                            + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                                            + '" --source=' + gauntEnv.bootfile_source
-                                            +  ' --branch="' + gauntEnv.branches.toString()
-                                            +  '"' + gauntEnv.filetype, true, true, true) 
-                                }
-                                //get git sha properties of files
-                                get_gitsha(board)
-                            }catch(Exception ex){
-                                throw new Exception('Downloader error: '+ ex.getMessage()) 
-                            }
+//                                 if (board=="pluto"){
+//                                     if (gauntEnv.firmwareVersion == 'NA')
+//                                         throw new Exception("Firmware must be specified")
+//                                     nebula('dl.bootfiles --board-name=' + board 
+//                                             +  ' --branch="' + gauntEnv.firmwareVersion  
+//                                             +  '" --filetype="firmware"', true, true, true)
+//                                 }else{
+//                                     if (gauntEnv.branches == ["NA","NA"])
+//                                         throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
+//                                     if (gauntEnv.bootfile_source == "NA")
+//                                         throw new Exception("bootfile_source must be specified")
+//                                     nebula('dl.bootfiles --board-name=' + board 
+//                                             + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+//                                             + '" --source=' + gauntEnv.bootfile_source
+//                                             +  ' --branch="' + gauntEnv.branches.toString()
+//                                             +  '"' + gauntEnv.filetype, true, true, true) 
+//                                 }
+//                                 //get git sha properties of files
+//                                 get_gitsha(board)
+//                             }catch(Exception ex){
+//                                 throw new Exception('Downloader error: '+ ex.getMessage()) 
+//                             }
                             
                             if(gauntEnv.toolbox_generated_bootbin) {
                                 println("Replace bootbin with one generated from toolbox")
@@ -192,7 +192,7 @@ def stage_library(String stage_name) {
                                         // Copy bootbin to outs folder
                                         println("Copy " + bootfile + " to outs folder")
                                         sh "cp ml_bootbins/${bootfile} outs/BOOT.BIN"
-                                        found = true;
+//                                         found = true;
                                         break
                                     }
                                 }
@@ -201,6 +201,7 @@ def stage_library(String stage_name) {
                                     println("Skipping Update BOOT Files stage")
                                     println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
                                     gauntEnv.internal_stages_to_skip = gauntEnv.ml_test_stages;
+                                    println("DEBUG: gauntEnv.internal_stages_to_skip: "+gauntEnv.internal_stages_to_skip.toString())
                                     return;
                                 }
                             }
@@ -944,6 +945,12 @@ private def run_agents() {
                             sh 'cd /tmp'
                         }
                         for (k = 0; k < num_stages; k++) {
+                            println("gauntEnv.internal_stages_to_skip: "+gauntEnv.internal_stages_to_skip.toString())
+                            if (gauntEnv.internal_stages_to_skip > 0) {
+                                println("Skipping test stage")
+                                gauntEnv.internal_stages_to_skip--
+                                continue;
+                            }
                             println("Stage called for board: "+board)
                             println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
                             if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
