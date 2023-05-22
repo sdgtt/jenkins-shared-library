@@ -780,21 +780,27 @@ def stage_library(String stage_name) {
                     stage('Check Context'){
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def iio_baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        try{
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
-                            }
-                        }catch(Exception ex){
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +iio_baudrate
-                            }
+                        retry(3){
+                            echo '---------------------------'
+                            sleep(10);
+                            echo "Check context"
+                            sh 'iio_info -u serial:' + serial + ',' +iio_baudrate
                         }
+                        // try{
+                        //     retry(3){
+                        //         echo '---------------------------'
+                        //         sleep(10);
+                        //         echo "Check context"
+                        //         sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
+                        //     }
+                        // }catch(Exception ex){
+                        //     retry(3){
+                        //         echo '---------------------------'
+                        //         sleep(10);
+                        //         echo "Check context"
+                        //         sh 'iio_info -u serial:' + serial + ',' +iio_baudrate
+                        //     }
+                        // }
                     }
                     break
                 case 'dma_example':
