@@ -712,7 +712,14 @@ def stage_library(String stage_name) {
                     //         env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     // }
 
-                    //set building environment
+                    //update libtinyiiod submodule
+                    dir('no-OS'){
+                        path = sh(returnStdout: true, script: 'pwd').trim() 
+                        echo path
+                        path = path + '/libraries/iio/libtinyiiod'
+                        echo path
+                        sh 'git submodule update --init '+path
+                    }   
 
                     if (platform == 'xilinx'){
                         // dir('no-OS'){
