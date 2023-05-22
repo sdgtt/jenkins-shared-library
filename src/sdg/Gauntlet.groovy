@@ -451,17 +451,22 @@ def stage_library(String stage_name) {
                             else
                                 uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString() //baudrate from gauntEnv default
                                 uri_custom = "serial:" + serial + "," + baudrate //baudrate from nebula-config
-                                try{
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri
-                                        uri = uri
-                                    }
-                                }catch(Exception ex){
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri_custom
-                                        uri = uri_custom
-                                    }
+                                
+                                retry(5){
+                                    sh 'iio_info -u ' +uri_custom
+                                    uri = uri_custom
                                 }
+                                // try{
+                                //     retry(3){
+                                //         sh 'iio_info -u ' +uri
+                                //         uri = uri
+                                //     }
+                                // }catch(Exception ex){
+                                //     retry(3){
+                                //         sh 'iio_info -u ' +uri_custom
+                                //         uri = uri_custom
+                                //     }
+                                // }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
@@ -712,7 +717,7 @@ def stage_library(String stage_name) {
                     //         env = 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh' 
                     // }
 
-                    //update libtinyiiod submodule
+                    //update libtinyiiod
                     dir('no-OS'){
                         path = sh(returnStdout: true, script: 'pwd').trim() 
                         echo path
