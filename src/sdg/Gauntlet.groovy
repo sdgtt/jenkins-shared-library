@@ -433,16 +433,18 @@ def stage_library(String stage_name) {
                         def description = ""
                         def pytest_attachment = null
                         println('IP: ' + ip)
-                        // temporarily get pytest-libiio from another source
-                        run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
-                        dir('pytest-libiio'){
-                            run_i('python3 setup.py install', true)
-                        }
                         run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo, true)
                         dir('pyadi-iio')
                         {
                             run_i('pip3 install -r requirements.txt', true)
                             run_i('pip3 install -r requirements_dev.txt', true)
+                            // temporarily get pytest-libiio from another source
+                            if (gauntEnv.pytest_libiio_branch OR gauntEnv.pytest_libiio_repo) {
+                                run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
+                                    dir('pytest-libiio'){
+                                        run_i('python3 setup.py install', true)
+                                    }
+                            }
                             run_i('pip3 install pylibiio', true)
                             run_i('mkdir testxml')
                             run_i('mkdir testhtml')
