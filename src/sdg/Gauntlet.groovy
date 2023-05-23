@@ -440,6 +440,7 @@ def stage_library(String stage_name) {
                             run_i('pip3 install -r requirements_dev.txt', true)
                             // temporarily get pytest-libiio from another source
                             if (gauntEnv.pytest_libiio_branch != 'master') {
+                                run_i('pip uninstall pytest_libiio -y')
                                 run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
                                     dir('pytest-libiio'){
                                         run_i('python3 setup.py install', true)
