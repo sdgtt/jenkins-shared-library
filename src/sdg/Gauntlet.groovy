@@ -745,7 +745,7 @@ def stage_library(String stage_name) {
                     } else if (platform == 'maxim') {
                         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
                     } else if (platform == 'aducm3029') {
-                        env = 'export CCES_HOME=/opt/analog/cces/2.11.0'
+                        env = 'export CCES_HOME=/opt/analog/cces/' + gauntEnv.cces_ver
                         flag = 'HARDWARE="pinmux_config.c" LINK_SRCS=n '
                     } 
 
