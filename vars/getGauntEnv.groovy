@@ -78,6 +78,12 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             max_retry: 3,
             recovery_ref: "SD",
             log_artifacts: false,
-            credentials_id: ''
+            credentials_id: '',
+            toolbox_generated_bootbin: false,
+            ml_toolbox: '',
+            ml_branch: '',
+            ml_build: '',
+            ml_test_stages: 0,
+            internal_stages_to_skip: [:] // Number of stages to skip. Used for test skipping for MATLAB
     ]
 }

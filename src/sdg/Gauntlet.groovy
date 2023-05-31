@@ -134,7 +134,7 @@ def stage_library(String stage_name) {
     switch (stage_name) {
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
-            cls = { String board ->
+            cls = { String board, ml_bootbin_case=null ->
                 try {
                     stage('Update BOOT Files') {
                         def boolean trxPluto = gauntEnv.docker_args.contains("MATLAB") && (board=="pluto")
@@ -146,6 +146,14 @@ def stage_library(String stage_name) {
                             println("Board name passed: "+board)
                             println("Branch: " + gauntEnv.branches.toString())
                             try{
+                                if (gauntEnv.toolbox_generated_bootbin) {
+                                    println("MATLAB BOOT.BIN job variation: "+ml_bootbin_case)
+                                    println("Downloading bootbin generated from toolbox")
+                                    nebula('show-log dl.matlab-bootbins'+
+                                         ' -t "'+gauntEnv.ml_toolbox+
+                                        '" -b "'+gauntEnv.ml_branch+
+                                        '" -u "'+gauntEnv.ml_build+'"')
+                                }
                                 if (board=="pluto"){
                                     if (gauntEnv.firmwareVersion == 'NA')
                                         throw new Exception("Firmware must be specified")
@@ -169,6 +177,34 @@ def stage_library(String stage_name) {
                                 throw new Exception('Downloader error: '+ ex.getMessage()) 
                             }
                             
+                            if(gauntEnv.toolbox_generated_bootbin) {
+                                println("Replace bootbin with one generated from toolbox")
+                                // Get list of files in ml_bootbins folder
+                                def ml_bootfiles = sh (script: "ls   ml_bootbins", returnStdout: true).trim()
+                                println("ml_bootfiles: " + ml_bootfiles)
+                                // Filter bootbin for specific case (rx,tx,rxtx)
+                                def found = false;
+                                for (String bootfile : ml_bootfiles.split("\\r?\\n")) {
+                                    println("Inspecting " + bootfile + " for " + ml_bootbin_case + "_BOOT.BIN")
+                                    println("Must contain board: " + board)
+                                    println(bootfile.contains(board) && bootfile.contains("_"+ml_bootbin_case+"_BOOT.BIN"))
+                                    if (bootfile.contains(board) && bootfile.contains("_"+ml_bootbin_case+"_BOOT.BIN")) {
+                                        // Copy bootbin to outs folder
+                                        println("Copy " + bootfile + " to outs folder")
+                                        sh "cp ml_bootbins/${bootfile} outs/BOOT.BIN"
+                                        found = true;
+                                        break
+                                    }
+                                }
+                                if (!found) {
+                                    println("No bootbin found for " + ml_bootbin_case + " case")
+                                    println("Skipping Update BOOT Files stage")
+                                    println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
+                                    gauntEnv.internal_stages_to_skip[board] = gauntEnv.ml_test_stages;
+                                    return;
+                                }
+                            }
+
                             //update-boot-files
                             nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
                             if (board=="pluto"){
@@ -852,11 +888,23 @@ private def run_agents() {
     
     def oneNode = { agent, num_stages, stages, board, docker_stat  ->
         def k
+        def ml_variants = ['rx','tx','rx_tx']
+        def ml_variant_index = 0
         node(agent) {
             try{
+                gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                 for (k = 0; k < num_stages; k++) {
+                    if (gauntEnv.internal_stages_to_skip[board] > 0) {
+                        println("Skipping test stage")
+                        gauntEnv.internal_stages_to_skip[board]--
+                        continue;
+                    }
                     println("Stage called for board: "+board)
-                    stages[k].call(board)
+                    println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
+                    if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                        stages[k].call(board, ml_variants[ml_variant_index++])
+                    else
+                        stages[k].call(board)
                 }
             }catch(NominalException ex){
                 println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
@@ -870,6 +918,8 @@ private def run_agents() {
     
     def oneNodeDocker = { agent, num_stages, stages, board, docker_image_name, enable_update_boot_pre_docker_flag, pre_docker_closure, docker_stat ->
         def k
+        def ml_variants = ['rx','tx','rx_tx']
+        def ml_variant_index = 0
         node(agent) {
             try {
                 if (enable_update_boot_pre_docker_flag)
@@ -894,9 +944,19 @@ private def run_agents() {
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
                         }
+                        gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                         for (k = 0; k < num_stages; k++) {
+                            if (gauntEnv.internal_stages_to_skip[board] > 0) {
+                                println("Skipping test stage")
+                                gauntEnv.internal_stages_to_skip[board]--
+                                continue;
+                            }
                             println("Stage called for board: "+board)
-                            stages[k].call(board)
+                            println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
+                            if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                                stages[k].call(board, ml_variants[ml_variant_index++])
+                            else
+                                stages[k].call(board)
                         }
                     }catch(NominalException ex){
                         println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
