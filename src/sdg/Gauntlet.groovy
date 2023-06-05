@@ -1881,7 +1881,7 @@ private def check_update_container_lib(update_container_lib=false) {
 private def setupAgent(deps, skip_cleanup = false, update_requirements=false) {
     try {
         def i;
-        for (i = 0; i < deps.size.(); i++) {
+        for (i = 0; i < deps.size(); i++) {
             println(deps[i])
             if (deps[i] == 'nebula') {
                 install_nebula(update_requirements)
