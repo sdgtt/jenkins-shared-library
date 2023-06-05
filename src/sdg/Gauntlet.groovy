@@ -85,7 +85,8 @@ private def update_agent() {
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
-                        run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
+                        //run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
+                        run_i('sudo rm -rf nebula-config')
                         if(gauntEnv.nebula_config_source == 'github'){
                             run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
