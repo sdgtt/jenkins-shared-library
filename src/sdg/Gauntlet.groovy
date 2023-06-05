@@ -1834,7 +1834,7 @@ private def check_update_container_lib(update_container_lib=false) {
     else {
         def i;
         for (i=0; i<repos.size(); i++) {
-            if (repos[i] != default_repos[i]) || (branches[i] != default_branch){
+            if ((repos[i] != default_repos[i]) || (branches[i] != default_branch)){
                 deps.add(dep_map[i])
             } 
         }
