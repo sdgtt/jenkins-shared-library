@@ -80,7 +80,7 @@ private def update_agent() {
                 stage('Update agents') {
                     sh 'mkdir -p /var/lib/jenkins/app'
                     sh 'rm -rf /var/lib/jenkins/app/*'
-                    setupAgent(['nebula', 'libiio'], false, update_requirements)
+                    setupAgent(['nebula'], false, update_requirements)
                 }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
