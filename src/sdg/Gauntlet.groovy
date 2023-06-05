@@ -85,7 +85,6 @@ private def update_agent() {
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
-                        //run_i('if [ -d "nebula-config" ]; then rm -Rf nebula-config; fi')
                         run_i('sudo rm -rf nebula-config')
                         if(gauntEnv.nebula_config_source == 'github'){
                             run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
@@ -974,7 +973,6 @@ private def run_agents() {
     docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
-    //docker_args.add('-v /usr/app:/app')
     docker_args.add('-v /etc/timezone:/etc/timezone:ro')
     docker_args.add('-v /etc/localtime:/etc/localtime:ro')
     if (gauntEnv.docker_host_mode) {
@@ -1028,15 +1026,11 @@ private def run_agents() {
                         stage('Setup Docker') {
                             sh 'apt-get clean'
                             sh 'cd /var/lib/apt && mv lists lists.bak; mkdir -p lists/partial'
-                            //sh 'apt-get clean'
-                            //sh 'apt update'
-                            //sh 'apt-get install python3-tk -y'
                             sh 'cp /default/nebula /etc/default/nebula'
                             sh 'cp /default/pip.conf /etc/pip.conf || true'
                             sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
-                            //sh 'cp -r /app/* "${PWD}"/'
                             def deps = check_update_container_lib()
                             if (deps.size()>0){
                                 setupAgent(deps, true, false)
@@ -1766,7 +1760,6 @@ private def install_nebula(update_requirements=false) {
         sh 'pip3 uninstall nebula -y || true'
         run_i('sudo rm -rf nebula')
         run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
-        //sh 'cp -r nebula /usr/app'
         dir('nebula')
         {
             if (update_requirements){
@@ -1785,7 +1778,6 @@ private def install_libiio() {
             bat 'mkdir build'
             bat('build')
             {
-                //sh 'cmake .. -DPYTHON_BINDINGS=ON'
                 bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 bat 'cmake --build . --config Release --install'
             }
@@ -1794,13 +1786,11 @@ private def install_libiio() {
     else {
         run_i('sudo rm -rf libiio')
         run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
-        //sh 'cp -r libiio /usr/app'
         dir('libiio')
         {
             sh 'mkdir build'
             dir('build')
             {
-                //sh 'cmake .. -DPYTHON_BINDINGS=ON'
                 sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 sh 'make'
                 sh 'make install'
@@ -1828,7 +1818,6 @@ private def install_telemetry(update_requirements=false){
         // sh 'pip3 uninstall telemetry -y || true'
         run_i('sudo rm -rf telemetry')
         run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
-        //sh 'cp -r telemetry /usr/app'
         dir('telemetry')
         {
             if (update_requirements){
