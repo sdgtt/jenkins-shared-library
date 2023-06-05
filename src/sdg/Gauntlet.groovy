@@ -1762,7 +1762,7 @@ private def install_nebula(update_requirements=false) {
     }
     else {
         sh 'pip3 uninstall nebula -y || true'
-        run_i('sudo rm -r nubula')
+        run_i('sudo rm -r nebula')
         run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
         //sh 'cp -r nebula /usr/app'
         dir('nebula')
