@@ -78,8 +78,8 @@ private def update_agent() {
         jobs[agent_name] = {
             node(agent_name) {
                 stage('Update agents') {
-                    sh 'mkdir -p /usr/app'
-                    sh 'rm -rf /usr/app/*'
+                    sh 'mkdir -p /var/lib/jenkins/app'
+                    sh 'rm -rf /var/lib/jenkins/app/*'
                     setupAgent(['nebula', 'libiio'], false, update_requirements)
                 }
                 // automatically update nebula config
@@ -975,8 +975,10 @@ private def run_agents() {
     docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
+    docker_args.add('-v /var/lib/jenkins/app:/app')
     docker_args.add('-v /etc/timezone:/etc/timezone:ro')
     docker_args.add('-v /etc/localtime:/etc/localtime:ro')
+    docker_args.add('-u 0')
     if (gauntEnv.docker_host_mode) {
         docker_args.add('--network host')
     }
@@ -1769,9 +1771,9 @@ private def install_nebula(update_requirements=false) {
         dir('nebula')
         {
             if (update_requirements){
-                run_i('pip3 install -r requirements.txt', true)
+                run_i('sudo pip3 install -r requirements.txt', true)
             }
-            run_i('python3 setup.py install', true)
+            run_i('sudo python3 setup.py install', true)
         }
     }
 }
@@ -1799,11 +1801,11 @@ private def install_libiio() {
             {
                 sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
                 sh 'make'
-                sh 'make install'
+                sh 'sudo make install'
                 sh 'ldconfig'
                 // install python bindings
                 dir('bindings/python'){
-                    sh 'python3 setup.py install'
+                    sh 'sudo python3 setup.py install'
                 }
             }
         }
@@ -1827,9 +1829,9 @@ private def install_telemetry(update_requirements=false){
         dir('telemetry')
         {
             if (update_requirements){
-                run_i('pip3 install -r requirements.txt', true)
+                run_i('sudo pip3 install -r requirements.txt', true)
             }
-            run_i('python3 setup.py install', true)
+            run_i('sudo python3 setup.py install', true)
         }
     }
 }
