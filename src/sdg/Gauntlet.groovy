@@ -1594,18 +1594,22 @@ private def splitMap(map, do_split=false) {
 private def getOnlineAgents() {
     def jenkins = Jenkins.instance
     def online_agents = []
-    for (agent in jenkins.getNodes()) {
-        def computer = agent.computer
-        if (computer.name == 'alpine') {
-            continue
-        }
-        if (!computer.offline) {
-            if (!gauntEnv.required_agent.isEmpty()){
-                if (computer.name in gauntEnv.required_agent){
+    if ("tof-agent-main" in gauntEnv.required_agent){
+        online_agents.add("tof-agent-main")
+    } else {
+        for (agent in jenkins.getNodes()) {
+            def computer = agent.computer
+            if (computer.name == 'alpine') {
+                continue
+            }
+            if (!computer.offline) {
+                if (!gauntEnv.required_agent.isEmpty()){
+                    if (computer.name in gauntEnv.required_agent){
+                        online_agents.add(computer.name)
+                    }
+                }else{
                     online_agents.add(computer.name)
                 }
-            }else{
-                online_agents.add(computer.name)
             }
         }
     }
@@ -1877,7 +1881,7 @@ private def check_update_container_lib(update_container_lib=false) {
 private def setupAgent(deps, skip_cleanup = false, update_requirements=false) {
     try {
         def i;
-        for (i = 0; i < deps.size; i++) {
+        for (i = 0; i < deps.size.(); i++) {
             println(deps[i])
             if (deps[i] == 'nebula') {
                 install_nebula(update_requirements)
