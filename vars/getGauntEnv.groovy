@@ -27,7 +27,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             required_agent: [],
             firmware_boards: ['pluto','m2k'],
             enable_docker: false,
-            docker_image: 'tfcollins/sw-ci:latest',
+            docker_image: 'tfcollins/test-harness-ci:latest',
             docker_args: ['MATLAB','Vivado'],
             docker_host_mode: true,
             update_nebula_config: true,
@@ -88,6 +88,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             ml_branch: '',
             ml_build: '',
             ml_test_stages: 0,
-            internal_stages_to_skip: [:] // Number of stages to skip. Used for test skipping for MATLAB
+            internal_stages_to_skip: [:], // Number of stages to skip. Used for test skipping for MATLAB
+            update_lib_requirements: false, // Set to true to run installation of requirements.txt
+            update_container_lib: false // Set to true to force update libiio, nebula, telemetry base on master branch
     ]
 }
