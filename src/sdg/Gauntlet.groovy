@@ -64,7 +64,7 @@ private def setup_agents() {
 }
 
 private def update_agent() {
-    //def docker_status = gauntEnv.enable_docker
+    def docker_status = gauntEnv.enable_docker
     def update_requirements = gauntEnv.update_lib_requirements
     def board_map = [:]
 
