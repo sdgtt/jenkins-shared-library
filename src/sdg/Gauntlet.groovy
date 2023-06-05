@@ -64,7 +64,8 @@ private def setup_agents() {
 }
 
 private def update_agent() {
-    def docker_status = gauntEnv.enable_docker
+    //def docker_status = gauntEnv.enable_docker
+    def update_requirements = gauntEnv.update_lib_requirements
     def board_map = [:]
 
     // Query each agent for their connected hardware
@@ -79,7 +80,7 @@ private def update_agent() {
                 stage('Update agents') {
                     sh 'mkdir -p /usr/app'
                     sh 'rm -rf /usr/app/*'
-                    setupAgent(['nebula','libiio', 'telemetry'], false, docker_status)
+                    setupAgent(['nebula','libiio', 'telemetry'], false, update_requirements)
                 }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
@@ -961,7 +962,7 @@ private def log_artifacts(){
 
 private def run_agents() {
     // Start stages for each node with a board
-    def docker_status = gauntEnv.enable_docker
+    def update_container_lib = gauntEnv.update_container_lib
     def jobs = [:]
     def num_boards = gauntEnv.boards.size()
     def docker_args = getDockerConfig(gauntEnv.docker_args)
@@ -971,7 +972,7 @@ private def run_agents() {
     docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
-    docker_args.add('-v /usr/app:/app')
+    //docker_args.add('-v /usr/app:/app')
     docker_args.add('-v /etc/timezone:/etc/timezone:ro')
     docker_args.add('-v /etc/localtime:/etc/localtime:ro')
     if (gauntEnv.docker_host_mode) {
@@ -1025,18 +1026,19 @@ private def run_agents() {
                         stage('Setup Docker') {
                             sh 'apt-get clean'
                             sh 'cd /var/lib/apt && mv lists lists.bak; mkdir -p lists/partial'
-                            sh 'apt-get clean'
-                            sh 'apt update'
-                            sh 'apt-get install python3-tk -y'
+                            //sh 'apt-get clean'
+                            //sh 'apt update'
+                            //sh 'apt-get install python3-tk -y'
                             sh 'cp /default/nebula /etc/default/nebula'
                             sh 'cp /default/pip.conf /etc/pip.conf || true'
                             sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
-                            sh 'cp -r /app/* "${PWD}"/'
-                            setup_locale()
-                            setup_libserialport()
-                            setupAgent(['libiio','nebula','telemetry'], true, docker_status);
+                            //sh 'cp -r /app/* "${PWD}"/'
+                            def deps = check_update_container_lib()
+                            if (deps.size()>0){
+                                setupAgent(deps, true, false)
+                            }
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
                         }
@@ -1747,46 +1749,35 @@ def String getURIFromSerial(String board){
     return instr_uri
 }
 
-private def clone_nebula() {
+private def install_nebula(update_requirements=false) {
     if (checkOs() == 'Windows') {
         run_i('git clone -b '+  gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
-    }
-    else {
-        sh 'pip3 uninstall nebula -y || true'
-        run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
-        sh 'cp -r nebula /usr/app'
-    }
-}
-
-private def install_nebula() {
-    if (checkOs() == 'Windows') {
         dir('nebula')
         {
-            run_i('pip install -r requirements.txt', true)
+            if (update_requirements){
+                run_i('pip install -r requirements.txt', true)
+            }
             run_i('python setup.py install', true)
         }
     }
     else {
+        sh 'pip3 uninstall nebula -y || true'
+        run_i('sudo rm -r nubula')
+        run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
+        //sh 'cp -r nebula /usr/app'
         dir('nebula')
         {
-            run_i('pip3 install -r requirements.txt', true)
+            if (update_requirements){
+                run_i('pip3 install -r requirements.txt', true)
+            }
             run_i('python3 setup.py install', true)
         }
     }
 }
 
-private def clone_libiio() {
-    if (checkOs() == 'Windows') {
-        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
-    }
-    else {
-        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
-        sh 'cp -r libiio /usr/app'
-    }
-}
-
 private def install_libiio() {
     if (checkOs() == 'Windows') {
+        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
         dir('libiio')
         {
             bat 'mkdir build'
@@ -1799,6 +1790,9 @@ private def install_libiio() {
         }
     }
     else {
+        run_i('sudo rm -r libiio')
+        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
+        //sh 'cp -r libiio /usr/app'
         dir('libiio')
         {
             sh 'mkdir build'
@@ -1814,38 +1808,30 @@ private def install_libiio() {
                     sh 'python3 setup.py install'
                 }
             }
-
-            
-
         }
     }
 }
 
-private def clone_telemetry(){
+private def install_telemetry(update_requirements=false){
     if (checkOs() == 'Windows') {
         run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
-    }else{
-        // sh 'pip3 uninstall telemetry -y || true'
-        run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
-        sh 'cp -r telemetry /usr/app'
-    }
-}
-
-private def install_telemetry() {
-    if (checkOs() == 'Windows') {
-        // bat 'git clone https://github.com/tfcollins/telemetry.git'
         dir('telemetry')
         {
-            run_i('pip install -r requirements.txt', true)
+            if (update_requirements){
+                run_i('pip install -r requirements.txt', true)
+            }
             run_i('python setup.py install', true)
         }
-    }
-    else {
-        run_i('pip3 uninstall telemetry -y || true', true)
-        // sh 'git clone https://github.com/tfcollins/telemetry.git'
+    }else{
+        // sh 'pip3 uninstall telemetry -y || true'
+        run_i('sudo rm -r telemetry')
+        run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
+        //sh 'cp -r telemetry /usr/app'
         dir('telemetry')
         {
-            run_i('pip3 install -r requirements.txt', true)
+            if (update_requirements){
+                run_i('pip3 install -r requirements.txt', true)
+            }
             run_i('python3 setup.py install', true)
         }
     }
@@ -1870,36 +1856,42 @@ private def setup_libserialport() {
     }
 }
 
-private def setupAgent(deps, skip_cleanup = false, docker_status) {
+private def check_update_container_lib(update_container_lib=false) {
+    def deps = []
+    def default_branch = 'master'
+    def default_repos = ['https://github.com/sdgtt/nebula.git', 'https://github.com/analogdevicesinc/libiio.git', 'https://github.com/sdgtt/telemetry.git']
+    def branches = [gauntEnv.nebula_branch, gauntEnv.libiio_branch, gauntEnv.telemetry_branch]
+    def repos = [gauntEnv.nebula_repo, gauntEnv.libiio_repo, gauntEnv.telemetry_repo]
+    def dep_map = [ 0:'nebula', 1:'libiio', 2:'telemetry']
+    if (update_container_lib){
+        deps = ['nebula', 'libiio', 'telemetry']
+    }
+    else {
+        def i;
+        for (i=0; i<repos.size(); i++) {
+            if (repos[i] != default_repos[i]) || (branches[i] != default_branch){
+                deps.add(dep_map[i])
+            } 
+        }
+    }
+    return deps
+}
+
+private def setupAgent(deps, skip_cleanup = false, update_requirements=false) {
     try {
         def i;
         for (i = 0; i < deps.size; i++) {
             println(deps[i])
             if (deps[i] == 'nebula') {
-                if (docker_status) {
-                    install_nebula()
-                } else {
-                    clone_nebula()
-                    install_nebula()
-                }
+                install_nebula(update_requirements)
             }
             if (deps[i] == 'libiio') {
-                if (docker_status) {
-                    install_libiio()
-                } else {
-                    clone_libiio()
-                    install_libiio()
-                }
+                install_libiio()
             }
             if (deps[i] == 'telemetry') {
-                if (docker_status) {
-                    install_telemetry()
-                } else {
-                    clone_telemetry()
-                    install_telemetry()
-                }
+                install_telemetry(update_requirements)
             }
-        }
+         }
     }
     finally {
         if (!skip_cleanup)
