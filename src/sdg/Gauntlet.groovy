@@ -1762,7 +1762,7 @@ private def install_nebula(update_requirements=false) {
     }
     else {
         sh 'pip3 uninstall nebula -y || true'
-        run_i('sudo rm -r nebula')
+        run_i('sudo rm -rf nebula')
         run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
         //sh 'cp -r nebula /usr/app'
         dir('nebula')
@@ -1790,7 +1790,7 @@ private def install_libiio() {
         }
     }
     else {
-        run_i('sudo rm -r libiio')
+        run_i('sudo rm -rf libiio')
         run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
         //sh 'cp -r libiio /usr/app'
         dir('libiio')
@@ -1824,7 +1824,7 @@ private def install_telemetry(update_requirements=false){
         }
     }else{
         // sh 'pip3 uninstall telemetry -y || true'
-        run_i('sudo rm -r telemetry')
+        run_i('sudo rm -rf telemetry')
         run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
         //sh 'cp -r telemetry /usr/app'
         dir('telemetry')
