@@ -928,6 +928,7 @@ private def log_artifacts(){
 
 private def run_agents() {
     // Start stages for each node with a board
+    def docker_status = gauntEnv.enable_docker
     def update_container_lib = gauntEnv.update_container_lib
     def jobs = [:]
     def num_boards = gauntEnv.boards.size()
