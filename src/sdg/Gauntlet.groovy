@@ -158,6 +158,7 @@ def stage_library(String stage_name) {
                                     if (gauntEnv.firmwareVersion == 'NA')
                                         throw new Exception("Firmware must be specified")
                                     nebula('dl.bootfiles --board-name=' + board 
+                                            + ' --source="github"'
                                             +  ' --branch="' + gauntEnv.firmwareVersion  
                                             +  '" --filetype="firmware"', true, true, true)
                                 }else{
