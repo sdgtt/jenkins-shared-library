@@ -628,8 +628,11 @@ def stage_library(String stage_name) {
                     }
                     createMFile()
                     try{
-                        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
-                        xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
+                        cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
+                        cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
+                        cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
+                        cmd += ' -r "run(\'matlab_commands.m\');exit"'
+                        statusCode = sh script:cmd, returnStatus:true
                     }catch (Exception ex){
                         // log Jira
                         xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
@@ -663,8 +666,11 @@ def stage_library(String stage_name) {
                     {
                         createMFile()
                         try{
-                            sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout+' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
-                            xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
+                            cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
+                            cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
+                            cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
+                            cmd += ' -r "run(\'matlab_commands.m\');exit"'
+                            statusCode = sh script:cmd, returnStatus:true
                         }catch (Exception ex){
                             // log Jira
                             xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
@@ -1726,6 +1732,19 @@ def sendLogsToElastic(... args) {
         }
     }
     return out
+}
+
+def String getURIFromSerial(String board){
+    // Utility method to get uri from IIO device serial number
+    if (board == 'm2k') {
+        serial_no = nebula('update-config board-config serial --board-name='+board)
+    }
+    else {
+        serial_no = nebula('update-config board-config instr-serial --board-name='+board)
+    }
+    cmd="iio_info -s | grep serial="+serial_no+" | grep -Po \"\\[.*:.*\" | sed 's/.\$//' | cut -c 2-"
+    instr_uri = sh(script:cmd, returnStdout: true).trim()
+    return instr_uri
 }
 
 private def clone_nebula() {
