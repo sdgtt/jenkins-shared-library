@@ -979,7 +979,7 @@ private def run_agents() {
         }
     }
     
-    def oneNodeDocker = { agent, num_stages, stages, board, docker_image_name, enable_update_boot_pre_docker_flag, pre_docker_closure, docker_stat, update_container_lib, update_lib_requirements ->
+    def oneNodeDocker = { agent, num_stages, stages, board, docker_image_name, enable_update_boot_pre_docker_flag, pre_docker_closure, docker_stat, update_container, update_requirements ->
         def k
         def ml_variants = ['rx','tx','rx_tx']
         def ml_variant_index = 0
@@ -997,9 +997,9 @@ private def run_agents() {
                             sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
-                            def deps = check_update_container_lib(update_container_lib)
+                            def deps = check_update_container_lib(update_container)
                             if (deps.size()>0){
-                                setupAgent(deps, true, update_lib_requirements)
+                                setupAgent(deps, true, update_requirements)
                             }
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
@@ -1074,7 +1074,9 @@ jobs[agent+"-"+board] = {
                                 docker_image,
                                 enable_update_boot_pre_docker,
                                 pre_docker_cls, 
-                                docker_status
+                                docker_status,
+                                update_container_lib,
+                                update_lib_requirements
                             )
                         }
                     }
@@ -1090,7 +1092,9 @@ jobs[agent+"-"+board] = {
                                 docker_image,
                                 enable_update_boot_pre_docker,
                                 pre_docker_cls,
-                                docker_status
+                                docker_status,
+                                update_container_lib,
+                                update_lib_requirements
                             )
                     }
                  };
