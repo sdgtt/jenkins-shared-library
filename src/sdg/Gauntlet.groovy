@@ -929,6 +929,7 @@ private def run_agents() {
     // Start stages for each node with a board
     def docker_status = gauntEnv.enable_docker
     def update_container_lib = gauntEnv.update_container_lib
+    def update_lib_requirements = gauntEnv.update_lib_requirements
     def jobs = [:]
     def num_boards = gauntEnv.boards.size()
     def docker_args = getDockerConfig(gauntEnv.docker_args)
@@ -978,7 +979,7 @@ private def run_agents() {
         }
     }
     
-    def oneNodeDocker = { agent, num_stages, stages, board, docker_image_name, enable_update_boot_pre_docker_flag, pre_docker_closure, docker_stat ->
+    def oneNodeDocker = { agent, num_stages, stages, board, docker_image_name, enable_update_boot_pre_docker_flag, pre_docker_closure, docker_stat, update_container_lib, update_lib_requirements ->
         def k
         def ml_variants = ['rx','tx','rx_tx']
         def ml_variant_index = 0
@@ -996,9 +997,9 @@ private def run_agents() {
                             sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
                             sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
                             sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
-                            def deps = check_update_container_lib()
+                            def deps = check_update_container_lib(update_container_lib)
                             if (deps.size()>0){
-                                setupAgent(deps, true, false)
+                                setupAgent(deps, true, update_lib_requirements)
                             }
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
@@ -1815,9 +1816,9 @@ private def setup_libserialport() {
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
     def default_branch = 'master'
-    def default_repos = ['https://github.com/sdgtt/nebula.git', 'https://github.com/analogdevicesinc/libiio.git', 'https://github.com/sdgtt/telemetry.git']
-    def branches = [gauntEnv.nebula_branch, gauntEnv.libiio_branch, gauntEnv.telemetry_branch]
-    def repos = [gauntEnv.nebula_repo, gauntEnv.libiio_repo, gauntEnv.telemetry_repo]
+    def default_repos = [0:'sdgtt/nebula.git', 1:'analogdevicesinc/libiio.git', 2:'sdgtt/telemetry.git']
+    def branches = [0:gauntEnv.nebula_branch, 1:gauntEnv.libiio_branch, 2:gauntEnv.telemetry_branch]
+    def repos = [0:gauntEnv.nebula_repo, 1:gauntEnv.libiio_repo, 2:gauntEnv.telemetry_repo]
     def dep_map = [ 0:'nebula', 1:'libiio', 2:'telemetry']
     if (update_container_lib){
         deps = ['nebula', 'libiio', 'telemetry']
@@ -1825,7 +1826,7 @@ private def check_update_container_lib(update_container_lib=false) {
     else {
         def i;
         for (i=0; i<repos.size(); i++) {
-            if ((repos[i] != default_repos[i]) || (branches[i] != default_branch)){
+            if (!(repos[i].contains(default_repos[i])) || (branches[i] != default_branch)){
                 deps.add(dep_map[i])
             } 
         }
