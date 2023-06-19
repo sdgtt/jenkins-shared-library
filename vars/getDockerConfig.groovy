@@ -47,7 +47,7 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             echo '----Adding no-OS Resources----'
             args.add('-v "/opt/MaximSDK":"/opt/MaximSDK"')
             args.add('-v "/opt/STM32CubeMX":"/opt/STM32CubeMX"')
-            args.add('-v "/opt/analog/cces/2.11.0":"/opt/analog/cces/2.11.0"')
+            args.add('-v "/opt/analog/cces":"/opt/analog/cces"')
             args.add('-v "/root/.analog":"/root/.analog"')
         }
         else if (listOfResources[i].equalsIgnoreCase( 'images' )) {
