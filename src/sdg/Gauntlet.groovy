@@ -771,6 +771,7 @@ def stage_library(String stage_name) {
                         }
                     }
                     archiveArtifacts artifacts: "*.elf", followSymlinks: false, allowEmptyArchive: true
+                    archiveArtifacts artifacts: "*.hex", followSymlinks: false, allowEmptyArchive: true
                 }
             }
             //add check if iio in example
