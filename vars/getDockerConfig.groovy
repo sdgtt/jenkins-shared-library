@@ -49,6 +49,7 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             args.add('-v "/opt/STM32CubeMX":"/opt/STM32CubeMX"')
             args.add('-v "/opt/analog/cces":"/opt/analog/cces"')
             args.add('-v "/root/.analog":"/root/.analog"')
+            args.add('-e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:rw -v /root/.Xauthority:/root/.Xauthority')
         }
         else if (listOfResources[i].equalsIgnoreCase( 'images' )) {
             echo '----Adding Time of Flight Resources----'

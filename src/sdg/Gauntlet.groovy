@@ -745,6 +745,7 @@ def stage_library(String stage_name) {
                     } else if (platform == 'maxim') {
                         env = 'export MAXIM_LIBRARIES=/opt/MaximSDK/Libraries'
                     } else if (platform == 'aducm3029') {
+                        sh 'sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install -y  libc6:i386 libncurses5:i386 libstdc++6:i386 libgtk2.0-0:i386 libxtst6:i386  gtk2-engines-murrine:i386 libcanberra-gtk-module:i386 gtk2-engines:i386'
                         env = 'export CCES_HOME=/opt/analog/cces/' + gauntEnv.cces_ver
                     } 
 
