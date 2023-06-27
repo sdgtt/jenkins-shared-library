@@ -90,6 +90,13 @@ private def update_agent() {
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
                             run_i('mkdir nebula-config')
                             dir('nebula-config'){
+                                def custom = ""
+                                if(gauntEnv.netbox_include_variants == false){
+                                    custom = custom + " --no-include-variants"
+                                }
+                                if(gauntEnv.netbox_include_children == false){
+                                    custom = custom + " --no-include-children"
+                                }
                                 nebula('gen-config-netbox --jenkins-agent=' + agent_name
                                     + ' --netbox-ip=' + gauntEnv.netbox_ip
                                     + ' --netbox-port=' + gauntEnv.netbox_port
@@ -97,6 +104,7 @@ private def update_agent() {
                                     + ' --netbox-token=' + gauntEnv.netbox_token
                                     + ' --devices-tag=' + gauntEnv.netbox_devices_tag
                                     + ' --template=' + gauntEnv.netbox_nebula_template
+                                    + custom
                                     + ' --outfile='+ agent_name, true, true, false)
                             }
                         }else{
@@ -421,9 +429,15 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
                         
                         try{
-                            if (!gauntEnv.firmware_boards.contains(board))
-                                nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                            if (!gauntEnv.firmware_boards.contains(board)){
+                                try{
+                                    nebula('update-config board-config serial --board-name='+board)
+                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
+                                }catch(Exception ex){
+                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                                }
                                 archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+                            }
                         }catch(Exception ex) {
                             failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
@@ -463,9 +477,8 @@ def stage_library(String stage_name) {
                     try
                     {
                         //def ip = nebula('uart.get-ip')
-                        def ip = nebula('update-config network-config dutip --board-name='+board)
-                        def serial = nebula('update-config uart-config address --board-name='+board)
-                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                        def ip;
+                        def serial;
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -483,22 +496,13 @@ def stage_library(String stage_name) {
                             run_i('pip3 install pylibiio', true)
                             run_i('mkdir testxml')
                             run_i('mkdir testhtml')
-                            if (gauntEnv.iio_uri_source == "ip")
+                            if (gauntEnv.iio_uri_source == "ip"){
+                                ip = nebula('update-config network-config dutip --board-name='+board)
                                 uri = "ip:" + ip;
-                            else
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString() //baudrate from gauntEnv default
-                                uri_custom = "serial:" + serial + "," + baudrate //baudrate from nebula-config
-                                try{
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri
-                                        uri = uri
-                                    }
-                                }catch(Exception ex){
-                                    retry(3){
-                                        sh 'iio_info -u ' +uri_custom
-                                        uri = uri_custom
-                                    }
-                                }
+                            }else{
+                                serial = nebula('update-config uart-config address --board-name='+board)
+                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                            }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
                             board_name = check.board_name.replaceAll('-', '_')
@@ -689,6 +693,56 @@ def stage_library(String stage_name) {
                 }
             }
         }
+        break
+
+    case 'KuiperCheck':
+            cls = { String board ->
+                    println("Checking Kuiper deployment for $board")
+                    stage('Kuiper Check'){
+                        try{
+                            // Download tool
+                            run_i(
+                                "git clone -b $gauntEnv.kuiper_checker_branch $gauntEnv.kuiper_checker_repo",
+                                do_retry=true
+                            )
+                            dir('kuiper-post-build-checker'){
+                                // install kpbc requirements, retry on failure
+                                run_i('pip3 install -r requirements.txt', true)
+                                // fetch kuiper gen, retry on failure
+                                run_i('invoke fetchkuipergen', true)
+                                // get board ip
+                                def ip = nebula('update-config network-config dutip --board-name='+board)
+                                // execute test
+                                cmd = "python3 -m pytest -v --html=testhtml/$board" + "_kpbc_report.html" 
+                                cmd = cmd + " --junitxml=testxml/$board" + "_kpbc_reports.xml"
+                                cmd = cmd + " --ip=$ip -m \"not hardware_check\" --capture=tee-sys"
+                                def statusCode = sh script:cmd, returnStatus:true  
+                                // generate html report
+                                if (fileExists("testhtml/$board" + "_kpbc_report.html")){
+                                    publishHTML(target : [
+                                        escapeUnderscores: false, 
+                                        allowMissing: false, 
+                                        alwaysLinkToLastBuild: false, 
+                                        keepAll: true, 
+                                        reportDir: 'testhtml', 
+                                        reportFiles: "$board" + "_kpbc_report.html", 
+                                        reportName: board, 
+                                        reportTitles: board])
+                                }
+                                // TODO: parse result for elastic logging
+                                // throw exception if pytest failed
+                                if ((statusCode != 5) && (statusCode != 0)){
+                                    // Ignore error 5 which means no tests were run
+                                    throw new NominalException('Kuiper Check Failed')
+                                }
+                            }
+                        }
+                        finally{
+                            // archive result
+                            junit testResults: 'kuiper-post-build-checker/testxml/*.xml', allowEmptyResults: true 
+                        }
+                    }
+                }
             break
     case 'noOSTest':
         cls = { String board ->
@@ -792,7 +846,7 @@ def stage_library(String stage_name) {
                 nebula('pdu.power-cycle -b ' + board + ' -p ' + pdutype + ' -o ' + outlet)
             }   
         }
-            break
+        break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
@@ -1003,7 +1057,7 @@ jobs[agent+"-"+board] = {
             if( enable_resource_queuing ){
                 println("Enable resource queueing")
                 jobs[agent + '-' + board] = {
-                    def lock_name = extractLockName(board)
+                    def lock_name = extractLockName(board, agent)
                     echo "Acquiring lock for ${lock_name}"
                     lock(lock_agent){
                         lock(lock_name){
@@ -1799,22 +1853,49 @@ private def setupAgent(deps, skip_cleanup = false, docker_status) {
     }
 }
 
-private def get_gitsha(String board){
+def get_gitsha(String board){
+
+    hdl_hash = "NA"
+    linux_hash = "NA"
+    linux_git_sha = "NA"
+    linux_folder = "NA"
+
     if (gauntEnv.nebula_local_fs_source_root == "local_fs"){
-        set_elastic_field(board, 'hdl_hash', 'NA')
-        set_elastic_field(board, 'linux_hash', 'NA')
+        set_elastic_field(board, 'hdl_hash', hdl_hash)
+        set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
 
     if (gauntEnv.firmware_boards.contains(board)){
-        set_elastic_field(board, 'hdl_hash', 'NA')
-        set_elastic_field(board, 'linux_hash', 'NA')
+        set_elastic_field(board, 'hdl_hash', hdl_hash)
+        set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
+
+    // properties.hdl_git_sha = null
+    // properties.hdl_folder = null
+    // properties.linux_git_sha = null
+    // properties.linux_folder = null
     
     if (fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
+        }
+    } else if(fileExists('outs/properties.txt')){
+        dir ('outs'){
+            def file = readFile 'properties.txt'
+            lines = file.readLines()
+            for (line in lines){
+                echo line
+                if (line.contains("git_sha=")){
+                    echo "git_sha found"
+                    linux_git_sha = line.replace("git_sha=","")
+                }
+                if (line.contains("git_sha_date=")){
+                    echo "git_sha_date found"
+                    linux_folder = line.replace("git_sha_date=","")
+                }
+            }
         }
     } else {
         return
@@ -1822,15 +1903,20 @@ private def get_gitsha(String board){
 
     if (gauntEnv.bootPartitionBranch == 'NA'){
         hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")"
-        set_elastic_field(board, 'hdl_hash', hdl_hash)
-        set_elastic_field(board, 'linux_hash', linux_hash)
+        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
     }else{
         hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
         linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
-        set_elastic_field(board, 'hdl_hash', hdl_hash)
-        set_elastic_field(board, 'linux_hash', linux_hash)
     }
+
+    if (linux_git_sha != null){
+        linux_hash = linux_git_sha + " (" + linux_folder + ")"
+        hdl_hash = "NA"
+    }
+
+    echo "Hashes set hdl: ${hdl_hash}, linux: ${linux_hash}"
+    set_elastic_field(board, 'hdl_hash', hdl_hash)
+    set_elastic_field(board, 'linux_hash', linux_hash)
 }
 
 private def check_for_marker(String board){
@@ -1853,7 +1939,7 @@ private def check_for_marker(String board){
     }
 }
 
-private def extractLockName(String bname){
+private def extractLockName(String bname, String agent){
     echo "Extracting resource lockname from ${bname}"
     def lockName = bname
     if (bname.contains("-v")){
@@ -1862,6 +1948,16 @@ private def extractLockName(String bname){
     for (cat in gauntEnv.board_sub_categories){
         if(lockName.contains('-' + cat))
             lockName = lockName.replace('-' + cat, "")
+    }
+    // support carrier with multiple daughter boards, e.g RPi PMOD Hats
+    // use serial-id (if exists) as unique carrier identifier that will be used as lock name.
+    node(agent){
+        try{
+            lockName = nebula("update-config board-config serial -b ${bname}")
+        }catch(Exception ex){
+            echo getStackTrace(ex)
+            println("serial-id is not defined. Will use other reference as lockname")
+        }
     }
     return lockName
 }
