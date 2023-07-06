@@ -80,7 +80,7 @@ private def update_agent() {
                 stage('Update agents') {
                     sh 'mkdir -p /usr/app'
                     sh 'rm -rf /usr/app/*'
-                    setupAgent(['nebula','libiio', 'telemetry'], false, update_requirements)
+                    setupAgent(['nebula', 'libiio'], false, update_requirements)
                 }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
@@ -1827,7 +1827,7 @@ private def check_update_container_lib(update_container_lib=false) {
     }
     else {
         def i;
-        for (i=0; i<repos.size(); i++) {
+        for (i=0; i<branches.size(); i++) {
             if (branches[i] != default_branch){
                 deps.add(dep_map[i])
             } 
