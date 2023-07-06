@@ -1855,9 +1855,7 @@ private def setup_libserialport() {
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
     def default_branch = 'master'
-    def default_repos = [0:'sdgtt/nebula.git', 1:'analogdevicesinc/libiio.git', 2:'sdgtt/telemetry.git']
     def branches = [0:gauntEnv.nebula_branch, 1:gauntEnv.libiio_branch, 2:gauntEnv.telemetry_branch]
-    def repos = [0:gauntEnv.nebula_repo, 1:gauntEnv.libiio_repo, 2:gauntEnv.telemetry_repo]
     def dep_map = [ 0:'nebula', 1:'libiio', 2:'telemetry']
     if (update_container_lib){
         deps = ['nebula', 'libiio', 'telemetry']
@@ -1865,7 +1863,7 @@ private def check_update_container_lib(update_container_lib=false) {
     else {
         def i;
         for (i=0; i<repos.size(); i++) {
-            if (!(repos[i].contains(default_repos[i])) || (branches[i] != default_branch)){
+            if (branches[i] != default_branch){
                 deps.add(dep_map[i])
             } 
         }
