@@ -779,13 +779,14 @@ def stage_library(String stage_name) {
                         sh 'ldconfig'
                     }
                 }
-            }
+                }
             stage("Capture IIO Context with iio-emu") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
                 sh 'xml_gen ip:'+ip+' > "'+board+'.xml"'
                 archiveArtifacts artifacts: '*.xml'
             }
-            break
+        }
+        break
     case 'noOSTest':
         cls = { String board ->
             def under_scm = true
