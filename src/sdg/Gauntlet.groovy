@@ -616,7 +616,7 @@ def stage_library(String stage_name) {
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
                 def description = ""
-                def xmlFile = null
+                def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
@@ -647,7 +647,7 @@ def stage_library(String stage_name) {
                         throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
-                            archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
+                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
@@ -685,7 +685,7 @@ def stage_library(String stage_name) {
                             throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
-                            archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
+                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
