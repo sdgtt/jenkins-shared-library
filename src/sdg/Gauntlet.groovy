@@ -1994,7 +1994,10 @@ private def extractLockName(String bname, String agent){
     // use serial-id (if exists) as unique carrier identifier that will be used as lock name.
     node(agent){
         try{
-            lockName = nebula("update-config board-config serial -b ${bname}")
+            def serial_str = nebula("update-config board-config serial -b ${bname}")
+            if (serial_str){
+                lockName = serial_str
+            }
         }catch(Exception ex){
             echo getStackTrace(ex)
             println("serial-id is not defined. Will use other reference as lockname")
