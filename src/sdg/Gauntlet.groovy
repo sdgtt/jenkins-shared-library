@@ -124,6 +124,7 @@ private def update_agent() {
                 // clean up residue containers
                 stage('Clean up residue docker containers') {
                     sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    sh 'sudo killall screen' //close all screen session on the agent
                 }
             }
         }
