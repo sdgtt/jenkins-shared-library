@@ -121,9 +121,10 @@ private def update_agent() {
                         
                     }
                 }
-                // clean up residue containers
+                // clean up residue containers and detached screen sessions
                 stage('Clean up residue docker containers') {
                     sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
                 }
             }
         }
