@@ -60,7 +60,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             nebula_repo: 'https://github.com/sdgtt/nebula.git',
             nebula_branch: 'master',
             libiio_repo: 'https://github.com/analogdevicesinc/libiio.git',
-            libiio_branch: 'master',
+            libiio_branch: 'v0.25',
             telemetry_repo: 'https://github.com/sdgtt/telemetry.git',
             telemetry_branch: 'master',
             matlab_release: 'R2021a',
