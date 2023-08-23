@@ -490,7 +490,16 @@ def stage_library(String stage_name) {
                         dir('pytest-libiio'){
                             run_i('python3 setup.py install', true)
                         }
-                        run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo, true)
+                        //scm pyadi-iio
+                        dir('pyadi-iio'){
+                            under_scm = isMultiBranchPipeline()
+                            if (under_scm){
+                                 println("Multibranch pipeline. Checkout scm")
+                            }else{
+                                println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                                run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
+                            }
+                        }
                         dir('pyadi-iio')
                         {
                             run_i('pip3 install -r requirements.txt', true)
