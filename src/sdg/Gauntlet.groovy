@@ -1379,8 +1379,10 @@ def isMultiBranchPipeline() {
     println("Checking if multibranch pipeline..")
     try
     {
-        checkout scm
-        isMultiBranch = true
+        retry(3){
+            checkout scm
+            isMultiBranch = true
+        }
     }
     catch(all)
     {
