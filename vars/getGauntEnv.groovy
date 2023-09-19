@@ -68,6 +68,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             matlab_branch: 'master',
             matlab_commands: [],
             matlab_timeout: '10m',
+            matlab_license: 'machine',
             no_os_repo: 'https://github.com/analogdevicesinc/no-OS.git',
             no_os_branch: 'master',
             vivado_ver: '2019.1',
