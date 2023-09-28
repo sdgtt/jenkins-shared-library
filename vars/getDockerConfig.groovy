@@ -52,6 +52,11 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             args.add('-v /etc/udev/rules.d:/etc/udev/rules.d')
             args.add('-v /run/udev/data:/run/udev/data')
         }
+        else if (listOfResources[i].equalsIgnoreCase( 'x11forwarding' )) {
+            echo '----Adding X11 Forwarding ----'
+            args.add('-v /tmp/.X11-unix:/tmp/.X11-unix:rw')
+            args.add('-v /home/analog/.Xauthority:/root/.Xauthority')
+        }
         else {
             args.add(listOfResources[i])
         }
