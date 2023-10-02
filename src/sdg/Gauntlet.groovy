@@ -666,7 +666,22 @@ def stage_library(String stage_name) {
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
                                 }
-                            }   
+                            }
+                            // Print test result summary and set stage status depending on test result
+                            if (statusCode != 0) {
+                                currentBuild.result = 'FAILURE'
+                            }
+                            switch (statusCode) {
+                                case 1:
+                                    unstable("MATLAB: Error encountered when running the tests.")
+                                    break
+                                case 2:
+                                    unstable("MATLAB: Some tests failed.")
+                                    break
+                                case 3:
+                                    unstable("MATLAB: Some tests did not run to completion.")
+                                    break
+                            }
                         }
                 }
                 else
@@ -704,6 +719,21 @@ def stage_library(String stage_name) {
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
                                 }
+                            }
+                            // Print test result summary and set stage status depending on test result
+                            if (statusCode != 0) {
+                                currentBuild.result = 'FAILURE'
+                            }
+                            switch (statusCode) {
+                                case 1:
+                                    unstable("MATLAB: Error encountered when running the tests.")
+                                    break
+                                case 2:
+                                    unstable("MATLAB: Some tests failed.")
+                                    break
+                                case 3:
+                                    unstable("MATLAB: Some tests did not run to completion.")
+                                    break
                             }
                         }
                     }
