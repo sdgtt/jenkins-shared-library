@@ -861,68 +861,75 @@ def stage_library(String stage_name) {
         break
     case 'noOSTest':
         cls = { String board ->
-            def under_scm = true
             def example = nebula('update-config board-config example --board-name='+board)
-            stage('Check JTAG connection'){
-                nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+            def file = ''
+            //check if boards are up
+            if (platform == 'Xilinx'){
+                stage('Check JTAG connection'){
+                    nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+                }
             }
-            stage('Build NO-OS Project'){
-                def pwd = sh(returnStdout: true, script: 'pwd').trim()
-                withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
-                    def project = nebula('update-config board-config no-os-project --board-name='+board)
-                    def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
-                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
-                    try{
-                        file = files[gauntEnv.vivado_ver.toString()]
-                    }catch(Exception ex){
-                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
-                    }
-                    try{
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-                    }catch(Exception ex){
-                        throw new Exception('Downloader error: '+ ex.getMessage()) 
-                    }
-
-                    dir('no-OS'){
-                        under_scm = isMultiBranchPipeline()
-                        if (under_scm){
-                            retry(3) {
-                                sleep(5)
-                                sh 'git submodule update --recursive --init'
+            //download no-os files from artifactory
+            stage('Download binaries'){
+                nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                def binaryfiles = sh (script: "ls outs", returnStdout: true).trim()
+                println("binary files: " + binaryfiles)
+                def found = false;
+                for (String binaryfile : binaryfiles.split("\\r?\\n")) {
+                    println("Must contain board: " + board)
+                    if (platform == "Xilinx"){
+                        if (binaryfile.contains(board.split('_')[0]) && binaryfile.contains(board.split('_')[1])) {
+                            if (binaryfile.contains(example)){
+                                bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.zip'
+                                sh 'unzip '+bootgen
+                                binaryfile = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
+                                found = true;
+                                break
                             }
                         }
-                        else {
-                            println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
-                            retry(3) {
-                                sleep(2)
-                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
+                    }else {
+                        if (binaryfile.contains(board.split('_')[0]) && binaryfile.contains(board.split('_')[1]) && binaryfile.contains('.elf')) {
+                            if (binaryfile.contains(example)){
+                                file = binaryfile
+                                found = true;
+                                break
                             }
                         }
                     }
+                }   
+            }
+            //load binary file to target board
+            stage('Test no-OS binary files'){
+                def project = nebula('update-config board-config no-os-project --board-name='+board)
+                def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                def serial = nebula('update-config uart-config address --board-name='+board)
+                if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                    sh 'ln /usr/bin/make /usr/bin/gmake'
+                }
+                sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
+                if (platform == "Xilinx"){
+                    sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
                     sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
-                        if (gauntEnv.vivado_ver == '2020.1'){
-                            sh 'git revert 76c709e'
-                        }
                         dir('projects/'+ project){
-                            def buildfile = readJSON file: 'builds.json'
-                            flag = buildfile['xilinx'][example]['flags']
-                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
-                                sh 'ln /usr/bin/make /usr/bin/gmake'
-                            }
-                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
-                            retry(3){
-                                sleep(2)
-                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
-                            }
+                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                            sleep(120)
+                            archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                            sh 'screen -XS '+board+ ' kill'
                         }
                     }
+                } else {
+                    sh 'wget https://github.com/analogdevicesinc/no-OS/blob/master/tools/scripts/mcufla.sh'
+                    sh 'chmod +x mcufla.sh'
+                    sh 'mcufla.sh ' +file+' '+serial
+                    sleep(120)
+                    archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                    sh 'screen -XS '+board+ ' kill'
                 }
             }
             switch (example){
-                case 'iio':
+                case 'iio_example':
                     stage('Check Context'){
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
@@ -947,9 +954,7 @@ def stage_library(String stage_name) {
                     // TODO
                 default:
                     throw new Exception('Example not yet supported: ' + example)
-            }
-
-             
+            }   
         }
             break
     case 'PowerCycleBoard':
