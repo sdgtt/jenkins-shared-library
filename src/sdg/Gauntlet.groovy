@@ -881,8 +881,8 @@ def stage_library(String stage_name) {
                     if (platform == "Xilinx"){
                         if (binaryfile.contains(board.split('_')[0]) && binaryfile.contains(board.split('_')[1])) {
                             if (binaryfile.contains(example)){
-                                bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.zip'
-                                sh 'unzip '+bootgen
+                                bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
+                                sh 'tar -xf '+bootgen
                                 binaryfile = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
                                 found = true;
                                 break
@@ -922,7 +922,7 @@ def stage_library(String stage_name) {
                 } else {
                     sh 'wget https://github.com/analogdevicesinc/no-OS/blob/master/tools/scripts/mcufla.sh'
                     sh 'chmod +x mcufla.sh'
-                    sh 'mcufla.sh ' +file+' '+serial
+                    sh 'mcufla.sh ' +file+' '+jtag_cable_id
                     sleep(120)
                     archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                     sh 'screen -XS '+board+ ' kill'
