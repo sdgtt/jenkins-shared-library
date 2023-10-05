@@ -862,6 +862,7 @@ def stage_library(String stage_name) {
     case 'noOSTest':
         cls = { String board ->
             def example = nebula('update-config board-config example --board-name='+board)
+            def platform = nebula('update-config downloader-config platform --board-name='+board)
             def file = ''
             //check if boards are up
             if (platform == 'Xilinx'){
