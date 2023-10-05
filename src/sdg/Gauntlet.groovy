@@ -923,7 +923,7 @@ def stage_library(String stage_name) {
                 } else {
                     sh 'wget https://github.com/analogdevicesinc/no-OS/blob/master/tools/scripts/mcufla.sh'
                     sh 'chmod +x mcufla.sh'
-                    sh 'mcufla.sh ' +file+' '+jtag_cable_id
+                    sh './mcufla.sh ' +file+' '+jtag_cable_id
                     sleep(120)
                     archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                     sh 'screen -XS '+board+ ' kill'
