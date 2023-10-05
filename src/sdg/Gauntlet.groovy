@@ -878,12 +878,12 @@ def stage_library(String stage_name) {
                 println("binary files: " + binaryfiles)
                 def found = false;
                 for (String binaryfile : binaryfiles.split("\\r?\\n")) {
-                    def carrier = binaryfile.contains(board.split('_')[0])
-                    def daughter = binaryfile.contains(board.split('_')[1])
+                    def carrier = board.split('_')[0]
+                    def daughter = board.split('_')[1]
                     if (daughter.contains('-')){
                         daughter = daughter.split('-')[0]
                     }
-                    if (binaryfile.contains(example) && carrier && daughter){
+                    if (binaryfile.contains(example) && binaryfile.contains(carrier) && binaryfile.contains(daughter)){
                         if (platform == "Xilinx"){
                             bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
                             sh 'tar -xf '+bootgen
@@ -899,10 +899,13 @@ def stage_library(String stage_name) {
                         }
                     }
                 }
-                if (found == false) {
-                    //add warning
-                    //stop pipeline
-                }   
+                if (!found) {
+                    println("No elf found for "+board+'-' + example)
+                    //println("Skipping Update BOOT Files stage")
+                    //println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
+                    //gauntEnv.internal_stages_to_skip[board] = gauntEnv.ml_test_stages;
+                    return;
+                }  
             }
             //load binary file to target board
             stage('Test no-OS binary files'){
