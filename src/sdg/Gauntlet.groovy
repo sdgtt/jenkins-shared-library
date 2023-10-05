@@ -861,6 +861,7 @@ def stage_library(String stage_name) {
         break
     case 'noOSTest':
         cls = { String board ->
+            sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
             def platform = nebula('update-config downloader-config platform --board-name='+board)
             def file = ''
