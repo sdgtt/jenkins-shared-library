@@ -878,26 +878,30 @@ def stage_library(String stage_name) {
                 println("binary files: " + binaryfiles)
                 def found = false;
                 for (String binaryfile : binaryfiles.split("\\r?\\n")) {
-                    println("Must contain board: " + board)
-                    if (platform == "Xilinx"){
-                        if (binaryfile.contains(board.split('_')[0]) && binaryfile.contains(board.split('_')[1])) {
-                            if (binaryfile.contains(example)){
-                                bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
-                                sh 'tar -xf '+bootgen
-                                binaryfile = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
-                                found = true;
-                                break
-                            }
-                        }
-                    }else {
-                        if (binaryfile.contains(board.split('_')[0]) && binaryfile.contains(board.split('_')[1]) && binaryfile.contains('.elf')) {
-                            if (binaryfile.contains(example)){
+                    def carrier = binaryfile.contains(board.split('_')[0])
+                    def daughter = binaryfile.contains(board.split('_')[1])
+                    if (daughter.contains('-')){
+                        daughter = daughter.split('-')[0]
+                    }
+                    if (binaryfile.contains(example) && carrier && daughter){
+                        if (platform == "Xilinx"){
+                            bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
+                            sh 'tar -xf '+bootgen
+                            binaryfile = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
+                            found = true;
+                            break
+                        }else {
+                            if (binaryfile.contains('.elf')) {
                                 file = binaryfile
                                 found = true;
                                 break
                             }
                         }
                     }
+                }
+                if (found == false) {
+                    //add warning
+                    //stop pipeline
                 }   
             }
             //load binary file to target board
