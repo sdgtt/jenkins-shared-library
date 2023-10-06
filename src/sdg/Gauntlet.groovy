@@ -890,13 +890,13 @@ def stage_library(String stage_name) {
                             bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
                             sh 'tar -xf '+bootgen
                             filepath = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
-                            echo filepath
+                            println("File/filepath: "+filepath) 
                             found = true;
                             break
                         }else {
                             if (binaryfile.contains('.elf')) {
                                 filepath = 'outs/'+binaryfile
-                                echo filepath
+                                println("File/filepath: "+filepath) 
                                 found = true;
                                 break
                             }
@@ -904,11 +904,8 @@ def stage_library(String stage_name) {
                     }
                 }
                 if (!found) {
-                    println("No elf found for "+board+'-' + example)
-                    //println("Skipping Update BOOT Files stage")
-                    //println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
-                    //gauntEnv.internal_stages_to_skip[board] = gauntEnv.ml_test_stages;
-                    return;
+                    //for now, stop test pipeline if file is not found
+                    throw new NominalException("No elf found for "+board+'-' + example)
                 }  
             }
             //load binary file to target board
@@ -942,11 +939,11 @@ def stage_library(String stage_name) {
                 }
             }
             switch (example){
-                case 'iio_example':
+                case example.contains('iio'):
                     stage('Check Context'){
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        retry(3){
+                        retry(5){
                             echo '---------------------------'
                             sleep(10);
                             echo "Check context"
