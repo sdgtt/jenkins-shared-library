@@ -865,7 +865,7 @@ def stage_library(String stage_name) {
             sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
             def platform = nebula('update-config downloader-config platform --board-name='+board)
-            def file = ''
+            def filepath = ''
             //check if boards are up
             if (platform == 'Xilinx'){
                 stage('Check JTAG connection'){
@@ -889,12 +889,14 @@ def stage_library(String stage_name) {
                         if (platform == "Xilinx"){
                             bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
                             sh 'tar -xf '+bootgen
-                            binaryfile = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
+                            filepath = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
+                            echo filepath
                             found = true;
                             break
                         }else {
                             if (binaryfile.contains('.elf')) {
-                                file = binaryfile
+                                filepath = 'outs/'+binaryfile
+                                echo filepath
                                 found = true;
                                 break
                             }
@@ -911,6 +913,7 @@ def stage_library(String stage_name) {
             }
             //load binary file to target board
             stage('Test no-OS binary files'){
+                echo filepath
                 def project = nebula('update-config downloader-config no_os_project --board-name='+board)
                 def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
                 def serial = nebula('update-config uart-config address --board-name='+board)
@@ -920,7 +923,7 @@ def stage_library(String stage_name) {
                 sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
                 if (platform == "Xilinx"){
                     sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
-                    sh 'cp outs/'+file+ ' no-OS/projects/'+ project +'/'
+                    sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         dir('projects/'+ project){
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
@@ -932,7 +935,7 @@ def stage_library(String stage_name) {
                 } else {
                     sh 'wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/master/tools/scripts/mcufla.sh'
                     sh 'chmod +x mcufla.sh'
-                    sh './mcufla.sh ' +file+' '+jtag_cable_id
+                    sh './mcufla.sh ' +filepath+' '+jtag_cable_id
                     sleep(120)
                     archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                     sh 'screen -XS '+board+ ' kill'
@@ -943,20 +946,11 @@ def stage_library(String stage_name) {
                     stage('Check Context'){
                         def serial = nebula('update-config uart-config address --board-name='+board)
                         def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        try{
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
-                            }
-                        }catch(Exception ex){
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +baudrate
-                            }
+                        retry(3){
+                            echo '---------------------------'
+                            sleep(10);
+                            echo "Check context"
+                            sh 'iio_info -u serial:' + serial + ',' +baudrate
                         }
                     }
                     break
