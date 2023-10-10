@@ -1008,7 +1008,7 @@ private def run_agents() {
     def update_lib_requirements = gauntEnv.update_lib_requirements
     def jobs = [:]
     def num_boards = gauntEnv.boards.size()
-    def docker_args = getDockerConfig(gauntEnv.docker_args)
+    def docker_args = getDockerConfig(gauntEnv.docker_args, gauntEnv.matlab_license)
     def enable_update_boot_pre_docker = gauntEnv.enable_update_boot_pre_docker
     def enable_resource_queuing = gauntEnv.enable_resource_queuing
     def pre_docker_cls = stage_library("UpdateBOOTFiles")
@@ -1389,6 +1389,15 @@ def set_matlab_commands(List matlab_commands) {
  */
 def set_matlab_timeout(matlab_timeout) {
     gauntEnv.matlab_timeout = matlab_timeout
+}
+
+/**
+ * Set type of MATLAB license file
+ * @param matlab_license acceptable values are 'network' for 'machine'
+ * 'network' for network license and 'machine' for machine-specific license
+ */
+def set_matlab_license(matlab_license) {
+    gauntEnv.matlab_license = matlab_license
 }
 
 /**
