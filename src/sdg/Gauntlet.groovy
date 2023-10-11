@@ -923,6 +923,7 @@ def stage_library(String stage_name) {
                     sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         dir('projects/'+ project){
+                            sh 'sudo touch system_top.xsa'
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
