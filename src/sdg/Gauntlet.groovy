@@ -889,7 +889,7 @@ def stage_library(String stage_name) {
                         if (platform == "Xilinx"){
                             bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
                             sh 'tar -xf '+bootgen
-                            filepath = sh(returnStdout: true, script: 'ls | grep *.elf').trim()
+                            filepath = sh(returnStdout: true, script: 'ls | grep *'+carrier+'.elf').trim()
                             println("File/filepath: "+filepath) 
                             found = true;
                             break
@@ -921,9 +921,9 @@ def stage_library(String stage_name) {
                 if (platform == "Xilinx"){
                     sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
                     sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
+                    sh 'cp system_top.xsa no-OS/projects/'+ project +'/'
                     dir('no-OS'){
                         dir('projects/'+ project){
-                            sh 'sudo touch system_top.xsa'
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                             sleep(120)
                             archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
