@@ -921,7 +921,7 @@ def stage_library(String stage_name) {
                 if (platform == "Xilinx"){
                     sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
                     sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
-                    sh 'cp system_top.xsa no-OS/projects/'+ project +'/'
+                    sh 'cp *.xsa no-OS/projects/'+ project +'/system_top.xsa'
                     dir('no-OS'){
                         dir('projects/'+ project){
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
