@@ -925,19 +925,16 @@ def stage_library(String stage_name) {
                     dir('no-OS'){
                         dir('projects/'+ project){
                             sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
-                            sleep(120)
-                            archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
-                            sh 'screen -XS '+board+ ' kill'
                         }
                     }
                 } else {
                     sh 'wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/master/tools/scripts/mcufla.sh'
                     sh 'chmod +x mcufla.sh'
                     sh './mcufla.sh ' +filepath+' '+jtag_cable_id
-                    sleep(120)
-                    archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
-                    sh 'screen -XS '+board+ ' kill'
                 }
+                sleep(120)
+                archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                sh 'screen -XS '+board+ ' kill'
             }
             if (example.contains('iio')){
                 stage('Check Context'){
