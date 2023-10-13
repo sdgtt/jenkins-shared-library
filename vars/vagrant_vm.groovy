@@ -22,6 +22,9 @@ def call(String project_vm, cls) {
     //sh 'vagrant winrm -c "del /S C:\\jenkins\\log\\* /Q"'
     sh 'vagrant winrm -c "net start JenkinsAgent"'
 
+    echo "Giving some time for agent to be available to Jenkins"
+    sleep 10
+    
     // Run closure
     try {
       name = check_node('win-vm')
