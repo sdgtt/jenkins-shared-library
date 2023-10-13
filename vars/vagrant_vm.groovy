@@ -24,7 +24,7 @@ def call(String project_vm, cls) {
     sh 'vagrant winrm -c "net start JenkinsAgent"'
 
     echo "Giving some time for agent to be available to Jenkins"
-    sleep 10
+    sleep 20
     }
     
     // Run closure
