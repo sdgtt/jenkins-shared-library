@@ -12,7 +12,7 @@ def get_agents(){
 }
 
 def call(agentName){
-    retries = 5
+    retries = 10
     sh 'vagrant winrm --command \"Get-Service -Name "JenkinsAgent"\"'
     for(int i = 0;i<retries;i++) {
         
