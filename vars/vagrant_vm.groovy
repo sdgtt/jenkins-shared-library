@@ -19,7 +19,7 @@ def call(String project_vm, cls) {
 
     // Restart Jenkins service
     sh 'vagrant winrm -c "net stop JenkinsAgent"'
-    sh 'vagrant winrm -c "del /S C:\\jenkins\\log\\* /Q"'
+    //sh 'vagrant winrm -c "del /S C:\\jenkins\\log\\* /Q"'
     sh 'vagrant winrm -c "net start JenkinsAgent"'
 
     // Run closure
