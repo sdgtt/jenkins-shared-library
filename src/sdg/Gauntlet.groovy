@@ -939,24 +939,20 @@ def stage_library(String stage_name) {
                     sh 'screen -XS '+board+ ' kill'
                 }
             }
-            switch (example){
-                case example.contains('iio'):
-                    stage('Check Context'){
-                        def serial = nebula('update-config uart-config address --board-name='+board)
-                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        retry(5){
-                            echo '---------------------------'
-                            sleep(10);
-                            echo "Check context"
-                            sh 'iio_info -u serial:' + serial + ',' +baudrate
-                        }
+            if (example.contains('iio')){
+                stage('Check Context'){
+                    def serial = nebula('update-config uart-config address --board-name='+board)
+                    def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                    retry(5){
+                        echo '---------------------------'
+                        sleep(10);
+                        echo "Check context"
+                        sh 'iio_info -u serial:' + serial + ',' +baudrate
                     }
-                    break
-                case 'dma_example':
-                    // TODO
-                default:
-                    throw new Exception('Example not yet supported: ' + example)
-            }   
+                }
+            }else {
+                throw new NominalException('Example not yet supported: ' + example)
+            } 
         }
             break
     case 'PowerCycleBoard':
