@@ -17,6 +17,11 @@ def call(String project_vm, cls) {
     echo "Resuming Dev VM"
     sh 'vagrant resume default'
 
+    // Restart Jenkins service
+    sh 'vagrant winrm -c "net stop JenkinsAgent"'
+    sh 'vagrant winrm -c "del /S C:\\jenkins\logs\*"''
+    sh 'vagrant winrm -c "net start JenkinsAgent"'
+
     // Run closure
     try {
       name = check_node('win-vm')
