@@ -7,6 +7,7 @@ def call(String project_vm, cls) {
 
     dir(folder) {
 
+    stage('Vagrant Setup'){
     // Get related Vagrant file for environment
     sh 'rm Vagrantfile || true'
     sh 'wget https://gist.githubusercontent.com/tfcollins/3e520c840df4d9a278e6c2b32dba58e5/raw/9b2eefd1ea3d7a1b0f4aad1943efd6b1a7b303f1/Vagrantfile'
@@ -24,17 +25,22 @@ def call(String project_vm, cls) {
 
     echo "Giving some time for agent to be available to Jenkins"
     sleep 10
+    }
     
     // Run closure
     try {
+      stage('VM Runtime'){
       name = check_node('win-vm')
       run_closure(name, cls)
+      }
     }
     finally {
+      stage('Vagrant Cleanup'){
       // Cleanup
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
       sh 'vagrant suspend'
+      }
     }
       
     }//dir
