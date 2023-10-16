@@ -16,7 +16,22 @@ def call(String project_vm, cls) {
 
     // Bring up VM
     echo "Resuming Dev VM"
-    sh 'vagrant resume default'
+
+    status = sh(returnStdout: true, script: "vagrant status | grep default").trim()
+    status = status.toLowerCase()
+    if (status.contains('shutdown')) {
+        sh 'vagrant up'
+    }
+    else if (status.contains('running')) {
+        echo "VM already running"
+    }
+    else if (status.contains('paused')) {
+        sh 'vagrant resume default'
+    }
+    else {
+        sh 'vagrant halt'
+        sh 'vagrant up'
+    }
 
     // Restart Jenkins service
     sh 'vagrant winrm -c "net stop JenkinsAgent"'
