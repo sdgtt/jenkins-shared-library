@@ -52,9 +52,9 @@ def call(String project_vm, cls) {
     finally {
       stage('Vagrant Cleanup'){
       // Cleanup
-      // echo "Loading snapshot and putting in suspended state"
-      // sh 'vagrant snapshot restore default initial-state'
-      // sh 'vagrant suspend'
+      echo "Loading snapshot and putting in suspended state"
+      sh 'vagrant snapshot restore default initial-state'
+      sh 'vagrant suspend'
       }
     }
       
