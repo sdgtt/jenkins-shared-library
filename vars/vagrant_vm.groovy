@@ -28,6 +28,11 @@ def call(String project_vm, cls) {
     else if (status.contains('paused')) {
         sh 'vagrant resume default'
     }
+    else if (status.contains('inaccessible')) {
+        sh 'virsh shutdown '+project_vm+'_default'
+        sh 'vagrant halt'
+        sh 'vagrant up'
+    }
     else {
         sh 'vagrant halt'
         sh 'vagrant up'
