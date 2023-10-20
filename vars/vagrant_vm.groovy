@@ -30,7 +30,6 @@ def call(String project_vm, cls) {
     else if (status.contains('paused')) {
         try {
             sh 'vagrant resume default'
-            break
         }
         catch(Exception ex) {
             println(ex)
