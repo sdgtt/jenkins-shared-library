@@ -79,8 +79,10 @@ def call(String project_vm, cls) {
     finally {
       stage('Vagrant Cleanup'){
       // Cleanup
+      cls = null;
+      sh 'vagrant winrm -c "net stop JenkinsAgent"'
       name = check_node('win-vm')
-      // markNodeOffline(name, "Vagrant box suspend")
+      markNodeOffline(name, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
       sh 'vagrant suspend'
@@ -97,6 +99,7 @@ def markNodeOffline(node, message) {
     computer = node.toComputer()
     computer.setTemporarilyOffline(true, new hudson.slaves.OfflineCause.ByCLI("Run only one build for each node"))
     computer.doChangeOfflineCause(message)
+    computer.doDoDelete()
     computer = null
     node = null
 }
