@@ -80,10 +80,11 @@ def call(String project_vm, cls) {
       stage('Vagrant Cleanup'){
       // Cleanup
       name = check_node('win-vm')
-      markNodeOffline(name, "Vagrant box suspend")
+      // markNodeOffline(name, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
       sh 'vagrant suspend'
+      sleep 5
       }
     }
       
