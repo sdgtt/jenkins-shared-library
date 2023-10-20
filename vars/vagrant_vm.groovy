@@ -82,7 +82,7 @@ def call(String project_vm, cls) {
       cls = null;
       name = check_node('win-vm')
       sh 'vagrant winrm -c "net stop JenkinsAgent"'
-      markNodeOffline(name, "Vagrant box suspend")
+      // markNodeOffline(name, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
       sh 'vagrant suspend'
