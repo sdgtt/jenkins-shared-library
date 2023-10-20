@@ -19,6 +19,8 @@ def call(String project_vm, cls) {
 
     status = sh(returnStdout: true, script: "vagrant status | grep default").trim()
     status = status.toLowerCase()
+    println("Got vagrant status: "+status)
+
     if (status.contains('shutdown')) {
         sh 'vagrant up'
     }
