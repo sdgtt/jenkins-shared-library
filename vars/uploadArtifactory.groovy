@@ -86,21 +86,21 @@ def call(project, filepattern) {
   //  TransceiverToolbox/release/trx-toolbox-tag/<files>
 
     // Check if we have files to upload based on target
-    try {
-        if (checkOs() == 'Windows') {
-            bat 'for %A in (' + filepattern + ') do @echo %A > files_searched'
-        }
-        else {
-            sh 'ls ' + filepattern + ' > files_searched || true'
-        }
-        def files_list = readFile('files_searched')
-        println('Files found: ' + files_list)
-        if (files_list.length() <= 0) {
-            return
-        }
-    } catch(Exception ex) {
-        println(ex);
-    }
+    // try {
+    //     if (checkOs() == 'Windows') {
+    //         bat 'for %A in (' + filepattern + ') do @echo %A > files_searched'
+    //     }
+    //     else {
+    //         sh 'ls ' + filepattern + ' > files_searched || true'
+    //     }
+    //     def files_list = readFile('files_searched')
+    //     println('Files found: ' + files_list)
+    //     if (files_list.length() <= 0) {
+    //         return
+    //     }
+    // } catch(Exception ex) {
+    //     println(ex);
+    // }
 
     echo '-------Artifactory Git Hash lookup-------'
     def commit = env.GIT_COMMIT
