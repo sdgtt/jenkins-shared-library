@@ -33,8 +33,9 @@ def call(String project_vm, cls) {
         sh 'vagrant halt'
         sh 'vagrant up'
     }
-    else {
+    else { // pmsuspended
         sh 'vagrant halt'
+        sleep 5
         sh 'vagrant up'
     }
 
