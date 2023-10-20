@@ -80,8 +80,8 @@ def call(String project_vm, cls) {
       stage('Vagrant Cleanup'){
       // Cleanup
       cls = null;
-      sh 'vagrant winrm -c "net stop JenkinsAgent"'
       name = check_node('win-vm')
+      sh 'vagrant winrm -c "net stop JenkinsAgent"'
       markNodeOffline(name, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
