@@ -34,7 +34,8 @@ def call(String project_vm, cls) {
                 sh 'vagrant resume default'
                 break
             }
-            catch {
+            catch(Exception ex) {
+                println(ex)
                 println('Resume failed. Using we did not wait enough. Retrying')
                 sleep 5
                 status = sh(returnStdout: true, script: "vagrant status | grep default").trim()
