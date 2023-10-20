@@ -79,6 +79,8 @@ def call(String project_vm, cls) {
     finally {
       stage('Vagrant Cleanup'){
       // Cleanup
+      name = check_node('win-vm')
+      markNodeOffline(node, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
       sh 'vagrant suspend'
@@ -86,6 +88,27 @@ def call(String project_vm, cls) {
     }
       
     }//dir
+}
+
+@NonCPS
+def markNodeOffline(node, message) {
+    node = getCurrentNode(node)
+    computer = node.toComputer()
+    computer.setTemporarilyOffline(true, new hudson.slaves.OfflineCause.ByCLI("Run only one build for each node"))
+    computer.doChangeOfflineCause(message)
+    computer = null
+    node = null
+}
+​
+@NonCPS
+def getCurrentNode(nodeName) {
+  for (node in Jenkins.instance.nodes) {
+      if (node.getNodeName() == nodeName) {
+        echo "Found node for $nodeName"
+        return node
+    }
+  }
+  throw new Exception("No node for $nodeName")
 }
 
 // //Example
