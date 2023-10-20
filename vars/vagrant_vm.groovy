@@ -46,7 +46,15 @@ def call(String project_vm, cls) {
                     // throw ex;
                     sh 'virsh shutdown '+project_vm+'_default'
                     sh 'vagrant halt'
-                    sh 'vagrant up'
+                    try {
+                        sh 'vagrant up'
+                    } catch(Exception ex) {
+                        // er = "Error while creating domain: Call to virDomainDefineXML failed: XML error: CPU vendor specified without CPU model"
+                        er = "Error while creating domain"
+                        if (ex.contains(er)) {
+                            sh 'vagrant up'
+                        }
+                    }
                 }
             }
         }
