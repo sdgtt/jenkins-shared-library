@@ -28,14 +28,14 @@ def call(String project_vm, cls) {
         echo "VM already running"
     }
     else if (status.contains('paused')) {
-        tries = 5
-        for (i = 0; i<tries; i++) {
-            try {
-                sh 'vagrant resume default'
-                break
-            }
-            catch(Exception ex) {
-                println(ex)
+        try {
+            sh 'vagrant resume default'
+            break
+        }
+        catch(Exception ex) {
+            println(ex)
+            tries = 5
+            for (i = 0; i<tries; i++) {
                 println('Resume failed. Using we did not wait enough. Retrying')
                 sleep 5
                 status = sh(returnStdout: true, script: "vagrant status | grep default").trim()
@@ -44,7 +44,10 @@ def call(String project_vm, cls) {
                     break
                 }
                 if (i == (tries - 1)) {
-                    sh 'vagrant resume default'
+                    // throw ex;
+                    sh 'virsh shutdown '+project_vm+'_default'
+                    sh 'vagrant halt'
+                    sh 'vagrant up'
                 }
             }
         }
