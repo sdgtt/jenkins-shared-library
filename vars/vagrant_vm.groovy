@@ -51,6 +51,7 @@ def call(String project_vm, cls) {
                     } catch(Exception ex2) {
                         // er = "Error while creating domain: Call to virDomainDefineXML failed: XML error: CPU vendor specified without CPU model"
                         er = "Error while creating domain"
+                        ex2 = toString(ex2)
                         if (ex2.contains(er)) {
                             sh 'vagrant up'
                         }
