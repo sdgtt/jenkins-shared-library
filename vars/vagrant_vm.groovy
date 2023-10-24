@@ -100,7 +100,8 @@ def call(String project_vm, cls) {
       // markNodeOffline(name, "Vagrant box suspend")
       echo "Loading snapshot and putting in suspended state"
       sh 'vagrant snapshot restore default initial-state'
-      sh 'vagrant suspend'
+      // sh 'vagrant suspend'
+      sh 'vagrant halt'
       sleep 5
       }
     }
