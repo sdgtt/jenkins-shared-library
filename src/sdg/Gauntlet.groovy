@@ -410,11 +410,6 @@ def stage_library(String stage_name) {
                         // run_i('pip3 install pylibiio',true)
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
-                        try{
-                            nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
-                        }catch(Exception ex) {
-                            failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
-                        }
 
                         try{
                             nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
@@ -429,6 +424,12 @@ def stage_library(String stage_name) {
                         devs = devs.minus(missing_devs)
                         writeFile(file: board+'_enumerated_devs.log', text: devs.join("\n"))
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
+
+                        try{
+                            nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
+                        }catch(Exception ex) {
+                            failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
+                        }
                         
                         try{
                             if (!gauntEnv.firmware_boards.contains(board)){
