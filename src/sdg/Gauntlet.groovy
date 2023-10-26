@@ -426,6 +426,7 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
 
                         try{
+                            sh 'iio_info --uri=ip:'+ip
                             nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
                         }catch(Exception ex) {
                             failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
