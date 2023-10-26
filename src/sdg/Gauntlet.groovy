@@ -657,10 +657,10 @@ def stage_library(String stage_name) {
                         throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
-                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
+                                    archiveArtifacts artifacts: xmlFile
                                     parseForLogging ('matlab', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
@@ -710,10 +710,10 @@ def stage_library(String stage_name) {
                             throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
-                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
                             // get MATLAB hardware test results for logging
                             if(fileExists(xmlFile)){
                                 try{
+                                    archiveArtifacts artifacts: xmlFile
                                     parseForLogging ('matlab', xmlFile, board)
                                 }catch(Exception ex){
                                     println('Parsing MATLAB hardware results failed')
