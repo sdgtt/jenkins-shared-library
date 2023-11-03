@@ -98,7 +98,12 @@ private def update_agent() {
                                 if(gauntEnv.netbox_include_children == false){
                                     custom = custom + " --no-include-children"
                                 }
-                                nebula('gen-config-netbox --jenkins-agent=' + agent_name
+                                if(gauntEnv.netbox_test_agent == true){
+                                    agent = "" 
+                                }else{
+                                    agent = agent_name
+                                }
+                                nebula('gen-config-netbox --jenkins-agent=' + agent
                                     + ' --netbox-ip=' + gauntEnv.netbox_ip
                                     + ' --netbox-port=' + gauntEnv.netbox_port
                                     + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
@@ -1965,15 +1970,17 @@ def get_gitsha(String board){
         set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
-
-    // properties.hdl_git_sha = null
-    // properties.hdl_folder = null
-    // properties.linux_git_sha = null
-    // properties.linux_folder = null
     
     if (fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
+        }
+        if (gauntEnv.bootPartitionBranch == 'NA'){
+            hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
+            linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
+        }else{
+            hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
+            linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
         }
     } else if(fileExists('outs/properties.txt')){
         dir ('outs'){
@@ -1991,21 +1998,10 @@ def get_gitsha(String board){
                 }
             }
         }
-    } else {
-        return
-    }
-
-    if (gauntEnv.bootPartitionBranch == 'NA'){
-        hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
-    }else{
-        hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
-    }
-
-    if (linux_git_sha != null){
         linux_hash = linux_git_sha + " (" + linux_folder + ")"
         hdl_hash = "NA"
+    } else {
+        return
     }
 
     echo "Hashes set hdl: ${hdl_hash}, linux: ${linux_hash}"
