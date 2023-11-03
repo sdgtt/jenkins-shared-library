@@ -40,6 +40,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             netbox_nebula_template: 'template_gen.yaml',
             netbox_include_variants: true,
             netbox_include_children: true,
+            netbox_test_agent: false,
             enable_update_boot_pre_docker: false,
             lock_agent: false,
             board_sub_categories : ['rx2tx2'],
