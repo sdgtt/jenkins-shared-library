@@ -99,9 +99,11 @@ private def update_agent() {
                                     custom = custom + " --no-include-children"
                                 }
                                 if(gauntEnv.netbox_test_agent == true){
-                                    agent_name = "" 
+                                    agent = "" 
+                                }else{
+                                    agent = agent_name
                                 }
-                                nebula('gen-config-netbox --jenkins-agent=' + agent_name
+                                nebula('gen-config-netbox --jenkins-agent=' + agent
                                     + ' --netbox-ip=' + gauntEnv.netbox_ip
                                     + ' --netbox-port=' + gauntEnv.netbox_port
                                     + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
