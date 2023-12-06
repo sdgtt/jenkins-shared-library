@@ -65,6 +65,7 @@ private def setup_agents() {
 
 private def update_agent() {
     def docker_status = gauntEnv.enable_docker
+    def update_container_lib = gauntEnv.update_container_lib
     def update_requirements = gauntEnv.update_lib_requirements
     def board_map = [:]
 
@@ -80,7 +81,8 @@ private def update_agent() {
                 stage('Update agents') {
                     sh 'mkdir -p /usr/app'
                     sh 'rm -rf /usr/app/*'
-                    setupAgent(['nebula', 'libiio'], false, update_requirements)
+                    def deps = check_update_container_lib(update_container_lib)
+                    setupAgent(deps, false, update_requirements)
                 }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
@@ -1914,17 +1916,13 @@ private def setup_libserialport() {
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
     def default_branch = 'master'
-    def branches = [0:gauntEnv.nebula_branch, 1:gauntEnv.libiio_branch, 2:gauntEnv.telemetry_branch]
-    def dep_map = [ 0:'nebula', 1:'libiio', 2:'telemetry']
     if (update_container_lib){
-        deps = ['nebula', 'libiio', 'telemetry']
-    }
-    else {
-        def i;
-        for (i=0; i<branches.size(); i++) {
-            if (branches[i] != default_branch){
-                deps.add(dep_map[i])
-            } 
+        deps = gauntEnv.required_libraries
+    }else{
+        for(lib in gauntEnv.required_libraries){
+            if(gauntEnv[lib+'_branch'] != default_branch){
+                deps.add(lib)
+            }
         }
     }
     return deps

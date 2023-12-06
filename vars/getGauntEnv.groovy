@@ -51,6 +51,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             iio_uri_source: 'ip',
             iio_uri_baudrate: 921600,
             configure_called: false,
+            required_libraries: ['nebula', 'libiio', 'telemetry'],
             pytest_libiio_repo: 'https://github.com/tfcollins/pytest-libiio.git',
             pytest_libiio_branch: 'master',
             pyadi_iio_repo: 'https://github.com/analogdevicesinc/pyadi-iio.git',
