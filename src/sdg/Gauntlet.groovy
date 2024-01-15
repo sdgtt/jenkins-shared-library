@@ -1889,7 +1889,7 @@ private def install_telemetry(update_requirements=false){
             if (update_requirements){
                 run_i('pip3 install -r requirements.txt', true)
             }
-            run_i('python3 setup.py install', true)
+            run_i('pip3 install .', true)
         }
     }
 }
