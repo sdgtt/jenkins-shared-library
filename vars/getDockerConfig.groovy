@@ -58,6 +58,7 @@ def call(java.util.ArrayList listOfResources, matlablic, matlabHSPro=true, UseNF
             echo '----Adding X11 Forwarding ----'
             args.add('-v /tmp/.X11-unix:/tmp/.X11-unix:rw')
             args.add('-v /home/analog/.Xauthority:/root/.Xauthority')
+            args.add('-v /home/analog/.ssh:/root/.ssh')
         }
         else {
             args.add(listOfResources[i])
