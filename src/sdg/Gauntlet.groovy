@@ -636,7 +636,9 @@ def stage_library(String stage_name) {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
                 def description = ""
                 def xmlFile = board+'_HWTestResults.xml'
-                sh 'cp -r /root/.matlabro /root/.matlab'
+                if (gauntEnv.enable_docker){
+                    sh 'cp -r /root/.matlabro /root/.matlab'
+                }
                 under_scm = isMultiBranchPipeline()
                 if (under_scm)
                 {   
