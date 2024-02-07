@@ -634,6 +634,14 @@ def stage_library(String stage_name) {
             def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
+                def uri = ""
+                if (board == 'm2k' || board == 'pluto') {
+                    sn = getURIFromSerial(board)
+                    uri = sn
+                }
+                else {
+                    uri = 'ip:'+ip
+                }
                 def description = ""
                 def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
@@ -648,7 +656,7 @@ def stage_library(String stage_name) {
                     }
                     createMFile()
                     try{
-                        cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
+                        cmd = 'IIO_URI="'+uri+'" board="'+board+'" M2K_URI="'+sn+'"'
                         cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
                         cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
                         cmd += ' -r "run(\'matlab_commands.m\');exit"'
@@ -701,7 +709,7 @@ def stage_library(String stage_name) {
                     {
                         createMFile()
                         try{
-                            cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
+                            cmd = 'IIO_URI="'+uri+'" board="'+board+'" M2K_URI="'+sn+'"'
                             cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
                             cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
                             cmd += ' -r "run(\'matlab_commands.m\');exit"'
@@ -1800,7 +1808,7 @@ def sendLogsToElastic(... args) {
 
 def String getURIFromSerial(String board){
     // Utility method to get uri from IIO device serial number
-    if (board == 'm2k') {
+    if (board == 'm2k' || board == 'pluto') {
         serial_no = nebula('update-config board-config serial --board-name='+board)
     }
     else {
