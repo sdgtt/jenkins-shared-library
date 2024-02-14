@@ -867,6 +867,7 @@ def stage_library(String stage_name) {
             sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
             def platform = nebula('update-config downloader-config platform --board-name='+board)
+            def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
             def filepath = ''
             //check if boards are up
             if (platform == 'Xilinx'){
@@ -919,7 +920,12 @@ def stage_library(String stage_name) {
                 if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
                     sh 'ln /usr/bin/make /usr/bin/gmake'
                 }
-                sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' 115200'
+                if (example.contains('iio')){
+                    screen_baudrate = gauntEnv.iio_uri_baudrate
+                } else {
+                    screen_baudrate = baudrate
+                }
+                sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' '+screen_baudrate
                 if (platform == "Xilinx"){
                     sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
                     sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
@@ -934,14 +940,13 @@ def stage_library(String stage_name) {
                     sh 'chmod +x mcufla.sh'
                     sh './mcufla.sh ' +filepath+' '+jtag_cable_id
                 }
-                sleep(120)
+                sleep(30)
                 archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                 sh 'screen -XS '+board+ ' kill'
             }
             if (example.contains('iio')){
                 stage('Check Context'){
                     def serial = nebula('update-config uart-config address --board-name='+board)
-                    def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
                     retry(5){
                         echo '---------------------------'
                         sleep(10);
