@@ -933,9 +933,7 @@ def stage_library(String stage_name) {
                         sh 'iio_info -u serial:' + serial + ',' +baudrate
                     }
                 }
-            }else {
-                throw new NominalException('Example not yet supported: ' + example)
-            } 
+            }
         }
             break
     case 'PowerCycleBoard':
