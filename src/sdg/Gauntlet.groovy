@@ -496,6 +496,15 @@ def stage_library(String stage_name) {
                         def uri;
                         def description = ""
                         def pytest_attachment = null
+                        try{
+                            def noos_example = nebula('update-config board-config example --board-name='+board)
+                            if (noos_example && noos_example.contains('iio')){
+                                true
+                            }else{
+                                println("Skip pyadi-iio test.")
+                                Utils.markStageSkippedForConditional('Run Python Tests')
+                            }
+                        }catch(Exception ex){}
                         println('IP: ' + ip)
                         // temporarily get pytest-libiio from another source
                         run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
