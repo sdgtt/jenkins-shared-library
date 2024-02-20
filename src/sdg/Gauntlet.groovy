@@ -519,7 +519,7 @@ def stage_library(String stage_name) {
                                 if (under_scm){
                                     println("Multibranch pipeline. Checkout scm")
                                 }else{
-                                    println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                                    println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
                                     run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
                                 }
                             }
@@ -933,7 +933,7 @@ def stage_library(String stage_name) {
                     sh 'chmod +x mcufla.sh'
                     sh './mcufla.sh ' +filepath+' '+jtag_cable_id
                 }
-                sleep(30)
+                sleep(60) //wait to fully boot
                 archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                 sh 'screen -XS '+board+ ' kill'
             }
