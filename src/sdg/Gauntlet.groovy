@@ -954,7 +954,7 @@ def stage_library(String stage_name) {
                     sh 'chmod +x mcufla.sh'
                     sh './mcufla.sh ' +filepath+' '+jtag_cable_id
                 }
-                sleep(30)
+                sleep(60) //wait to fully boot
                 archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                 sh 'screen -XS '+board+ ' kill'
             }
