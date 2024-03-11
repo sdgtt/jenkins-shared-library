@@ -72,7 +72,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             matlab_license: 'machine',
             no_os_repo: 'https://github.com/analogdevicesinc/no-OS.git',
             no_os_branch: 'master',
-            vivado_ver: '2019.1',
+            vivado_ver: '2021.2',
             nebula_config_repo: 'https://github.com/sdgtt/nebula-config.git',
             nebula_config_branch: 'master',
             kuiper_checker_repo: 'https://github.com/sdgtt/kuiper-post-build-checker.git',
