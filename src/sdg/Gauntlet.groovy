@@ -2021,12 +2021,16 @@ private def check_for_marker(String board){
     def marker = ''
     def board_name = board
     def valid_markers = [ "cmos", "lvds"]
+    def noos_markers = ["iio_example", "dummy_example"]
     if (board.contains("-v")){
         if (board.split("-v")[1] in valid_markers){
             board_name = board.split("-v")[0]
             marker = ' --' + board.split("-v")[1]
             return [board_name:board_name, marker:marker]
-        
+        }else if(board.split("-v")[1] in noos_markers){
+            board_name = board.split("-v")[0]
+            return [board_name:board_name, marker:marker]
+        }
         }else {
             board_name = board.replace("-v","-")
             return [board_name:board_name, marker:marker]
