@@ -2030,7 +2030,6 @@ private def check_for_marker(String board){
         }else if(board.split("-v")[1] in noos_markers){
             board_name = board.split("-v")[0]
             return [board_name:board_name, marker:marker]
-        }
         }else {
             board_name = board.replace("-v","-")
             return [board_name:board_name, marker:marker]
