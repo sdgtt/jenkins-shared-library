@@ -1833,7 +1833,11 @@ private def install_nebula(update_requirements=false) {
             if (update_requirements){
                 run_i('pip3 install -r requirements.txt', true)
             }
-            run_i('pip3 install .', true)
+            try{
+                run_i('python setup.py install', true)
+            } catch(Exception ex){
+                run_i('pip3 install .', true)
+            } 
         }
     }
 }
