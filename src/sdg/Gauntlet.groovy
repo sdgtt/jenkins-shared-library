@@ -499,6 +499,17 @@ def stage_library(String stage_name) {
                         dir('pytest-libiio'){
                             run_i('python3 setup.py install', true)
                         }
+                        //install libad9361 python bindings
+                        run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+                        dir('libad9361-iio'){
+                            sh 'mkdir -p build'
+                            dir('build'){
+                                sh 'sudo cmake -DPYTHON_BINDINGS=ON ..'
+                                sh 'sudo make'
+                                sh 'sudo make install'
+                                sh 'ldconfig'
+                            }
+                        }
                         //scm pyadi-iio
                         dir('pyadi-iio'){
                             under_scm = isMultiBranchPipeline()
