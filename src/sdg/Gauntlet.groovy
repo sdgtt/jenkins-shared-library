@@ -499,13 +499,29 @@ def stage_library(String stage_name) {
                         dir('pytest-libiio'){
                             run_i('python3 setup.py install', true)
                         }
+                        //install libad9361 python bindings
+                        try{
+                            sh 'python3 -c "import ad9361"'
+                        }catch (Exception ex){
+                            run_i('sudo rm -rf libad9361-iio')
+                            run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+                            dir('libad9361-iio'){
+                                sh 'mkdir -p build'
+                                dir('build'){
+                                    sh 'sudo cmake -DPYTHON_BINDINGS=ON ..'
+                                    sh 'sudo make'
+                                    sh 'sudo make install'
+                                    sh 'ldconfig'
+                                }
+                            }
+                        }
                         //scm pyadi-iio
                         dir('pyadi-iio'){
                             under_scm = isMultiBranchPipeline()
                             if (under_scm){
                                  println("Multibranch pipeline. Checkout scm")
                             }else{
-                                println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                                println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
                                 run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
                             }
                         }
@@ -596,14 +612,17 @@ def stage_library(String stage_name) {
                     try{
                         stage("Test libad9361") {
                             def ip = nebula("update-config -s network-config -f dutip --board-name="+board)
+                            run_i('sudo rm -rf libad9361-iio')
                             run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
                             dir('libad9361-iio')
                             {
                                 sh 'mkdir build'
                                 dir('build')
                                 {
-                                    sh 'cmake ..'
+                                    sh 'cmake -DPYTHON_BINDINGS=ON ..'
                                     sh 'make'
+                                    sh 'make install'
+                                    sh 'ldconfig'
                                     sh 'URI_AD9361="ip:'+ip+'" ctest -T test --no-compress-output -V'
                                 }
                             }
