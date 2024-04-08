@@ -521,7 +521,7 @@ def stage_library(String stage_name) {
                             if (under_scm){
                                  println("Multibranch pipeline. Checkout scm")
                             }else{
-                                println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
+                                println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
                                 run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
                             }
                         }
