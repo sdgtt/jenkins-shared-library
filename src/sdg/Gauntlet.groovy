@@ -950,7 +950,7 @@ def stage_library(String stage_name) {
                         }
                     }
                 } else {
-                    sh 'wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/master/tools/scripts/mcufla.sh'
+                    sh 'wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh'
                     sh 'chmod +x mcufla.sh'
                     sh './mcufla.sh ' +filepath+' '+jtag_cable_id
                 }
