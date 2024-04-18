@@ -14,6 +14,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             bootPartitionBranch: bootPartitionBranch,
             branches: ( bootPartitionBranch == 'NA')? hdlBranch : bootPartitionBranch,
             filetype: ( bootPartitionBranch == 'NA')? ' --filetype="hdl_linux"' : ' --filetype="boot_partition"',
+            url_template: 'NA',
             firmwareVersion: firmwareVersion,
             bootfile_source: bootfile_source,
             job_trigger: 'manual',

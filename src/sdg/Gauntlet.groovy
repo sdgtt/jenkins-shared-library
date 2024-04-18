@@ -185,6 +185,7 @@ def stage_library(String stage_name) {
                                             + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
                                             + '" --source=' + gauntEnv.bootfile_source
                                             +  ' --branch="' + gauntEnv.branches.toString()
+                                            + '" --url-template="' + gauntEnv.url_template
                                             +  '"' + gauntEnv.filetype, true, true, true) 
                                 }
                                 //get git sha properties of files
