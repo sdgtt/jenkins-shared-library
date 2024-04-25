@@ -22,6 +22,11 @@ def call(java.util.ArrayList listOfResources, matlablic, matlabHSPro=true, UseNF
                         args.add('-v "/mlhsp":"/mlhsp":ro')
                     else
                         args.add('-v "/mlhsp":"/mlhspro":ro')
+                    try {
+                        args.add('-v "/lib/x86_64-linux-gnu/libm2k.so.0.7.0":"/lib/x86_64-linux-gnu/libm2k.so.0.7.0":ro')
+                    } catch(Exception ex) {
+                        println("Cannot mount /lib/x86_64-linux-gnu/libm2k.so.0.7.0.");
+                    }
             }
             // Add correct MAC to licenses work in Docker
             if (matlablic.equalsIgnoreCase( 'machine' )) {
