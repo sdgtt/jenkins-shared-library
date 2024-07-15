@@ -1578,27 +1578,60 @@ def update_agents() {
 private def check_required_hardware() {
 
     stage('Check Required Hardware'){
-        def s = gauntEnv.required_hardware.size()
-        def b = gauntEnv.boards.size()
         def rh = gauntEnv.required_hardware
+        def ab = gauntEnv.boards
+        def s = rh.size()
+        def b = ab.size()
         def filtered_board_list = []
         def filtered_agent_list = []
+        def found_rh = []
+        def special_naming_cases = [
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb":\
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-jesd204-fsm",
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-sync-fmcomms8":\
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-sync-fmcomms8-jesd204-fsm"
+        ]
 
         if (s != 0){
             // if required_hardware is not set, required hardware will be taken from nebula-config
+            // recreate required_hardware list
             println("Found boards:")
             for (k = 0; k < b; k++) {
-                println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
                 def board = gauntEnv.boards[k]
-                if (gauntEnv.include_variants){
-                    board = board.split("-v")[0]
+                def agent = gauntEnv.agents[k]
+                if (rh.contains(board)){
+                    println("Agent: "+agent+" Board: "+board)
+                    filtered_board_list.add(board)
+                    filtered_agent_list.add(agent)
+                    found_rh.add(board)
+                }else{
+                    // map required board name to th naming scheme
+                    if (gauntEnv.include_variants){
+                        def base = board.split("-v")[0]
+                        if (rh.contains(base)){
+                            println("Agent: "+agent+" Board: "+board)
+                            filtered_board_list.add(board)
+                            filtered_agent_list.add(agent)   
+                            if(!found_rh.contains(base)){
+                                found_rh.add(base)
+                            }
+                        }
+                    }else if(special_naming_cases.containsKey(board)){
+                        println("Agent: "+agent+" Board: "+board)
+                        filtered_board_list.add(board)
+                        filtered_agent_list.add(agent)
+                        found_rh.add(special_naming_cases[board])
+                    }
                 }
-                if (gauntEnv.required_hardware.contains(board)){
-                    filtered_board_list.add(gauntEnv.boards[k])
-                    filtered_agent_list.add(gauntEnv.agents[k])
-                    rh.remove(rh.indexOf(gauntEnv.boards[k]))
-                }// else do nothing
             }
+
+            for (k=0;k < s;k++){
+                required_board = rh[k]
+                if(found_rh.contains(required_board)){
+                    rh.remove(required_board)
+                }
+            }
+
             gauntEnv.boards = filtered_board_list
             gauntEnv.agents = filtered_agent_list
 
