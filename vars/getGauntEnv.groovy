@@ -26,6 +26,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             boards: [],
             required_hardware: [],
             required_agent: [],
+            include_variants: false,
             firmware_boards: ['pluto','m2k'],
             enable_docker: false,
             docker_image: 'tfcollins/test-harness-ci:latest',

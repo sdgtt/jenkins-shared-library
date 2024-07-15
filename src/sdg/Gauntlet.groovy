@@ -1623,7 +1623,11 @@ private def check_required_hardware() {
             println("Found boards:")
             for (k = 0; k < b; k++) {
                 println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
-                if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
+                def board = gauntEnv.boards[k]
+                if (gauntEnv.include_variants){
+                    board = board.split("-v")[0]
+                }
+                if (gauntEnv.required_hardware.contains(board)){
                     filtered_board_list.add(gauntEnv.boards[k])
                     filtered_agent_list.add(gauntEnv.agents[k])
                     rh.remove(rh.indexOf(gauntEnv.boards[k]))
