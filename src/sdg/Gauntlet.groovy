@@ -79,8 +79,6 @@ private def update_agent() {
         jobs[agent_name] = {
             node(agent_name) {
                 stage('Update agents') {
-                    sh 'mkdir -p /usr/app'
-                    sh 'rm -rf /usr/app/*'
                     def deps = check_update_container_lib(update_container_lib)
                     setupAgent(deps, false, update_requirements)
                 }
