@@ -32,6 +32,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             docker_host_mode: true,
             update_nebula_config: true,
             nebula_config_source: 'netbox',
+            netbox_test_agent: false,
             netbox_ip: '',
             netbox_port: '',
             netbox_base_url: '',
