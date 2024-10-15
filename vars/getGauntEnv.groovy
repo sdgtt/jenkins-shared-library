@@ -36,6 +36,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             netbox_port: '',
             netbox_base_url: '',
             netbox_token: '',
+            netbox_devices_status: '',
+            netbox_devices_role: '',
             netbox_devices_tag: '',
             netbox_nebula_template: 'template_gen.yaml',
             netbox_include_variants: true,
