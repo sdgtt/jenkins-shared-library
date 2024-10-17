@@ -261,22 +261,6 @@ Sample usage:
     harness = getGauntlet()
     harness.set_required_hardware(["zynq-zed-adv7511-ad9361-fmcomms2-3", "pluto"])
 
-set_enable_resource_queuing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Enable resource queuing. Resource queuing is ensuring that each board iso only accessed one at a time. This is helpful when boards have project variants, like adrv9002.
-Set to True to enable.
-
-parameter:
-    * *enable_resource_queuing* -  Boolean true to enable
-
-Sample usage:
-
-.. code-block:: groovy
-
-    harness = getGauntlet()
-    harness.set_enable_resource_queuing(True)
-
 IIO URI
 -------
 

@@ -1038,7 +1038,6 @@ private def run_agents() {
     def num_boards = gauntEnv.boards.size()
     def docker_args = getDockerConfig(gauntEnv.docker_args, gauntEnv.matlab_license)
     def enable_update_boot_pre_docker = gauntEnv.enable_update_boot_pre_docker
-    def enable_resource_queuing = gauntEnv.enable_resource_queuing
     def pre_docker_cls = stage_library("UpdateBOOTFiles")
     docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
@@ -1143,15 +1142,10 @@ private def run_agents() {
         def stages = gauntEnv.stages
         def docker_image = gauntEnv.docker_image
         def num_stages = stages.size()
-        def lock_agent = ''
 
         println('Agent: ' + agent + ' Board: ' + board)
         println('Number of stages to run: ' + num_stages.toString())
 
-        if (gauntEnv.lock_agent) {
-            println('Locking agent: '+agent+'. Effectively only one test executor is running on the agent.')
-            lock_agent = agent
-        }
 /*
 jobs[agent+"-"+board] = {
   node(agent) {
@@ -1162,50 +1156,34 @@ jobs[agent+"-"+board] = {
   }
 }
 */
+        // Always lock DUTs
+        def lock_name = extractLockName(board, agent)
+        echo "Acquiring lock for ${lock_name}"
+
         if (gauntEnv.enable_docker) {
-            if( enable_resource_queuing ){
-                println("Enable resource queueing")
-                jobs[agent + '-' + board] = {
-                    def lock_name = extractLockName(board, agent)
-                    echo "Acquiring lock for ${lock_name}"
-                    lock(lock_agent){
-                        lock(lock_name){
-                            oneNodeDocker(
-                                agent,
-                                num_stages,
-                                stages,
-                                board,
-                                docker_image,
-                                enable_update_boot_pre_docker,
-                                pre_docker_cls, 
-                                docker_status,
-                                update_container_lib,
-                                update_lib_requirements
-                            )
-                        }
-                    }
-                 };
-            }else{
-                jobs[agent + '-' + board] = {
-                    lock(lock_agent){ 
-                        oneNodeDocker(
-                                agent,
-                                num_stages,
-                                stages,
-                                board,
-                                docker_image,
-                                enable_update_boot_pre_docker,
-                                pre_docker_cls,
-                                docker_status,
-                                update_container_lib,
-                                update_lib_requirements
-                            )
-                    }
-                 };
-            }
-            
-        } else{
-            jobs[agent + '-' + board] = { oneNode(agent, num_stages, stages, board, docker_status) };
+            println("Enable resource queueing")
+            jobs[agent + '-' + board] = {
+                lock(lock_name){
+                    oneNodeDocker(
+                        agent,
+                        num_stages,
+                        stages,
+                        board,
+                        docker_image,
+                        enable_update_boot_pre_docker,
+                        pre_docker_cls,
+                        docker_status,
+                        update_container_lib,
+                        update_lib_requirements
+                    )
+                }
+            };
+        } else {
+            jobs[agent + '-' + board] = {
+                lock(lock_name) {
+                    oneNode(agent, num_stages, stages, board, docker_status)
+                }
+            };
         }
     }
 
@@ -1292,22 +1270,6 @@ def set_iio_uri_source(iio_uri_source) {
  */
 def set_iio_uri_baudrate(iio_uri_baudrate) {
     gauntEnv.iio_uri_baudrate = iio_uri_baudrate
-}
-
-/**
- * Set enable_resource_queuing. Set enable_resource_queuing. Set to true to enable
- * @param enable_resource_queuing Boolean true to enable
- */
-def set_enable_resource_queuing(enable_resource_queuing) {
-    gauntEnv.enable_resource_queuing = enable_resource_queuing
-}
-
-/**
- * Set lock_agent. Set to true to effectively use just one test executor on agents
- * @param lock_agent Boolean true to enable
- */
-def set_lock_agent(lock_agent) {
-    gauntEnv.lock_agent = lock_agent
 }
 
 /**
