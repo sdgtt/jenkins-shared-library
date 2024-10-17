@@ -234,10 +234,14 @@ def stage_library(String stage_name) {
                                     nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
                                 }
                             }
+
                             set_elastic_field(board, 'uboot_reached', 'True')
                             set_elastic_field(board, 'kernel_started', 'True')
                             set_elastic_field(board, 'linux_prompt_reached', 'True')
                             set_elastic_field(board, 'post_boot_failure', 'False')
+
+                            // verify checksum
+                            nebula('manager.verify-checksum --board-name=' + board + ' --folder=outs', true, true, true)
                         }
                     }
                 }
