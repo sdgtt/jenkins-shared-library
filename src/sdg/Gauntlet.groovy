@@ -110,9 +110,9 @@ private def update_agent() {
                                     + ' --netbox-port=' + gauntEnv.netbox_port
                                     + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
                                     + ' --netbox-token=' + gauntEnv.netbox_token
-                                    + ' --device-status=' + gauntEnv.netbox_device_status
-                                    + ' --device-role=' + gauntEnv.netbox_device_role
-                                    + ' --device-tag=' + gauntEnv.netbox_device_tag
+                                    + ' --devices-status=' + gauntEnv.netbox_devices_status
+                                    + ' --devices-role=' + gauntEnv.netbox_devices_role
+                                    + ' --devices-tag=' + gauntEnv.netbox_devices_tag
                                     + ' --template=' + gauntEnv.netbox_nebula_template
                                     + custom
                                     + ' --outfile='+ agent_name, true, true, false)
