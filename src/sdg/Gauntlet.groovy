@@ -93,29 +93,28 @@ private def update_agent() {
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
                             run_i('mkdir nebula-config')
                             dir('nebula-config'){
-                                def custom = ""
+                                def custom = null
                                 if(gauntEnv.netbox_include_variants == false){
                                     custom = custom + " --no-include-variants"
                                 }
                                 if(gauntEnv.netbox_include_children == false){
                                     custom = custom + " --no-include-children"
                                 }
-                                if(gauntEnv.netbox_test_agent == true){
-                                    agent = "" 
-                                }else{
-                                    agent = agent_name
-                                }
-                                nebula('gen-config-netbox --jenkins-agent=' + agent
-                                    + ' --netbox-ip=' + gauntEnv.netbox_ip
-                                    + ' --netbox-port=' + gauntEnv.netbox_port
-                                    + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
-                                    + ' --netbox-token=' + gauntEnv.netbox_token
-                                    + ' --devices-status=' + gauntEnv.netbox_devices_status
-                                    + ' --devices-role=' + gauntEnv.netbox_devices_role
-                                    + ' --devices-tag=' + gauntEnv.netbox_devices_tag
-                                    + ' --template=' + gauntEnv.netbox_nebula_template
-                                    + custom
-                                    + ' --outfile='+ agent_name, true, true, false)
+                                
+                                def command_str = 'gen-config-netbox'
+                                command_str += ' --netbox-ip=' + gauntEnv.netbox_ip
+                                command_str += ' --netbox-port=' + gauntEnv.netbox_port
+                                command_str += ' --netbox-baseurl=' + gauntEnv.netbox_base_url
+                                command_str += ' --netbox-token=' + gauntEnv.netbox_token
+                                command_str += (gauntEnv.netbox_test_agent == true)? "" : ' --jenkins-agent=' + agent_name
+                                command_str += (gauntEnv.netbox_devices_status == null)? "" : ' --devices-status=' + gauntEnv.netbox_device_status
+                                command_str += (gauntEnv.netbox_devices_role == null)? "" : ' --devices-role=' + gauntEnv.netbox_device_role
+                                command_str += (gauntEnv.netbox_devices_tag == null)? "" : ' --devices-tag=' + gauntEnv.netbox_device_tag
+                                command_str += (gauntEnv.netbox_nebula_template == null)? "" : ' --template=' + gauntEnv.netbox_nebula_template
+                                command_str += (custom == null)? "" : custom
+                                command_str += ' --outfile='+ agent_name
+
+                                nebula(command_str, true, true, false)
                             }
                         }else{
                             println(gauntEnv.nebula_config_source + ' as config source is not supported yet.')
