@@ -270,6 +270,10 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'kernel_started', 'False')
                         set_elastic_field(board, 'linux_prompt_reached', 'False')
                         is_nominal_exception = true
+                    }else if (ex.getMessage().contains('Checksum does not match')){
+                        set_elastic_field(board, 'uboot_reached', 'True')
+                        set_elastic_field(board, 'kernel_started', 'True')
+                        set_elastic_field(board, 'linux_prompt_reached', 'True')
                     }else{
                         echo "Update BOOT Files unexpectedly failed. ${ex.getMessage()}"
                     }
