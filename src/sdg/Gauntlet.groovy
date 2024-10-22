@@ -107,9 +107,9 @@ private def update_agent() {
                                 command_str += ' --netbox-baseurl=' + gauntEnv.netbox_base_url
                                 command_str += ' --netbox-token=' + gauntEnv.netbox_token
                                 command_str += (gauntEnv.netbox_test_agent == true)? "" : ' --jenkins-agent=' + agent_name
-                                command_str += (gauntEnv.netbox_devices_status == null)? "" : ' --devices-status=' + gauntEnv.netbox_device_status
-                                command_str += (gauntEnv.netbox_devices_role == null)? "" : ' --devices-role=' + gauntEnv.netbox_device_role
-                                command_str += (gauntEnv.netbox_devices_tag == null)? "" : ' --devices-tag=' + gauntEnv.netbox_device_tag
+                                command_str += (gauntEnv.netbox_devices_status == null)? "" : ' --devices-status=' + gauntEnv.netbox_devices_status
+                                command_str += (gauntEnv.netbox_devices_role == null)? "" : ' --devices-role=' + gauntEnv.netbox_devices_role
+                                command_str += (gauntEnv.netbox_devices_tag == null)? "" : ' --devices-tag=' + gauntEnv.netbox_devices_tag
                                 command_str += (gauntEnv.netbox_nebula_template == null)? "" : ' --template=' + gauntEnv.netbox_nebula_template
                                 command_str += (custom == null)? "" : custom
                                 command_str += ' --outfile='+ agent_name
