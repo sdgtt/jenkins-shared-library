@@ -346,6 +346,11 @@ def stage_library(String stage_name) {
                             echo "Executing board recovery..."
                             nebula(nebula_cmd)
                         }catch(Exception ex){
+                            if(gauntEnv.netbox_allow_disable){
+                                def message = "Disable by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"'
+                                nebula(disable_command)
+                            }
                             echo getStackTrace(ex)
                             throw ex
                         }finally{

@@ -45,6 +45,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             netbox_nebula_template: null,
             netbox_include_variants: true,
             netbox_include_children: true,
+            netbox_allow_disable: false,
             enable_update_boot_pre_docker: false,
             board_sub_categories : ['rx2tx2'],
             setup_called: false,
