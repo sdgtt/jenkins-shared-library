@@ -877,8 +877,8 @@ def stage_library(String stage_name) {
         break
     case 'noOSTest':
         cls = { String board ->
-            sh 'sudo apt update'
-            sh 'sudo apt install -y libudev-dev pkg-config texinfo'
+            //sh 'sudo apt update'
+            //sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
             def platform = nebula('update-config downloader-config platform --board-name='+board)
             def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
@@ -886,7 +886,7 @@ def stage_library(String stage_name) {
             //check if boards are up
             if (platform == 'Xilinx'){
                 stage('Check JTAG connection'){
-                    nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+                    nebula('manager.board-diagnostics --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
                 }
             }
             //download no-os files from artifactory
@@ -950,9 +950,13 @@ def stage_library(String stage_name) {
                         }
                     }
                 } else {
-                    sh 'wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh'
+                    run_i('wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh', true)
                     sh 'chmod +x mcufla.sh'
-                    sh './mcufla.sh ' +filepath+' '+jtag_cable_id
+                    cmd = './mcufla.sh ' +filepath+' '+jtag_cable_id
+                    def flashStatus = sh returnStatus: true, script: cmd
+                    if ((flashStatus != 0)){
+                        throw new sdg.NominalException("Flashing binary file failed.")
+                    }                   
                 }
                 sleep(120) //wait to fully boot
                 archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
@@ -961,11 +965,16 @@ def stage_library(String stage_name) {
             if (example.contains('iio')){
                 stage('Check Context'){
                     def serial = nebula('update-config uart-config address --board-name='+board)
-                    retry(5){
+                    retry(3){
                         echo '---------------------------'
                         sleep(10);
                         echo "Check context"
-                        sh 'iio_info -u serial:' + serial + ',' +baudrate
+                        cmd = 'iio_info -u serial:' + serial + ',' +baudrate+ ' &> '+board+'-iio_info.log'
+                        def ret = sh returnStatus: true, script: cmd
+                        archiveArtifacts artifacts: "*-iio_info.log", followSymlinks: false, allowEmptyArchive: true
+                        if (ret != 0){
+                            throw new Exception("Failed.")
+                        }
                     }
                 }
             }
@@ -2021,13 +2030,13 @@ private def check_for_marker(String board){
     def marker = ''
     def board_name = board
     def valid_markers = [ "cmos", "lvds"]
-    def noos_markers = ["iio_example", "dummy_example"]
+    def noos_markers = ["iio_example", "dummy_example", "iio", "demo", "dma_example", "dma_irq_example" ]
     if (board.contains("-v")){
         if (board.split("-v")[1] in valid_markers){
             board_name = board.split("-v")[0]
             marker = ' --' + board.split("-v")[1]
             return [board_name:board_name, marker:marker]
-        }else if(board.split("-v")[1] in noos_markers){
+        }else if(board.split("-v")[1].replace("-","_") in noos_markers){
             board_name = board.split("-v")[0]
             return [board_name:board_name, marker:marker]
         }else {
