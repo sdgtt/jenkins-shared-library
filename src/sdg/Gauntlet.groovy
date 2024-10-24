@@ -93,10 +93,10 @@ private def update_agent() {
                             dir('nebula-config'){
                                 def custom = null
                                 if(gauntEnv.netbox_include_variants == false){
-                                    custom = custom + " --no-include-variants"
+                                    custom = " --no-include-variants"
                                 }
                                 if(gauntEnv.netbox_include_children == false){
-                                    custom = custom + " --no-include-children"
+                                    custom = " --no-include-children"
                                 }
                                 
                                 def command_str = 'gen-config-netbox'
