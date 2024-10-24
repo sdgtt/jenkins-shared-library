@@ -91,12 +91,15 @@ private def update_agent() {
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
                             run_i('mkdir nebula-config')
                             dir('nebula-config'){
-                                def custom = null
+                                def custom = ""
                                 if(gauntEnv.netbox_include_variants == false){
-                                    custom = " --no-include-variants"
+                                    custom = custom + " --no-include-variants"
                                 }
                                 if(gauntEnv.netbox_include_children == false){
-                                    custom = " --no-include-children"
+                                    custom = custom + " --no-include-children"
+                                }
+                                if(custom==""){
+                                    custom = null
                                 }
                                 
                                 def command_str = 'gen-config-netbox'
