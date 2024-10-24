@@ -25,9 +25,6 @@ First, we will discuss the bare minimum requirements or parts for the Jenkinfile
         harness.set_enable_docker(true)
         harness.set_docker_args(['Vivado']) 
 
-        //set resource queuing parameter
-        harness.set_enable_resource_queuing(true)
-        
         //set required hardware
         harness.set_required_hardware(["pluto"]) 
     
