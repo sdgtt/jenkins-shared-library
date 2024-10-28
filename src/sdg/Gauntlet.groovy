@@ -78,10 +78,10 @@ private def update_agent() {
 
         jobs[agent_name] = {
             node(agent_name) {
-                stage('Update agents') {
-                    def deps = check_update_container_lib(update_container_lib)
-                    setupAgent(deps, false, update_requirements)
-                }
+                // stage('Update agents') {
+                //     def deps = check_update_container_lib(update_container_lib)
+                //     setupAgent(deps, false, update_requirements)
+                // }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
