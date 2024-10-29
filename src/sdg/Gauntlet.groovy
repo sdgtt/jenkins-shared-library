@@ -963,6 +963,7 @@ def stage_library(String stage_name) {
         }
         break
     case 'KuiperMemoryCheck':
+        println('Added Stage KuiperMemoryCheck')
         cls = { String board ->
             stage('Test memory'){
                 cmd = 'net.run-command --board-name=' + board + ' '
