@@ -977,6 +977,7 @@ def stage_library(String stage_name) {
                     println("Error reading file: ${e.message}")
                 }
                 println(lines)
+            }
         }
         break
     default:
