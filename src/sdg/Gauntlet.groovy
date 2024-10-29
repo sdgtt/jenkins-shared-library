@@ -962,6 +962,24 @@ def stage_library(String stage_name) {
             }   
         }
         break
+    case 'KuiperMemoryCheck':
+        cls = { String board ->
+            stage('Test memory'){
+                nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
+                cmd = 'network.run-ssh-command --board-name=' + board + ' '
+                cmd += '--command=\"dmesg | grep -iE 'sysid|mem' ; free\"'
+                nebula(cmd, true, true, true)
+
+                def lines = []
+                def file = new File(board + '_.log')
+                try {
+                    lines = file.readLines()
+                } catch (IOException e) {
+                    println("Error reading file: ${e.message}")
+                }
+                println(lines)
+        }
+        break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
