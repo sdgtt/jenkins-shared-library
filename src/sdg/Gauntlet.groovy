@@ -965,9 +965,8 @@ def stage_library(String stage_name) {
     case 'KuiperMemoryCheck':
         cls = { String board ->
             stage('Test memory'){
-                nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
-                cmd = 'network.run-ssh-command --board-name=' + board + ' '
-                cmd += '--command=\"dmesg | grep -iE 'sysid|mem' ; free\"'
+                cmd = 'net.run-command --board-name=' + board + ' '
+                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free"'
                 nebula(cmd, true, true, true)
 
                 def lines = []
