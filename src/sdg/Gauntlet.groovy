@@ -967,7 +967,7 @@ def stage_library(String stage_name) {
         cls = { String board ->
             stage('Test memory'){
                 cmd = 'net.run-command --board-name=' + board + ' '
-                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free"'
+                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free ; grep MemTotal /proc/meminfo"'
                 nebula(cmd, true, true, true)
 
                 def lines = []
