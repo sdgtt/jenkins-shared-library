@@ -989,12 +989,8 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                try {
-                    def file = readFile log_file
-                    lines = file.readLines()
-                } catch (IOException e) {
-                    println("Error reading nebula command log file: ${e.message}")
-                }
+                def file = readFile log_file
+                lines = file.readLines()
 
                 // println(lines)
                 // if (!lines.isEmpty){
