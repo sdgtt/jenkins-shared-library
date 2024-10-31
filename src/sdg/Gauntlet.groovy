@@ -967,10 +967,10 @@ def stage_library(String stage_name) {
         cls = { String board ->
             stage('Test memory'){
 
-                if 'zynqmp-' in board{
+                if (board.contains('zynqmp-')) {
                     dtb_file = 'system.dtb'
                 }
-                elseif 'zynq-' in board {
+                elseif (board.contains('zynq-')) {
                     dtb_file = 'devicetree.dtb'
                 }
                 
