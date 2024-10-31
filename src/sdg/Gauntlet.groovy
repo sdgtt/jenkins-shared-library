@@ -981,7 +981,7 @@ def stage_library(String stage_name) {
                 def lines = []
                 def file = new File(board + '_.log')
                 try {
-                    lines = file.readLines()
+                    lines = file..text.readLines()
                 } catch (IOException e) {
                     println("Error reading nebula command log file: ${e.message}")
                 }
@@ -995,12 +995,11 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                for (i = 0; i < lines.size(); i++) {
-                    // if (lines[i].contains('git')) {
-                    //     // matches = (line =~ /\<(.*?)>/).findAll()
-                    //     println(lines[i])
-                    // }
-                    println(lines[i])
+                for (line in lines) {
+                    if (line.contains('git')) {
+                        // matches = (line =~ /\<(.*?)>/).findAll()
+                        println(line)
+                    }
                 }
             }
         }
