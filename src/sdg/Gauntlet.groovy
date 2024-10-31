@@ -996,8 +996,7 @@ def stage_library(String stage_name) {
                 def memory_type = ['Mem:', 'Swap:']
 
                 for (i = 0; i < lines.size(); i++) {
-                    if (lines[i].matches('git')) {
-                        println(line)
+                    if (lines[i].contains('git')) {
                         matches = (line =~ /\<(.*?)>/).findAll()
                         println(matches)
                     }
