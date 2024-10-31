@@ -978,6 +978,8 @@ def stage_library(String stage_name) {
                 cmd +='; fdtget /boot/'+ dtb_file +' /memory reg"'
                 nebula(cmd, true, true, true)
 
+                sh 'ls'
+
                 def sha = ''
                 def memtotal = ''
                 def fdtget = ''
