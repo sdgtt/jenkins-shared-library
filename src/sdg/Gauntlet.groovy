@@ -978,8 +978,10 @@ def stage_library(String stage_name) {
                 cmd +='; fdtget /boot/'+ dtb_file +' /memory reg"'
                 nebula(cmd, true, true, true)
 
-                sh 'ls'
-
+                cmd = 'ls | grep -iE ' + board + '*.log'
+                log_file = sh(script:cmd, returnStdout: true).trim()
+                println(logFile)
+                
                 def sha = ''
                 def memtotal = ''
                 def fdtget = ''
@@ -1000,6 +1002,8 @@ def stage_library(String stage_name) {
 
                 def file = readFile board + '_.log'
                 lines = file.readLines()
+
+
                 for (line in lines){
                     // if (line.contains('git')) {
                     //     // matches = (line =~ /\<(.*?)>/).findAll()
