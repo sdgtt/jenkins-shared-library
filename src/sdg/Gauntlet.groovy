@@ -966,11 +966,10 @@ def stage_library(String stage_name) {
         println('Added Stage KuiperMemoryCheck')
         cls = { String board ->
             stage('Test memory'){
-
+                def dtb_file = ''
                 if (board.contains('zynqmp-')) {
                     dtb_file = 'system.dtb'
-                }
-                else if (board.contains('zynq-')) {
+                } else if (board.contains('zynq-')) {
                     dtb_file = 'devicetree.dtb'
                 }
                 
@@ -984,9 +983,25 @@ def stage_library(String stage_name) {
                 try {
                     lines = file.readLines()
                 } catch (IOException e) {
-                    println("Error reading file: ${e.message}")
+                    println("Error reading nebula command log file: ${e.message}")
                 }
                 println(lines)
+
+                def sha = ''
+                def memtotal = ''
+                def fdtget = ''
+                def mem = {}
+                def swap = {}
+                def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
+                def memory_type = ['Mem:', 'Swap:']
+
+                for (i = 0; i < lines.size(); i++) {
+                    if (lines[i].matches('git')) {
+                        println(line)
+                        matches = (line =~ /\<(.*?)>/).findAll()
+                        println(matches)
+                    }
+                }
             }
         }
         break
