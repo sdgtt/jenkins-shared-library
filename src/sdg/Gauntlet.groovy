@@ -966,8 +966,17 @@ def stage_library(String stage_name) {
         println('Added Stage KuiperMemoryCheck')
         cls = { String board ->
             stage('Test memory'){
+
+                if 'zynqmp-' in board{
+                    dtb_file = 'system.dtb'
+                }
+                elseif 'zynq-' in board {
+                    dtb_file = 'devicetree.dtb'
+                }
+                
                 cmd = 'net.run-command --board-name=' + board + ' '
-                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free ; grep MemTotal /proc/meminfo"'
+                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free ; grep MemTotal /proc/meminfo '
+                cmd +='; fdtget /boot/'+ dtb_file +' /memory reg"'
                 nebula(cmd, true, true, true)
 
                 def lines = []
