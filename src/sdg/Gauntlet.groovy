@@ -1004,13 +1004,13 @@ def stage_library(String stage_name) {
                 lines = file.readLines()
 
 
-                for (line in lines){
+                // for (line in lines){
                     // if (line.contains('git')) {
                     //     // matches = (line =~ /\<(.*?)>/).findAll()
                     //     println(line)
                     // }
-                    println(line)
-                }
+                //     println(line)
+                // }
             }
         }
         break
