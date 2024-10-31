@@ -997,15 +997,16 @@ def stage_library(String stage_name) {
                     println("Error reading nebula command log file: ${e.message}")
                 }
 
-                if (!lines.isEmpty){
-                    for (line in lines){
-                        // if (line.contains('git')) {
-                        //     // matches = (line =~ /\<(.*?)>/).findAll()
-                        //     println(line)
-                        // }
-                    println(line)
-                    }
-                }
+                println(lines)
+                // if (!lines.isEmpty){
+                //     for (line in lines){
+                //         // if (line.contains('git')) {
+                //         //     // matches = (line =~ /\<(.*?)>/).findAll()
+                //         //     println(line)
+                //         // }
+                //     println(line)
+                //     }
+                // }
             }
         }
         break
