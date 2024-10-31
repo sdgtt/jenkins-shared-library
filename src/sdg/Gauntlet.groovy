@@ -994,9 +994,7 @@ def stage_library(String stage_name) {
                     lines = file.readLines()
                 }
                 
-                for (line in lines){
-                    echo line
-                }
+                println(lines.size())
 
                 // println(lines)
                 // if (!lines.isEmpty){
