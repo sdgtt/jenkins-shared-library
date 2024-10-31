@@ -978,15 +978,6 @@ def stage_library(String stage_name) {
                 cmd +='; fdtget /boot/'+ dtb_file +' /memory reg"'
                 nebula(cmd, true, true, true)
 
-                def lines = []
-                def file = new File(board + '_.log')
-                try {
-                    lines = file.text.readLines()
-                } catch (IOException e) {
-                    println("Error reading nebula command log file: ${e.message}")
-                }
-                println(lines)
-
                 def sha = ''
                 def memtotal = ''
                 def fdtget = ''
@@ -995,12 +986,25 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                // for (line in lines) {
-                //     if (line.contains('git')) {
-                //         // matches = (line =~ /\<(.*?)>/).findAll()
-                //         println(line)
-                //     }
+                // def lines = []
+                // def file = new File(board + '_.log')
+
+                // try {
+                //     lines = file.text.readLines()
+                // } catch (IOException e) {
+                //     println("Error reading nebula command log file: ${e.message}")
                 // }
+                // println(lines)
+
+                def file = readFile board + '_.log'
+                lines = file.readLines()
+                for (line in lines){
+                    // if (line.contains('git')) {
+                    //     // matches = (line =~ /\<(.*?)>/).findAll()
+                    //     println(line)
+                    // }
+                    println(line)
+                }
             }
         }
         break
