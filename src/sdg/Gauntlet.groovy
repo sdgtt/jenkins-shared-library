@@ -981,7 +981,7 @@ def stage_library(String stage_name) {
                 def lines = []
                 def file = new File(board + '_.log')
                 try {
-                    lines = file..text.readLines()
+                    lines = file.text.readLines()
                 } catch (IOException e) {
                     println("Error reading nebula command log file: ${e.message}")
                 }
