@@ -980,7 +980,7 @@ def stage_library(String stage_name) {
 
                 cmd = 'ls | grep -iE ' + board + '*.log'
                 log_file = sh(script:cmd, returnStdout: true).trim()
-                println(logFile)
+                println(log_file)
                 
                 def sha = ''
                 def memtotal = ''
