@@ -995,12 +995,12 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                for (line in lines) {
-                    if (line.contains('git')) {
-                        // matches = (line =~ /\<(.*?)>/).findAll()
-                        println(line)
-                    }
-                }
+                // for (line in lines) {
+                //     if (line.contains('git')) {
+                //         // matches = (line =~ /\<(.*?)>/).findAll()
+                //         println(line)
+                //     }
+                // }
             }
         }
         break
