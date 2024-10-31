@@ -989,7 +989,6 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                def lines = []
                 try {
                     def file = readFile log_file
                     lines = file.readLines()
