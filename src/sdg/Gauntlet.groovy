@@ -980,7 +980,6 @@ def stage_library(String stage_name) {
 
                 cmd = 'ls | grep -iE ' + board + '*.log'
                 log_file = sh(script:cmd, returnStdout: true).trim()
-                println(log_file)
                 
                 def sha = ''
                 def memtotal = ''
@@ -990,19 +989,12 @@ def stage_library(String stage_name) {
                 def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
                 def memory_type = ['Mem:', 'Swap:']
 
-                // def lines = []
-                // def file = new File(board + '_.log')
-
-                // try {
-                //     lines = file.text.readLines()
-                // } catch (IOException e) {
-                //     println("Error reading nebula command log file: ${e.message}")
-                // }
-                // println(lines)
-
-                def file = readFile board + '_.log'
-                lines = file.readLines()
-
+                try {
+                    def file = readFile log_file
+                    lines = file.readLines()
+                } catch (IOException e) {
+                    println("Error reading nebula command log file: ${e.message}")
+                }
 
                 // for (line in lines){
                     // if (line.contains('git')) {
