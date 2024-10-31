@@ -997,8 +997,8 @@ def stage_library(String stage_name) {
 
                 for (i = 0; i < lines.size(); i++) {
                     if (lines[i].contains('git')) {
-                        matches = (line =~ /\<(.*?)>/).findAll()
-                        println(matches)
+                        // matches = (line =~ /\<(.*?)>/).findAll()
+                        println(lines[i])
                     }
                 }
             }
