@@ -970,7 +970,7 @@ def stage_library(String stage_name) {
                 if (board.contains('zynqmp-')) {
                     dtb_file = 'system.dtb'
                 }
-                elseif (board.contains('zynq-')) {
+                else if (board.contains('zynq-')) {
                     dtb_file = 'devicetree.dtb'
                 }
                 
