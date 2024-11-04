@@ -65,6 +65,7 @@ private def setup_agents() {
 
 private def update_agent() {
     def docker_status = gauntEnv.enable_docker
+    def update_container_lib = gauntEnv.update_container_lib
     def update_requirements = gauntEnv.update_lib_requirements
     def board_map = [:]
 
@@ -78,9 +79,8 @@ private def update_agent() {
         jobs[agent_name] = {
             node(agent_name) {
                 stage('Update agents') {
-                    sh 'mkdir -p /usr/app'
-                    sh 'rm -rf /usr/app/*'
-                    setupAgent(['nebula', 'libiio'], false, update_requirements)
+                    def deps = check_update_container_lib(update_container_lib)
+                    setupAgent(deps, false, update_requirements)
                 }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
@@ -98,15 +98,24 @@ private def update_agent() {
                                 if(gauntEnv.netbox_include_children == false){
                                     custom = custom + " --no-include-children"
                                 }
-                                nebula('gen-config-netbox --jenkins-agent=' + agent_name
-                                    + ' --netbox-ip=' + gauntEnv.netbox_ip
-                                    + ' --netbox-port=' + gauntEnv.netbox_port
-                                    + ' --netbox-baseurl=' + gauntEnv.netbox_base_url
-                                    + ' --netbox-token=' + gauntEnv.netbox_token
-                                    + ' --devices-tag=' + gauntEnv.netbox_devices_tag
-                                    + ' --template=' + gauntEnv.netbox_nebula_template
-                                    + custom
-                                    + ' --outfile='+ agent_name, true, true, false)
+                                if(custom==""){
+                                    custom = null
+                                }
+                                
+                                def command_str = 'gen-config-netbox'
+                                command_str += ' --netbox-ip=' + gauntEnv.netbox_ip
+                                command_str += ' --netbox-port=' + gauntEnv.netbox_port
+                                command_str += ' --netbox-baseurl=' + gauntEnv.netbox_base_url
+                                command_str += ' --netbox-token=' + gauntEnv.netbox_token
+                                command_str += (gauntEnv.netbox_test_agent == true)? "" : ' --jenkins-agent=' + agent_name
+                                command_str += (gauntEnv.netbox_devices_status == null)? "" : ' --devices-status=' + gauntEnv.netbox_devices_status
+                                command_str += (gauntEnv.netbox_devices_role == null)? "" : ' --devices-role=' + gauntEnv.netbox_devices_role
+                                command_str += (gauntEnv.netbox_devices_tag == null)? "" : ' --devices-tag=' + gauntEnv.netbox_devices_tag
+                                command_str += (gauntEnv.netbox_nebula_template == null)? "" : ' --template=' + gauntEnv.netbox_nebula_template
+                                command_str += (custom == null)? "" : custom
+                                command_str += ' --outfile='+ agent_name
+
+                                nebula(command_str, true, true, false)
                             }
                         }else{
                             println(gauntEnv.nebula_config_source + ' as config source is not supported yet.')
@@ -121,9 +130,10 @@ private def update_agent() {
                         
                     }
                 }
-                // clean up residue containers
+                // clean up residue containers and detached screen sessions
                 stage('Clean up residue docker containers') {
                     sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
                 }
             }
         }
@@ -409,11 +419,6 @@ def stage_library(String stage_name) {
                         // run_i('pip3 install pylibiio',true)
                         //def ip = nebula('uart.get-ip')
                         def ip = nebula('update-config network-config dutip --board-name='+board)
-                        try{
-                            nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
-                        }catch(Exception ex) {
-                            failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
-                        }
 
                         try{
                             nebula('driver.check-iio-devices --uri="ip:'+ip+'" --board-name='+board, true, true, true)
@@ -428,6 +433,13 @@ def stage_library(String stage_name) {
                         devs = devs.minus(missing_devs)
                         writeFile(file: board+'_enumerated_devs.log', text: devs.join("\n"))
                         set_elastic_field(board, 'drivers_enumerated', devs.size().toString())
+
+                        try{
+                            sh 'iio_info --uri=ip:'+ip
+                            nebula("net.check-dmesg --ip='"+ip+"' --board-name="+board)
+                        }catch(Exception ex) {
+                            failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
+                        }
                         
                         try{
                             if (!gauntEnv.firmware_boards.contains(board)){
@@ -489,7 +501,32 @@ def stage_library(String stage_name) {
                         dir('pytest-libiio'){
                             run_i('python3 setup.py install', true)
                         }
-                        run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo, true)
+                        //install libad9361 python bindings
+                        try{
+                            sh 'python3 -c "import ad9361"'
+                        }catch (Exception ex){
+                            run_i('sudo rm -rf libad9361-iio')
+                            run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+                            dir('libad9361-iio'){
+                                sh 'mkdir -p build'
+                                dir('build'){
+                                    sh 'sudo cmake -DPYTHON_BINDINGS=ON ..'
+                                    sh 'sudo make'
+                                    sh 'sudo make install'
+                                    sh 'ldconfig'
+                                }
+                            }
+                        }
+                        //scm pyadi-iio
+                        dir('pyadi-iio'){
+                            under_scm = isMultiBranchPipeline()
+                            if (under_scm){
+                                 println("Multibranch pipeline. Checkout scm")
+                            }else{
+                                println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
+                                run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
+                            }
+                        }
                         dir('pyadi-iio')
                         {
                             run_i('pip3 install -r requirements.txt', true)
@@ -566,23 +603,28 @@ def stage_library(String stage_name) {
             break
     case 'LibAD9361Tests':
             cls = { String board ->
-                def supported_boards = ['zynq-zed-adv7511-ad9361-fmcomms2-3',
-                                        'zynq-zc706-adv7511-ad9361-fmcomms5',
-                                        'zynq-adrv9361-z7035-fmc',
-                                        'zynq-zed-adv7511-ad9364-fmcomms4',
-                                        'pluto']
-                if(supported_boards.contains(board) && gauntEnv.libad9361_iio_branch != null){
+                def supported = false
+                def supported_boards = ["adrv9361", "adrv9364", "ad9361", "ad9364", "pluto"]
+                for(s in supported_boards){
+                    if (board.contains(s)){
+                        supported = true
+                    }
+                }
+                if(supported && gauntEnv.libad9361_iio_branch != null){
                     try{
                         stage("Test libad9361") {
                             def ip = nebula("update-config -s network-config -f dutip --board-name="+board)
+                            run_i('sudo rm -rf libad9361-iio')
                             run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
                             dir('libad9361-iio')
                             {
                                 sh 'mkdir build'
                                 dir('build')
                                 {
-                                    sh 'cmake ..'
+                                    sh 'cmake -DPYTHON_BINDINGS=ON ..'
                                     sh 'make'
+                                    sh 'make install'
+                                    sh 'ldconfig'
                                     sh 'URI_AD9361="ip:'+ip+'" ctest -T test --no-compress-output -V'
                                 }
                             }
@@ -656,7 +698,22 @@ def stage_library(String stage_name) {
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
                                 }
-                            }   
+                            }
+                            // Print test result summary and set stage status depending on test result
+                            if (statusCode != 0) {
+                                currentBuild.result = 'FAILURE'
+                            }
+                            switch (statusCode) {
+                                case 1:
+                                    unstable("MATLAB: Error encountered when running the tests.")
+                                    break
+                                case 2:
+                                    unstable("MATLAB: Some tests failed.")
+                                    break
+                                case 3:
+                                    unstable("MATLAB: Some tests did not run to completion.")
+                                    break
+                            }
                         }
                 }
                 else
@@ -694,6 +751,21 @@ def stage_library(String stage_name) {
                                     println('Parsing MATLAB hardware results failed')
                                     echo getStackTrace(ex)
                                 }
+                            }
+                            // Print test result summary and set stage status depending on test result
+                            if (statusCode != 0) {
+                                currentBuild.result = 'FAILURE'
+                            }
+                            switch (statusCode) {
+                                case 1:
+                                    unstable("MATLAB: Error encountered when running the tests.")
+                                    break
+                                case 2:
+                                    unstable("MATLAB: Some tests failed.")
+                                    break
+                                case 3:
+                                    unstable("MATLAB: Some tests did not run to completion.")
+                                    break
                             }
                         }
                     }
@@ -968,9 +1040,8 @@ private def run_agents() {
     def update_lib_requirements = gauntEnv.update_lib_requirements
     def jobs = [:]
     def num_boards = gauntEnv.boards.size()
-    def docker_args = getDockerConfig(gauntEnv.docker_args)
+    def docker_args = getDockerConfig(gauntEnv.docker_args, gauntEnv.matlab_license)
     def enable_update_boot_pre_docker = gauntEnv.enable_update_boot_pre_docker
-    def enable_resource_queuing = gauntEnv.enable_resource_queuing
     def pre_docker_cls = stage_library("UpdateBOOTFiles")
     docker_args.add('-v /etc/apt/apt.conf.d:/etc/apt/apt.conf.d:ro')
     docker_args.add('-v /etc/default:/default:ro')
@@ -1075,15 +1146,10 @@ private def run_agents() {
         def stages = gauntEnv.stages
         def docker_image = gauntEnv.docker_image
         def num_stages = stages.size()
-        def lock_agent = ''
 
         println('Agent: ' + agent + ' Board: ' + board)
         println('Number of stages to run: ' + num_stages.toString())
 
-        if (gauntEnv.lock_agent) {
-            println('Locking agent: '+agent+'. Effectively only one test executor is running on the agent.')
-            lock_agent = agent
-        }
 /*
 jobs[agent+"-"+board] = {
   node(agent) {
@@ -1094,50 +1160,34 @@ jobs[agent+"-"+board] = {
   }
 }
 */
+        // Always lock DUTs
+        def lock_name = extractLockName(board, agent)
+        echo "Acquiring lock for ${lock_name}"
+
         if (gauntEnv.enable_docker) {
-            if( enable_resource_queuing ){
-                println("Enable resource queueing")
-                jobs[agent + '-' + board] = {
-                    def lock_name = extractLockName(board, agent)
-                    echo "Acquiring lock for ${lock_name}"
-                    lock(lock_agent){
-                        lock(lock_name){
-                            oneNodeDocker(
-                                agent,
-                                num_stages,
-                                stages,
-                                board,
-                                docker_image,
-                                enable_update_boot_pre_docker,
-                                pre_docker_cls, 
-                                docker_status,
-                                update_container_lib,
-                                update_lib_requirements
-                            )
-                        }
-                    }
-                 };
-            }else{
-                jobs[agent + '-' + board] = {
-                    lock(lock_agent){ 
-                        oneNodeDocker(
-                                agent,
-                                num_stages,
-                                stages,
-                                board,
-                                docker_image,
-                                enable_update_boot_pre_docker,
-                                pre_docker_cls,
-                                docker_status,
-                                update_container_lib,
-                                update_lib_requirements
-                            )
-                    }
-                 };
-            }
-            
-        } else{
-            jobs[agent + '-' + board] = { oneNode(agent, num_stages, stages, board, docker_status) };
+            println("Enable resource queueing")
+            jobs[agent + '-' + board] = {
+                lock(lock_name){
+                    oneNodeDocker(
+                        agent,
+                        num_stages,
+                        stages,
+                        board,
+                        docker_image,
+                        enable_update_boot_pre_docker,
+                        pre_docker_cls,
+                        docker_status,
+                        update_container_lib,
+                        update_lib_requirements
+                    )
+                }
+            };
+        } else {
+            jobs[agent + '-' + board] = {
+                lock(lock_name) {
+                    oneNode(agent, num_stages, stages, board, docker_status)
+                }
+            };
         }
     }
 
@@ -1224,22 +1274,6 @@ def set_iio_uri_source(iio_uri_source) {
  */
 def set_iio_uri_baudrate(iio_uri_baudrate) {
     gauntEnv.iio_uri_baudrate = iio_uri_baudrate
-}
-
-/**
- * Set enable_resource_queuing. Set enable_resource_queuing. Set to true to enable
- * @param enable_resource_queuing Boolean true to enable
- */
-def set_enable_resource_queuing(enable_resource_queuing) {
-    gauntEnv.enable_resource_queuing = enable_resource_queuing
-}
-
-/**
- * Set lock_agent. Set to true to effectively use just one test executor on agents
- * @param lock_agent Boolean true to enable
- */
-def set_lock_agent(lock_agent) {
-    gauntEnv.lock_agent = lock_agent
 }
 
 /**
@@ -1352,6 +1386,15 @@ def set_matlab_timeout(matlab_timeout) {
 }
 
 /**
+ * Set type of MATLAB license file
+ * @param matlab_license acceptable values are 'network' for 'machine'
+ * 'network' for network license and 'machine' for machine-specific license
+ */
+def set_matlab_license(matlab_license) {
+    gauntEnv.matlab_license = matlab_license
+}
+
+/**
  * Enables updating of nebula-config used by nebula
  * @param enable boolean replaces default gauntEnv.update_nebula_config
  * set to true(default) to update nebula_config of agent, or set to false otherwise
@@ -1369,8 +1412,10 @@ def isMultiBranchPipeline() {
     println("Checking if multibranch pipeline..")
     try
     {
-        checkout scm
-        isMultiBranch = true
+        retry(3){
+            checkout scm
+            isMultiBranch = true
+        }
     }
     catch(all)
     {
@@ -1763,16 +1808,16 @@ private def install_nebula(update_requirements=false) {
         }
     }
     else {
+        def scmVars = checkout([
+            $class : 'GitSCM',
+            branches : [[name: "*/${gauntEnv.nebula_branch}"]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'LocalBranch', localBranch: "**"]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.nebula_repo}"]]
+        ])
         sh 'pip3 uninstall nebula -y || true'
-        run_i('sudo rm -rf nebula')
-        run_i('git clone -b ' + gauntEnv.nebula_branch + ' ' + gauntEnv.nebula_repo, true)
-        dir('nebula')
-        {
-            if (update_requirements){
-                run_i('pip3 install -r requirements.txt', true)
-            }
-            run_i('python3 setup.py install', true)
-        }
+        sh 'pip3 install .'
     }
 }
 
@@ -1790,21 +1835,24 @@ private def install_libiio() {
         }
     }
     else {
-        run_i('sudo rm -rf libiio')
-        run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
-        dir('libiio')
+        def scmVars = checkout([
+            $class : 'GitSCM',
+            branches : [[name: "refs/tags/${gauntEnv.libiio_branch}"]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'LocalBranch', localBranch: "**"]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.libiio_repo}"]]
+        ])
+        sh 'mkdir build'
+        dir('build')
         {
-            sh 'mkdir build'
-            dir('build')
-            {
-                sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
-                sh 'make'
-                sh 'make install'
-                sh 'ldconfig'
-                // install python bindings
-                dir('bindings/python'){
-                    sh 'python3 setup.py install'
-                }
+            sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
+            sh 'make'
+            sh 'sudo make install'
+            sh 'ldconfig'
+            // install python bindings
+            dir('bindings/python'){
+                sh 'python3 setup.py install'
             }
         }
     }
@@ -1822,15 +1870,18 @@ private def install_telemetry(update_requirements=false){
         }
     }else{
         // sh 'pip3 uninstall telemetry -y || true'
-        run_i('sudo rm -rf telemetry')
-        run_i('git clone -b ' + gauntEnv.telemetry_branch + ' ' + gauntEnv.telemetry_repo, true)
-        dir('telemetry')
-        {
-            if (update_requirements){
-                run_i('pip3 install -r requirements.txt', true)
-            }
-            run_i('python3 setup.py install', true)
+        def scmVars = checkout([
+            $class : 'GitSCM',
+            branches : [[name: "*/${gauntEnv.telemetry_branch}"]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'LocalBranch', localBranch: "**"]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.telemetry_repo}"]]
+        ])
+        if (update_requirements){
+            run_i('pip3 install -r requirements.txt', true)
         }
+        sh 'pip3 install .'
     }
 }
 
@@ -1856,17 +1907,13 @@ private def setup_libserialport() {
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
     def default_branch = 'master'
-    def branches = [0:gauntEnv.nebula_branch, 1:gauntEnv.libiio_branch, 2:gauntEnv.telemetry_branch]
-    def dep_map = [ 0:'nebula', 1:'libiio', 2:'telemetry']
     if (update_container_lib){
-        deps = ['nebula', 'libiio', 'telemetry']
-    }
-    else {
-        def i;
-        for (i=0; i<branches.size(); i++) {
-            if (branches[i] != default_branch){
-                deps.add(dep_map[i])
-            } 
+        deps = gauntEnv.required_libraries
+    }else{
+        for(lib in gauntEnv.required_libraries){
+            if(gauntEnv[lib+'_branch'] != default_branch){
+                deps.add(lib)
+            }
         }
     }
     return deps
@@ -1912,15 +1959,17 @@ def get_gitsha(String board){
         set_elastic_field(board, 'linux_hash', linux_hash)
         return
     }
-
-    // properties.hdl_git_sha = null
-    // properties.hdl_folder = null
-    // properties.linux_git_sha = null
-    // properties.linux_folder = null
     
     if (fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
+        }
+        if (gauntEnv.bootPartitionBranch == 'NA'){
+            hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
+            linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
+        }else{
+            hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
+            linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
         }
     } else if(fileExists('outs/properties.txt')){
         dir ('outs'){
@@ -1938,21 +1987,10 @@ def get_gitsha(String board){
                 }
             }
         }
-    } else {
-        return
-    }
-
-    if (gauntEnv.bootPartitionBranch == 'NA'){
-        hdl_hash = properties.hdl_git_sha + " (" + properties.hdl_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.linux_folder + ")" 
-    }else{
-        hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
-        linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
-    }
-
-    if (linux_git_sha != null){
         linux_hash = linux_git_sha + " (" + linux_folder + ")"
         hdl_hash = "NA"
+    } else {
+        return
     }
 
     echo "Hashes set hdl: ${hdl_hash}, linux: ${linux_hash}"

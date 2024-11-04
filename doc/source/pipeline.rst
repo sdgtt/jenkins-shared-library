@@ -21,7 +21,7 @@ Example Jenkinsfile
 
     lock(label: 'adgt_test_harness_boards'){
         @Library('sdgtt-lib@jsl_updates') _ 
-        
+
         //instantiate constructor method
         def harness = getGauntlet()
     
@@ -32,9 +32,6 @@ Example Jenkinsfile
         harness.set_enable_docker(true)
         harness.set_docker_args(['Vivado']) 
 
-        //set resource queuing parameter
-        harness.set_enable_resource_queuing(true)
-        
         //set required hardware
         harness.set_required_hardware(["pluto",
                                     "zynq-zed-adv7511-fmcomms2-3",
@@ -46,5 +43,3 @@ Example Jenkinsfile
         // Go go
         harness.run_stages()
     }
-        
-

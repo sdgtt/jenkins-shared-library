@@ -1,5 +1,5 @@
 
-def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
+def call(java.util.ArrayList listOfResources, matlablic, matlabHSPro=true, UseNFS=false) {
     assert listOfResources instanceof java.util.List
 
     args = ['--privileged']
@@ -15,18 +15,20 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
                 else
                     args.add('-v "/nfs/apps/resources/mlhsp":"/mlhspro":ro')
             }
-        else {
-                args.add('-v "/usr/local/MATLAB":"/usr/local/MATLAB":ro')
-                args.add('-v "/root/.matlab":"/root/.matlabro":ro')
-                if (matlabHSPro)
-                    args.add('-v "/mlhsp":"/mlhsp":ro')
-                else
-                    args.add('-v "/mlhsp":"/mlhspro":ro')
-        }
-        // Add correct MAC to licenses work in Docker
-        withCredentials([string(credentialsId: 'MAC_ADDR', variable: 'MAC_ADDR')]) {
-            args.add('--mac-address ' + MAC_ADDR)
-        }
+            else {
+                    args.add('-v "/usr/local/MATLAB":"/usr/local/MATLAB":ro')
+                    args.add('-v "/root/.matlab":"/root/.matlabro":ro')
+                    if (matlabHSPro)
+                        args.add('-v "/mlhsp":"/mlhsp":ro')
+                    else
+                        args.add('-v "/mlhsp":"/mlhspro":ro')
+            }
+            // Add correct MAC to licenses work in Docker
+            if (matlablic.equalsIgnoreCase( 'machine' )) {
+                withCredentials([string(credentialsId: 'MAC_ADDR', variable: 'MAC_ADDR')]) {
+                    args.add('--mac-address ' + MAC_ADDR)
+                }
+            }
         }
         else if (listOfResources[i].equalsIgnoreCase( 'Vivado' )) {
             echo '----Adding Vivado Resources----'
@@ -51,6 +53,12 @@ def call(java.util.ArrayList listOfResources, matlabHSPro=true, UseNFS=false) {
             echo '----Adding udev resources of the host----'
             args.add('-v /etc/udev/rules.d:/etc/udev/rules.d')
             args.add('-v /run/udev/data:/run/udev/data')
+        }
+        else if (listOfResources[i].equalsIgnoreCase( 'x11forwarding' )) {
+            echo '----Adding X11 Forwarding ----'
+            args.add('-v /tmp/.X11-unix:/tmp/.X11-unix:rw')
+            args.add('-v /home/analog/.Xauthority:/root/.Xauthority')
+            args.add('-v /home/analog/.ssh:/root/.ssh')
         }
         else {
             args.add(listOfResources[i])
