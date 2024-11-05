@@ -496,117 +496,103 @@ def stage_library(String stage_name) {
                         def uri;
                         def description = ""
                         def pytest_attachment = null
-                        def runtest = true
+                        println('IP: ' + ip)
+                        // temporarily get pytest-libiio from another source
+                        run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
+                        dir('pytest-libiio'){
+                            run_i('python3 setup.py install', true)
+                        }
+                        //install libad9361 python bindings
                         try{
-                            def noos_example = nebula('update-config board-config example --board-name='+board)
-                            if (noos_example && noos_example.contains('iio')){
-                                runtest = true
+                            sh 'python3 -c "import ad9361"'
+                        }catch (Exception ex){
+                            run_i('sudo rm -rf libad9361-iio')
+                            run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+                            dir('libad9361-iio'){
+                                sh 'mkdir -p build'
+                                dir('build'){
+                                    sh 'sudo cmake -DPYTHON_BINDINGS=ON ..'
+                                    sh 'sudo make'
+                                    sh 'sudo make install'
+                                    sh 'ldconfig'
+                                }
+                            }
+                        }
+                        //scm pyadi-iio
+                        dir('pyadi-iio'){
+                            under_scm = isMultiBranchPipeline()
+                            if (under_scm){
+                                 println("Multibranch pipeline. Checkout scm")
                             }else{
-                                runtest = false
+                                println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
+                                run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
                             }
-                        }catch(Exception ex){}
-                        if (runtest == false){
-                            println("Skip pyadi-iio test.")
-                            Utils.markStageSkippedForConditional('Run Python Tests')
-                        }else{
-                            println('IP: ' + ip)
-                            // temporarily get pytest-libiio from another source
-                            run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
-                            dir('pytest-libiio'){
-                                run_i('python3 setup.py install', true)
+                        }
+                        dir('pyadi-iio')
+                        {
+                            run_i('pip3 install -r requirements.txt', true)
+                            run_i('pip3 install -r requirements_dev.txt', true)
+                            run_i('pip3 install pylibiio', true)
+                            run_i('mkdir testxml')
+                            run_i('mkdir testhtml')
+                            if (gauntEnv.iio_uri_source == "ip"){
+                                ip = nebula('update-config network-config dutip --board-name='+board)
+                                uri = "ip:" + ip;
+                            }else{
+                                serial = nebula('update-config uart-config address --board-name='+board)
+                                baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                                uri = "serial:" + serial + "," + baudrate
                             }
-                            //install libad9361 python bindings
-                            try{
-                                sh 'python3 -c "import ad9361"'
-                            }catch (Exception ex){
-                                run_i('sudo rm -rf libad9361-iio')
-                                run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
-                                dir('libad9361-iio'){
-                                    sh 'mkdir -p build'
-                                    dir('build'){
-                                        sh 'sudo cmake -DPYTHON_BINDINGS=ON ..'
-                                        sh 'sudo make'
-                                        sh 'sudo make install'
-                                        sh 'ldconfig'
-                                    }
-                                }
-                            }
-                            //scm pyadi-iio
-                            dir('pyadi-iio'){
-                                under_scm = isMultiBranchPipeline()
-                                if (under_scm){
-                                    println("Multibranch pipeline. Checkout scm")
-                                }else{
-                                    println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
-                                    run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
-                                }
-                            }
-                            dir('pyadi-iio')
-                            {
-                                run_i('pip3 install -r requirements.txt', true)
-                                run_i('pip3 install -r requirements_dev.txt', true)
-                                run_i('pip3 install pylibiio', true)
-                                run_i('mkdir testxml')
-                                run_i('mkdir testhtml')
-                                if (gauntEnv.iio_uri_source == "ip"){
-                                    ip = nebula('update-config network-config dutip --board-name='+board)
-                                    uri = "ip:" + ip;
-                                }else{
-                                    serial = nebula('update-config uart-config address --board-name='+board)
-                                    baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                                    uri = "serial:" + serial + "," + baudrate
-                                }
-                                check = check_for_marker(board)
-                                board = board.replaceAll('-', '_')
-                                board_name = check.board_name.replaceAll('-', '_')
-                                marker = check.marker
-                                cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml"
-                                cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri="+uri+" -m " + board_name
-                                cmd += " --scan-verbose --capture=tee-sys" + marker
-                                def statusCode = sh script:cmd, returnStatus:true
+                            check = check_for_marker(board)
+                            board = board.replaceAll('-', '_')
+                            board_name = check.board_name.replaceAll('-', '_')
+                            marker = check.marker
+                            cmd = "python3 -m pytest --html=testhtml/report.html --junitxml=testxml/" + board + "_reports.xml"
+                            cmd += " --adi-hw-map -v -k 'not stress and not prod' -s --uri="+uri+" -m " + board_name
+                            cmd += " --scan-verbose --capture=tee-sys" + marker
+                            def statusCode = sh script:cmd, returnStatus:true
 
-                                // generate html report
-                                if (fileExists('testhtml/report.html')){
-                                    publishHTML(target : [
-                                        escapeUnderscores: false, 
-                                        allowMissing: false, 
-                                        alwaysLinkToLastBuild: false, 
-                                        keepAll: true, 
-                                        reportDir: 'testhtml', 
-                                        reportFiles: 'report.html', 
-                                        reportName: board, 
-                                        reportTitles: board])
-                                }
+                            // generate html report
+                            if (fileExists('testhtml/report.html')){
+                                publishHTML(target : [
+                                    escapeUnderscores: false, 
+                                    allowMissing: false, 
+                                    alwaysLinkToLastBuild: false, 
+                                    keepAll: true, 
+                                    reportDir: 'testhtml', 
+                                    reportFiles: 'report.html', 
+                                    reportName: board, 
+                                    reportTitles: board])
+                            }
 
-                                // get pytest results for logging
-                                xmlFile = 'testxml/' + board + '_reports.xml'
-                                if(fileExists(xmlFile)){
+                            // get pytest results for logging
+                            xmlFile = 'testxml/' + board + '_reports.xml'
+                            if(fileExists(xmlFile)){
+                                try{
+                                    parseForLogging ('pytest', xmlFile, board)
+                                }catch(Exception ex){
+                                    println('Parsing pytest results failed')
+                                    echo getStackTrace(ex)
+                                }
+                                pytest_attachment = board+"_reports.xml"
+                            }
+                            
+                            // throw exception if pytest failed
+                            if ((statusCode != 5) && (statusCode != 0)){
+                                // Ignore error 5 which means no tests were run
+                                // log Jira
+                                dir('testxml'){
                                     try{
-                                        parseForLogging ('pytest', xmlFile, board)
-                                    }catch(Exception ex){
-                                        println('Parsing pytest results failed')
-                                        echo getStackTrace(ex)
+                                        sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
+                                        description += readFile 'failures.txt'
+                                    }catch(Exception desc){
+                                        println('Error updating description.')
+                                    }finally{
+                                        logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
                                     }
-                                    pytest_attachment = board+"_reports.xml"
-                                }
-                                
-                                // throw exception if pytest failed
-                                if ((statusCode != 5) && (statusCode != 0)){
-                                    // Ignore error 5 which means no tests were run
-                                    // log Jira
-                                    dir('testxml'){
-                                        try{
-                                            sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
-                                            description += readFile 'failures.txt'
-                                        }catch(Exception desc){
-                                            println('Error updating description.')
-                                        }finally{
-                                            logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
-                                        }
-                                    } 
-                                    unstable("PyADITests Failed")
-                                }                
-                            }
+                                } 
+                                unstable("PyADITests Failed")
+                            }                
                         }
                     }
                     finally
