@@ -908,7 +908,7 @@ def stage_library(String stage_name) {
                 }
                 if (!found) {
                     //for now, stop test pipeline if file is not found
-                    throw new NominalException("No elf found for "+board+'-' + example)
+                    throw new NominalException("No elf found for "+board)
                 }  
             }
             //load binary file to target board
@@ -944,7 +944,7 @@ def stage_library(String stage_name) {
                         throw new sdg.NominalException("Flashing binary file failed.")
                     }                   
                 }
-                sleep(120) //wait to fully boot
+                sleep(180) //wait to fully boot
                 archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
                 sh 'screen -XS '+board+ ' kill'
             }
