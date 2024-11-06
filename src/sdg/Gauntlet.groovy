@@ -492,6 +492,7 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip;
                         def serial;
+                        def baudrate;
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -539,7 +540,8 @@ def stage_library(String stage_name) {
                                 uri = "ip:" + ip;
                             }else{
                                 serial = nebula('update-config uart-config address --board-name='+board)
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                                baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                                uri = "serial:" + serial + "," + baudrate
                             }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
@@ -861,95 +863,107 @@ def stage_library(String stage_name) {
         break
     case 'noOSTest':
         cls = { String board ->
-            def under_scm = true
+            //sh 'sudo apt update'
+            //sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
-            stage('Check JTAG connection'){
-                nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+            def platform = nebula('update-config downloader-config platform --board-name='+board)
+            def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+            def filepath = ''
+            //check if boards are up
+            if (platform == 'Xilinx'){
+                stage('Check JTAG connection'){
+                    nebula('manager.board-diagnostics --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+                }
             }
-            stage('Build NO-OS Project'){
-                def pwd = sh(returnStdout: true, script: 'pwd').trim()
-                withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
-                    def project = nebula('update-config board-config no-os-project --board-name='+board)
-                    def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
-                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
-                    try{
-                        file = files[gauntEnv.vivado_ver.toString()]
-                    }catch(Exception ex){
-                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
+            //download no-os files from artifactory
+            stage('Download binaries'){
+                nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                def binaryfiles = sh (script: "ls outs", returnStdout: true).trim()
+                println("binary files: " + binaryfiles)
+                def found = false;
+                for (String binaryfile : binaryfiles.split("\\r?\\n")) {
+                    def carrier = board.split('_')[0]
+                    def daughter = board.split('_')[1]
+                    if (daughter.contains('-')){
+                        daughter = daughter.split('-')[0]
                     }
-                    try{
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-                    }catch(Exception ex){
-                        throw new Exception('Downloader error: '+ ex.getMessage()) 
-                    }
-
-                    dir('no-OS'){
-                        under_scm = isMultiBranchPipeline()
-                        if (under_scm){
-                            retry(3) {
-                                sleep(5)
-                                sh 'git submodule update --recursive --init'
-                            }
-                        }
-                        else {
-                            println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
-                            retry(3) {
-                                sleep(2)
-                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
-                            }
-                        }
-                    }
-                    sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
-                    dir('no-OS'){
-                        if (gauntEnv.vivado_ver == '2020.1'){
-                            sh 'git revert 76c709e'
-                        }
-                        dir('projects/'+ project){
-                            def buildfile = readJSON file: 'builds.json'
-                            flag = buildfile['xilinx'][example]['flags']
-                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
-                                sh 'ln /usr/bin/make /usr/bin/gmake'
-                            }
-                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
-                            retry(3){
-                                sleep(2)
-                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                    if (binaryfile.contains(example) && binaryfile.contains(carrier) && binaryfile.contains(daughter)){
+                        if (platform == "Xilinx"){
+                            bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
+                            sh 'tar -xf '+bootgen
+                            filepath = sh(returnStdout: true, script: 'ls | grep *'+carrier+'.elf').trim()
+                            println("File/filepath: "+filepath) 
+                            found = true;
+                            break
+                        }else {
+                            if (binaryfile.contains('.elf')) {
+                                filepath = 'outs/'+binaryfile
+                                println("File/filepath: "+filepath) 
+                                found = true;
+                                break
                             }
                         }
                     }
                 }
+                if (!found) {
+                    //for now, stop test pipeline if file is not found
+                    throw new NominalException("No elf found for "+board)
+                }  
             }
-            switch (example){
-                case 'iio':
-                    stage('Check Context'){
-                        def serial = nebula('update-config uart-config address --board-name='+board)
-                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        try{
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
-                            }
-                        }catch(Exception ex){
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +baudrate
-                            }
+            //load binary file to target board
+            stage('Test no-OS binary files'){
+                echo filepath
+                def project = nebula('update-config downloader-config no_os_project --board-name='+board)
+                def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                def serial = nebula('update-config uart-config address --board-name='+board)
+                if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                    sh 'ln /usr/bin/make /usr/bin/gmake'
+                }
+                if (example.contains('iio')){
+                    screen_baudrate = gauntEnv.iio_uri_baudrate
+                } else {
+                    screen_baudrate = baudrate
+                }
+                sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' '+screen_baudrate
+                if (platform == "Xilinx"){
+                    sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
+                    sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
+                    sh 'cp *.xsa no-OS/projects/'+ project +'/system_top.xsa'
+                    dir('no-OS'){
+                        dir('projects/'+ project){
+                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                         }
                     }
-                    break
-                case 'dma_example':
-                    // TODO
-                default:
-                    throw new Exception('Example not yet supported: ' + example)
+                } else {
+                    run_i('wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh', true)
+                    sh 'chmod +x mcufla.sh'
+                    cmd = './mcufla.sh ' +filepath+' '+jtag_cable_id
+                    def flashStatus = sh returnStatus: true, script: cmd
+                    if ((flashStatus != 0)){
+                        throw new sdg.NominalException("Flashing binary file failed.")
+                    }                   
+                }
+                sleep(180) //wait to fully boot
+                archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                sh 'screen -XS '+board+ ' kill'
             }
-
-             
+            if (example.contains('iio')){
+                stage('Check Context'){
+                    def serial = nebula('update-config uart-config address --board-name='+board)
+                    retry(3){
+                        echo '---------------------------'
+                        sleep(10);
+                        echo "Check context"
+                        cmd = 'iio_info -u serial:' + serial + ',' +baudrate+ ' &> '+board+'-iio_info.log'
+                        def ret = sh returnStatus: true, script: cmd
+                        archiveArtifacts artifacts: "*-iio_info.log", followSymlinks: false, allowEmptyArchive: true
+                        if (ret != 0){
+                            throw new Exception("Failed.")
+                        }
+                    }
+                }
+            }
         }
             break
     case 'PowerCycleBoard':
@@ -2002,12 +2016,15 @@ private def check_for_marker(String board){
     def marker = ''
     def board_name = board
     def valid_markers = [ "cmos", "lvds"]
+    def noos_markers = ["iio_example", "dummy_example", "iio", "demo", "dma_example", "dma_irq_example" ]
     if (board.contains("-v")){
         if (board.split("-v")[1] in valid_markers){
             board_name = board.split("-v")[0]
             marker = ' --' + board.split("-v")[1]
             return [board_name:board_name, marker:marker]
-        
+        }else if(board.split("-v")[1].replace("-","_") in noos_markers){
+            board_name = board.split("-v")[0]
+            return [board_name:board_name, marker:marker]
         }else {
             board_name = board.replace("-v","-")
             return [board_name:board_name, marker:marker]
