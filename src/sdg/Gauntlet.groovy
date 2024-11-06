@@ -981,23 +981,20 @@ def stage_library(String stage_name) {
                 cmd = 'ls | grep -iE ' + board + '*.log'
                 log_file = sh(script:cmd, returnStdout: true).trim()
                 
-                def sha = ''
-                def memtotal = ''
-                def fdtget = ''
-                def mem = {}
-                def swap = {}
-                def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
-                def memory_type = ['Mem:', 'Swap:']
+                // def sha = ''
+                // def memtotal = ''
+                // def fdtget = ''
+                // def mem = {}
+                // def swap = {}
+                // def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
+                // def memory_type = ['Mem:', 'Swap:']
 
                 if (fileExists(log_file)) {
                     def file = readFile log_file
-                    file.readLines().each { line ->
-                        println line
+                    lines = file.readLines()
+                    for (line in lines){
+                        echo line
                     }
-                    // for (line in lines){
-                    //     echo line
-                    // }
-                    // echo lines
                 }
             }
         }
