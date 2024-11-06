@@ -996,18 +996,6 @@ def stage_library(String stage_name) {
                         echo line
                     }
                 }
-                
-
-                // println(lines)
-                // if (!lines.isEmpty){
-                //     for (line in lines){
-                //         // if (line.contains('git')) {
-                //         //     // matches = (line =~ /\<(.*?)>/).findAll()
-                //         //     println(line)
-                //         // }
-                //     println(line)
-                //     }
-                // }
             }
         }
         break
