@@ -35,7 +35,6 @@ lock(label: 'adgt_test_harness_boards'){
     harness.set_docker_host_mode(true) //set to false for MATLAB jobs
     harness.set_send_telemetry(true)
     harness.set_enable_resource_queuing(true)
-    harness.set_log_jira(false)
 
     harness.set_elastic_server('192.168.10.1')
 

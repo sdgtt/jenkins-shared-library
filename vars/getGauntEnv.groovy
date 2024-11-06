@@ -83,8 +83,6 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             kuiper_checker_branch: 'master',
             send_results: false,
             elastic_logs : [:],
-            log_jira: false,
-            log_jira_stages: [],
             max_retry: 3,
             recovery_ref: "SD",
             log_artifacts: false,
