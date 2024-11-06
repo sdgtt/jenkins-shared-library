@@ -962,43 +962,6 @@ def stage_library(String stage_name) {
             }   
         }
         break
-    case 'KuiperMemoryCheck':
-        println('Added Stage KuiperMemoryCheck')
-        cls = { String board ->
-            stage('Test memory'){
-                def dtb_file = ''
-                if (board.contains('zynqmp-')) {
-                    dtb_file = 'system.dtb'
-                } else if (board.contains('zynq-')) {
-                    dtb_file = 'devicetree.dtb'
-                }
-                
-                cmd = 'net.run-command --board-name=' + board + ' '
-                cmd += '--command="dmesg | grep -iE \'sysid|mem\' ; free ; grep MemTotal /proc/meminfo '
-                cmd +='; fdtget /boot/'+ dtb_file +' /memory reg"'
-                nebula(cmd, true, true, true)
-
-                cmd = 'ls | grep -iE ' + board + '*.log'
-                log_file = sh(script:cmd, returnStdout: true).trim()
-                
-                def sha = ''
-                def memtotal = ''
-                def fdtget = ''
-                def mem = {}
-                def swap = {}
-                def keys = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
-                def memory_type = ['Mem:', 'Swap:']
-
-                if (fileExists(log_file)) {
-                    def file = readFile log_file
-                    lines = file.readLines()
-                    for (line in lines){
-                        echo line
-                    }
-                }
-            }
-        }
-        break
     default:
         throw new Exception('Unknown library stage: ' + stage_name)
     }
