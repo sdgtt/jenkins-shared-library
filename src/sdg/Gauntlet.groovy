@@ -991,11 +991,8 @@ def stage_library(String stage_name) {
 
                 if (fileExists(log_file)) {
                     echo log_file
-                    def file = readFile log_file
-                    // lines = file.readLines()
-                    // for (line in lines){
-                    //     echo line
-                    // }
+                    script_out = readFile(log_file).trim()
+                    lines = script_out.split('\n')
                 }
                 
 
