@@ -990,26 +990,11 @@ def stage_library(String stage_name) {
                 def memory_type = ['Mem:', 'Swap:']
 
                 if (fileExists(log_file)) {
-                    // sh 'cat ' + log_file
-                    // def file = readFile log_file
-                    // script_out = sh(script: 'nebula ' + cmd, returnStdout: true).trim()
-                    // lines = script_out.split('\n')
-                    // file_trim = file.trim()
-                    // lines = file.readLines()
-                    // cmd_out = readFile(log_file)
-                    // script_out = cmd_out.trim()
-                    // lines = script_out.split('\n')
-                    // def err_line = false
-                    // for (i = 1; i < lines.size(); i++) {
-                    //     if (lines[i].matches('Traceback .+')) {
-                    //         err_line = true
-                    //     }
-                    //     if(err_line){
-                    //         if (!lines[i].matches('.*nebula.{1}uart.*')){
-                    //             nebula_traceback << lines[i]
-                    //         }
-                    //     }
-                    // }
+                    def file = readFile log_file
+                    lines = file.readLines()
+                    for (line in lines){
+                        echo line
+                    }
                 }
                 
 
