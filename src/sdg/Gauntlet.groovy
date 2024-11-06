@@ -991,7 +991,8 @@ def stage_library(String stage_name) {
 
                 if (fileExists(log_file)) {
                     sh 'cat ' + log_file
-                    script_out = readFile(log_file).trim()
+                    cmd_out = readFile(log_file)
+                    script_out = cmd_out.trim()
                     // lines = script_out.split('\n')
                     // def err_line = false
                     // for (i = 1; i < lines.size(); i++) {
