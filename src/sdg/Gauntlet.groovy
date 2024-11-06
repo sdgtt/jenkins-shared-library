@@ -990,9 +990,9 @@ def stage_library(String stage_name) {
                 def memory_type = ['Mem:', 'Swap:']
 
                 if (fileExists(log_file)) {
-                    echo log_file
-                    script_out = readFile(log_file).trim()
-                    lines = script_out.split('\n')
+                    cat log_file
+                    // script_out = readFile(log_file).trim()
+                    // lines = script_out.split('\n')
                 }
                 
 
