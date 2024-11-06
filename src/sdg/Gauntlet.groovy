@@ -991,8 +991,19 @@ def stage_library(String stage_name) {
 
                 if (fileExists(log_file)) {
                     sh 'cat ' + log_file
-                    // script_out = readFile(log_file).trim()
+                    script_out = readFile(log_file).trim()
                     // lines = script_out.split('\n')
+                    // def err_line = false
+                    // for (i = 1; i < lines.size(); i++) {
+                    //     if (lines[i].matches('Traceback .+')) {
+                    //         err_line = true
+                    //     }
+                    //     if(err_line){
+                    //         if (!lines[i].matches('.*nebula.{1}uart.*')){
+                    //             nebula_traceback << lines[i]
+                    //         }
+                    //     }
+                    // }
                 }
                 
 
