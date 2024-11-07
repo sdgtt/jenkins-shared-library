@@ -284,14 +284,6 @@ def stage_library(String stage_name) {
                     }
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
-                    // log Jira
-                    try{
-                        description = failing_msg
-                    }catch(Exception desc){
-                        println('Error updating description.')
-                    }finally{
-                        logJira([board:board, summary:'Update BOOT files failed.', description:description, attachment:[board+".log"]]) 
-                    }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
                     //archive uart logs
@@ -467,17 +459,6 @@ def stage_library(String stage_name) {
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
-                            // log Jira
-                            def description = ""
-                            try{
-                                description += "*Missing drivers: " + missing_devs.size().toString() + "* (" + missing_devs.join(", ") + ")\n"
-                                dmesg_errs = readFile("dmesg_err_filtered.log").readLines()
-                                description += "*dmesg errors: ${dmesg_errs.size()}*\n" + dmesg_errs.join("\n")
-                            }catch(Exception desc){
-                                println('Error updating description.')
-                            }finally{
-                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2","dmesg.log"]]) 
-                            }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
@@ -591,17 +572,6 @@ def stage_library(String stage_name) {
                             // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
-                                // log Jira
-                                dir('testxml'){
-                                    try{
-                                        sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
-                                        description += readFile 'failures.txt'
-                                    }catch(Exception desc){
-                                        println('Error updating description.')
-                                    }finally{
-                                        logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
-                                    }
-                                } 
                                 unstable("PyADITests Failed")
                             }                
                         }
@@ -643,14 +613,6 @@ def stage_library(String stage_name) {
                             }
                         }
                     }catch(Exception ex){
-                        // log Jira
-                        try{
-                            description = "LibAD9361Tests Failed: ${ex.getMessage()}"
-                        } catch(Exception desc){
-                                println('Error updating description.')
-                        } finally{
-                            logJira([board:board, summary:'libad9361 tests failed.', description:description]) 
-                        }
                         unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
                     }finally{
                         dir('libad9361-iio/build'){
@@ -690,15 +652,7 @@ def stage_library(String stage_name) {
                         cmd += ' -r "run(\'matlab_commands.m\');exit"'
                         statusCode = sh script:cmd, returnStatus:true
                     }catch (Exception ex){
-                        // log Jira
                         xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
-                        try{
-                            description += readFile 'failures.txt'
-                        }catch(Exception desc){
-                            println('Error updating description.')
-                        }finally{
-                            logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
-                        }
                         throw new NominalException(ex.getMessage())
                     }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
@@ -743,15 +697,7 @@ def stage_library(String stage_name) {
                             cmd += ' -r "run(\'matlab_commands.m\');exit"'
                             statusCode = sh script:cmd, returnStatus:true
                         }catch (Exception ex){
-                            // log Jira
                             xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
-                            try{
-                                description += readFile 'failures.txt'
-                            }catch(Exception desc){
-                                println('Error updating description.')
-                            }finally{
-                                logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
-                            }
                             throw new NominalException(ex.getMessage())
                         }finally{
                             junit testResults: '*.xml', allowEmptyResults: true
@@ -1458,122 +1404,12 @@ def set_recovery_reference(reference) {
 }
 
 /**
- * Enable logging issues to Jira. Setting true will update existing Jira issues or create a new issue.
- * @param log_jira Boolean of enable jira logging.
- */
-def set_log_jira(log_jira) {
-    gauntEnv.log_jira = log_jira
-}
-
-/**
- * Set stages where Jira issues should be updated or created.
- * @param log_jira_stages List of stage names
- */
-def set_log_jira_stages(log_jira_stages) {
-    gauntEnv.log_jira_stages = log_jira_stages
-}
-
-/**
  * Enables logging of test build artifacts to telemetry at the end of the build
  * @param enable boolean replaces default gauntEnv.log_artifacts
  * set to true to log artifacts data to telemetry, or set to false(default) otherwise
  */
 def set_log_artifacts(boolean enable) {
     gauntEnv.log_artifacts = enable
-}
-
-
-/**
- * Creates or updates existing Jira issue for carrier-daughter board
- * Each stage has its own Jira thread for each carrier-daughter board
- * Required key: jiraArgs.summary, other fields have default values or optional
- * attachments is a list of filesnames to upload in the Jira issue
- * Default values:  Jira site: ADI SDG
- *                  project: HTH
- *                  issuetype: Bug
- *                  assignee: JPineda3
- *                  component: KuiperTesting
- */
-
-def logJira(jiraArgs) {
-    defaultFields = [site:'sdg-jira',project:'HTH', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
-    optionalFields = ['assignee','issuetype','description']
-    def key = ''
-    // Assign default values if not defined in jiraArgs
-    for (field in defaultFields.keySet()){
-        if (!jiraArgs.containsKey(field)){
-            jiraArgs.put(field,defaultFields."${field}")
-        }
-    }
-    // Append [carier-daugther] to summary
-    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
-    try{
-        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+jiraArgs.board )+"-"+nebula('update-config board-config daughter --board-name='+jiraArgs.board )+"] ".concat(jiraArgs.summary)
-    }catch(Exception summary){
-        println('Jira: Cannot append [carier-daugther] to summary.')
-    }
-    // Include hdl and linux hash if available
-    try{
-        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
-        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
-    }catch(Exception desc){
-        println('Jira: Cannot include hdl and linux hash to description.')
-    }
-    echo 'Checking if Jira logging is enabled..'
-    try{
-        if (gauntEnv.log_jira) {
-            echo 'Checking if stage is included in log_jira_stages'
-            if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
-                println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
-                existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
-                // Comment on existing Jira ticket
-                if (existingIssuesSearch.data.total != 0){ 
-                    echo 'Updating existing issue..'
-                    existingIssue = existingIssuesSearch.data.issues
-                    key = existingIssue[0].key
-                    issueUpdate = jiraArgs.description
-                    comment = [body: issueUpdate]
-                    jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
-                }
-                // Create new Jira ticket
-                else{
-                    echo 'Issue does not exist. Creating new Jira issue..'
-                    // Required fields
-                    issue = [fields: [
-                        project: [key: jiraArgs.project],
-                        summary: jiraArgs.summary,
-                        assignee: [name: jiraArgs.assignee],
-                        issuetype: [name: jiraArgs.issuetype],
-                        components: [[name:jiraArgs.components]]]]
-                    // Optional fields
-                    for (field in optionalFields){
-                        if (jiraArgs.containsKey(field)){
-                            if (field == 'description'){
-                                issue.fields.put(field,jiraArgs."${field}")
-                            }else{
-                                issue.fields.put(field,[name:jiraArgs."${field}"])
-                            }
-                        }
-                    }
-                    def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
-                    key = newIssue.data.key
-                }
-                // Upload attachment if any
-                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
-                    echo 'Uploading attachments..'
-                    for (attachmentFile in jiraArgs.attachment){
-                        def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
-                    } 
-                }
-            }else{
-                println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
-            }
-        }else{
-            echo 'Jira logging is disabled for all stages.'
-        }
-    }catch(Exception jiraError){
-        println('Error creating/updating Jira issue.')
-    }
 }
 
 /**
