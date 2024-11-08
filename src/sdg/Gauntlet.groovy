@@ -78,10 +78,10 @@ private def update_agent() {
 
         jobs[agent_name] = {
             node(agent_name) {
-                stage('Update agents') {
-                    def deps = check_update_container_lib(update_container_lib)
-                    setupAgent(deps, false, update_requirements)
-                }
+                // stage('Update agents') {
+                //     def deps = check_update_container_lib(update_container_lib)
+                //     setupAgent(deps, false, update_requirements)
+                // }
                 // automatically update nebula config
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
@@ -336,7 +336,7 @@ def stage_library(String stage_name) {
                             nebula(nebula_cmd)
                         }catch(Exception ex){
                             if(gauntEnv.netbox_allow_disable){
-                                def message = "Disable by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                def message = "Disabled by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
                                 def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"' + ' --power-off'
                                 nebula(disable_command)
                             }
@@ -1082,6 +1082,17 @@ private def run_agents() {
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
                         }
+                        stage('Check Device Status'){
+                            def board_status = nebula("netbox.board-status --board-name=" + board)
+                            if (board_status == "Active"){
+                                comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment="+ comment)
+                            }else{
+                                comment = "Board is not active. Releasing lock acquired and skipping next stages."
+                                nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment="+ comment)
+                                throw new NominalException('Board is not active. Skipping succeeding stages.') 
+                            }
+                        }
                         gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                         for (k = 0; k < num_stages; k++) {
                             if (gauntEnv.internal_stages_to_skip[board] > 0) {
@@ -1804,12 +1815,12 @@ private def setup_libserialport() {
 
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
-    def default_branch = 'master'
+    def default_branches = ['main', 'master']
     if (update_container_lib){
         deps = gauntEnv.required_libraries
     }else{
         for(lib in gauntEnv.required_libraries){
-            if(gauntEnv[lib+'_branch'] != default_branch){
+            if(!default_branches.contains(gauntEnv[lib+'_branch'])){
                 deps.add(lib)
             }
         }
