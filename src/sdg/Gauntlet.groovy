@@ -1815,12 +1815,12 @@ private def setup_libserialport() {
 
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
-    def default_branch = 'master'
+    def default_branches = ['main', 'master']
     if (update_container_lib){
         deps = gauntEnv.required_libraries
     }else{
         for(lib in gauntEnv.required_libraries){
-            if(gauntEnv[lib+'_branch'] != default_branch){
+            if(!default_branches.contains(gauntEnv[lib+'_branch'])){
                 deps.add(lib)
             }
         }
