@@ -185,12 +185,13 @@ def stage_library(String stage_name) {
                                         throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
                                     if (gauntEnv.bootfile_source == "NA")
                                         throw new Exception("bootfile_source must be specified")
-                                    nebula('dl.bootfiles --board-name=' + board 
-                                            + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                                            + '" --source=' + gauntEnv.bootfile_source
-                                            +  ' --branch="' + gauntEnv.branches.toString()
-                                            + '" --url-template="' + gauntEnv.url_template
-                                            +  '"' + gauntEnv.filetype, true, true, true) 
+                                    def cmd = 'dl.bootfiles --board-name=' + board
+                                    cmd += ' --source-root=' + gauntEnv.nebula_local_fs_source_root
+                                    cmd += ' --source=' + gauntEnv.bootfile_source
+                                    cmd += ' --branch=' + gauntEnv.branches.toString()
+                                    cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
+                                    cmd += ' ' + gauntEnv.filetype
+                                    nebula(cmd, true, true, true)
                                 }
                                 //get git sha properties of files
                                 get_gitsha(board)
@@ -1477,10 +1478,12 @@ private def check_required_hardware() {
                             }
                         }
                     }else if(special_naming_cases.containsKey(board)){
-                        println("Agent: "+agent+" Board: "+board)
-                        filtered_board_list.add(board)
-                        filtered_agent_list.add(agent)
-                        found_rh.add(special_naming_cases[board])
+                        if(rh.contains(special_naming_cases[board])){
+                            println("Agent: "+agent+" Board: "+board)
+                            filtered_board_list.add(board)
+                            filtered_agent_list.add(agent)
+                            found_rh.add(special_naming_cases[board])
+                        }
                     }
                 }
             }
