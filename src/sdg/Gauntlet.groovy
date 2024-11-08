@@ -336,7 +336,7 @@ def stage_library(String stage_name) {
                             nebula(nebula_cmd)
                         }catch(Exception ex){
                             if(gauntEnv.netbox_allow_disable){
-                                def message = "Disable by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                def message = "Disabled by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
                                 def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"' + ' --power-off'
                                 nebula(disable_command)
                             }
@@ -1081,6 +1081,17 @@ private def run_agents() {
                             }
                             // Above cleans up so we need to move to a valid folder
                             sh 'cd /tmp'
+                        }
+                        stage('Check Device Status'){
+                            def board_status = nebula("netbox.board-status --board-name=" + board)
+                            if (board_status != "Active"){
+                                comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment="+ comment)
+                            }else{
+                                comment = "Board is not active. Releasing lock acquired and skipping next stages."
+                                nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment="+ comment)
+                                throw new NominalException('Board is not active. Skipping succeeding stages.') 
+                            }
                         }
                         gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
                         for (k = 0; k < num_stages; k++) {
