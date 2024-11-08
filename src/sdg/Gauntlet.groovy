@@ -1084,7 +1084,7 @@ private def run_agents() {
                         }
                         stage('Check Device Status'){
                             def board_status = nebula("netbox.board-status --board-name=" + board)
-                            if (board_status != "Active"){
+                            if (board_status == "Active"){
                                 comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
                                 nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment="+ comment)
                             }else{
