@@ -1478,10 +1478,12 @@ private def check_required_hardware() {
                             }
                         }
                     }else if(special_naming_cases.containsKey(board)){
-                        println("Agent: "+agent+" Board: "+board)
-                        filtered_board_list.add(board)
-                        filtered_agent_list.add(agent)
-                        found_rh.add(special_naming_cases[board])
+                        if(rh.contains(special_naming_cases[board])){
+                            println("Agent: "+agent+" Board: "+board)
+                            filtered_board_list.add(board)
+                            filtered_agent_list.add(agent)
+                            found_rh.add(special_naming_cases[board])
+                        }
                     }
                 }
             }
