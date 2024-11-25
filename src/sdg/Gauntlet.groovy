@@ -152,6 +152,16 @@ private def update_agent() {
  * @return Closure of stage requested
  */
 def stage_library(String stage_name) {
+    stageClass = getStage(stage_name)
+    return stageClass.getCls()
+}
+
+/**
+ * Add stage to agent pipeline
+ * @param stage_name String name of stage
+ * @return Closure of stage requested
+ */
+def old_stage_library(String stage_name) {
     switch (stage_name) {
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
@@ -287,7 +297,7 @@ def stage_library(String stage_name) {
                     if (gauntEnv.send_results){
                         set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
                         set_elastic_field(board, 'last_failing_stage_failure', failing_msg)
-                        stage_library('SendResults').call(board)
+                        stage_library('SendResults').call(this, board)
                     }
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
@@ -1026,9 +1036,9 @@ private def run_agents() {
                         println("Stage called for board: "+board)
                         println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
                         if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                            stages[k].call(board, ml_variants[ml_variant_index++])
+                            stages[k].call(this, board, ml_variants[ml_variant_index++])
                         else
-                            stages[k].call(board)
+                            stages[k].call(this, board)
                     }
                 }catch(NominalException ex){
                     println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
@@ -1054,7 +1064,7 @@ private def run_agents() {
                 try {
                     docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + env.NODE_NAME + ':/tmp/nebula:ro'
                     if (enable_update_boot_pre_docker_flag)
-                        pre_docker_closure.call(board)
+                        pre_docker_closure.call(this, board)
                     docker.image(docker_image_name).inside(docker_args_agent) {
                         try {
                             stage('Setup Docker') {
@@ -1092,9 +1102,9 @@ private def run_agents() {
                                 println("Stage called for board: "+board)
                                 println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
                                 if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                                    stages[k].call(board, ml_variants[ml_variant_index++])
+                                    stages[k].call(this, board, ml_variants[ml_variant_index++])
                                 else
-                                    stages[k].call(board)
+                                    stages[k].call(this, board)
                             }
                         }catch(NominalException ex){
                             println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
