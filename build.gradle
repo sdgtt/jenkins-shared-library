@@ -1,0 +1,50 @@
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.jenkins-ci.org/releases/'
+        url 'https://repo.jenkins-ci.org/public/'
+    }
+}
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:2.5.14'
+    implementation 'com.cloudbees:groovy-cps:1.24'
+    implementation 'org.jenkins-ci.main:jenkins-core:2.121.2'
+    implementation('org.jenkinsci.plugins:pipeline-model-definition:2.2214.vb_b_34b_2ea_9b_83') {
+        artifact {
+            extension = 'jar'
+        }
+    }
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:3.11.2'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-cps:2.92'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-support:3.8'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-job:2.40'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.23'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-api:2.46'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.23'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.39'
+    // testImplementation 'org.jenkins-ci.plugins.workflow:workflow-cps-global-lib:2.19'
+    // testImplementation 'org.jenkins-ci.plugins.pipeline-model-definition:pipeline-model-definition:1.8.4'
+    // testImplementation 'org.jenkins-ci.plugins.pipeline-model-extensions:pipeline-model-extensions:1.8.4'
+    testImplementation 'com.lesfurets:jenkins-pipeline-unit:1.9'
+   
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src', 'vars']
+        }
+    }
+    test {
+        groovy {
+            srcDirs = ['test']
+        }
+    }
+}

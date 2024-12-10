@@ -1,19 +1,24 @@
 package sdg.stages
+import sdg.Gauntlet
+import sdg.stages.IStage
 
-class SimplyPrint{
+class SimplyPrint implements IStage {
     // Sample Stage Class
-    def StageName = "SimplyPrint"
-    def doSomething(script, board){
-        script.stage(StageName){
-            script.println("Running from ${stageName} for ${board}")
-            script.stage("Substage"){
-                script.println("Another stage")
-            }
-        }
+    String getStageName(){
+        return "SimplyPrint"
     }
-    def getCls(){
-        return { script, board ->
-            doSomething(script, board)
+
+    void stageSteps(Gauntlet gauntlet, String board){
+        gauntlet.stepExecutor.println("2 Running from ${getStageName()} for ${board}")
+        gauntlet.set_env("debug_level",3)
+    }
+
+    Closure getCls(){
+        return { gauntlet, board ->
+            gauntlet.stepExecutor.println("1 Running from ${getStageName()} for ${board}")
+            gauntlet.stepExecutor.stage(getStageName()){
+                stageSteps(gauntlet, board)
+            }
         }
     }
 }

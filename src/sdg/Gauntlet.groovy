@@ -1,10 +1,19 @@
 package sdg
+
 import sdg.FailSafeWrapper
 import sdg.NominalException
+import sdg.ioc.*
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+import com.cloudbees.groovy.cps.NonCPS
 
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
+
+/** context */
+isDefaultContext
+
+/** steps */
+stepExecutor
 
 /**
  * Imitates a constructor
@@ -18,8 +27,39 @@ gauntEnv
  */
 def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
     // initialize gauntEnv
-    gauntEnv = getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
+    isDefaultContext = ContextRegistry.getContext().isDefault()
+    stepExecutor = ContextRegistry.getContext().getStepExecutor()
+    gauntEnv = stepExecutor.getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
+}
+
+@NonCPS
+def getOnlineAgents() {
+    
+    def online_agents = []
+    if(!isDefaultContext){
+        return online_agents
+    }
+    def jenkins = Jenkins.instance
+    for (agent in jenkins.getNodes()) {
+        def computer = agent.computer
+        if (computer.name == 'alpine') {
+            continue
+        }
+        if (!computer.offline) {
+            if (!gauntEnv.required_agent.isEmpty()){
+                if (computer.name in gauntEnv.required_agent){
+                    online_agents.add(computer.name)
+                }
+            }else{
+                online_agents.add(computer.name)
+            }
+        }
+    }
+    if(gauntEnv.debug_level == 3){
+        println("Online agents: ${online_agents}")
+    }
+    return online_agents
 }
 
 /* *
@@ -1183,6 +1223,11 @@ def get_env(String param) {
     return gauntEnv[param]
 }
 
+def get_env() {
+    return gauntEnv
+}
+
+
 /* *
  * Env setter method
  */
@@ -1552,29 +1597,6 @@ private def splitMap(map, do_split=false) {
         }
     }
     return [keys, values]
-}
-
-@NonCPS
-private def getOnlineAgents() {
-    def jenkins = Jenkins.instance
-    def online_agents = []
-    for (agent in jenkins.getNodes()) {
-        def computer = agent.computer
-        if (computer.name == 'alpine') {
-            continue
-        }
-        if (!computer.offline) {
-            if (!gauntEnv.required_agent.isEmpty()){
-                if (computer.name in gauntEnv.required_agent){
-                    online_agents.add(computer.name)
-                }
-            }else{
-                online_agents.add(computer.name)
-            }
-        }
-    }
-    println(online_agents)
-    return online_agents
 }
 
 private def checkOs() {
