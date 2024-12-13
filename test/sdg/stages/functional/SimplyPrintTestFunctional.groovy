@@ -61,6 +61,6 @@ public class SimplyPrintTestFunctional extends BasePipelineTest{
         Assert.assertEquals(sp.getStageName(), "SimplyPrint")
         Assert.assertEquals(gauntlet.get_env("debug_level"),1)
         cls.call(gauntlet, board)
-        Assert.assertEquals(gauntlet.get_env("debug_level"),3)
+        Assert.assertEquals(gauntlet.get_env("debug_level"),2)
     }
 }

@@ -9,13 +9,16 @@ class SimplyPrint implements IStage {
     }
 
     void stageSteps(Gauntlet gauntlet, String board){
-        gauntlet.stepExecutor.println("2 Running from ${getStageName()} for ${board}")
-        gauntlet.set_env("debug_level",3)
+        gauntlet.set_env("debug_level",2)
+        gauntlet.logger.info("Running from ${getStageName()} for ${board}")
+        gauntlet.logger.warning("Running from ${getStageName()} for ${board}")
+        gauntlet.logger.error("Running from ${getStageName()} for ${board}")
     }
 
     Closure getCls(){
         return { gauntlet, board ->
-            gauntlet.stepExecutor.println("1 Running from ${getStageName()} for ${board}")
+            gauntlet.set_env("debug_level",3)
+            gauntlet.logger.info("Running from ${getStageName()} for ${board}")
             gauntlet.stepExecutor.stage(getStageName()){
                 stageSteps(gauntlet, board)
             }

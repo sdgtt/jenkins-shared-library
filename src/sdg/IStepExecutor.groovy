@@ -8,6 +8,7 @@ interface IStepExecutor {
     int sh(String command)
     void error(String message)
     void stage(String name, Closure cls)
+    void echo(String message)
     void println(String message)
     Map<String, Object> getGauntEnv(
         String hdlBranch,

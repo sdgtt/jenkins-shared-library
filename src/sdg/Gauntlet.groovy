@@ -2,6 +2,7 @@ package sdg
 
 import sdg.FailSafeWrapper
 import sdg.NominalException
+import sdg.Logger
 import sdg.ioc.*
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 import com.cloudbees.groovy.cps.NonCPS
@@ -14,6 +15,9 @@ isDefaultContext
 
 /** steps */
 stepExecutor
+
+/** steps */
+logger
 
 /**
  * Imitates a constructor
@@ -29,6 +33,7 @@ def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, boot
     // initialize gauntEnv
     isDefaultContext = ContextRegistry.getContext().isDefault()
     stepExecutor = ContextRegistry.getContext().getStepExecutor()
+    logger = new Logger(this)
     gauntEnv = stepExecutor.getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
 }
@@ -56,9 +61,7 @@ def getOnlineAgents() {
             }
         }
     }
-    if(gauntEnv.debug_level == 3){
-        println("Online agents: ${online_agents}")
-    }
+    logger.info("Online agents: ${online_agents}")
     return online_agents
 }
 

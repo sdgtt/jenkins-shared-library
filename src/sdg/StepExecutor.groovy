@@ -28,6 +28,11 @@ class StepExecutor implements IStepExecutor{
     }
 
     @Override
+    void echo(String message){
+        this._steps.echo(message)
+    }
+
+    @Override
     void println(String message){
         this._steps.println(message)
     }
