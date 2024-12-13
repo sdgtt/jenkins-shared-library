@@ -61,7 +61,7 @@ def getOnlineAgents() {
             }
         }
     }
-    logger.info("Online agents: ${online_agents}")
+    this.logger.info("Online agents: ${online_agents}")
     return online_agents
 }
 
