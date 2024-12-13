@@ -38,7 +38,7 @@ def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, boot
     gauntEnv.agents_online = getOnlineAgents()
 }
 
-@NonCPS
+// @NonCPS
 def getOnlineAgents() {
     
     def online_agents = []
@@ -61,7 +61,7 @@ def getOnlineAgents() {
             }
         }
     }
-    this.logger.info("Online agents: ${online_agents}")
+    logger.info("Online agents: ${online_agents}")
     return online_agents
 }
 
