@@ -127,8 +127,8 @@ private def update_agent() {
             node(agent_name) {
                 // clean up residue containers and detached screen sessions
                 stage('Clean up residue docker containers') {
-                    sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
-                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
+                    stepExecutor.sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    stepExecutor.sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
                     cleanWs()
                 }
                 // automatically update nebula config
@@ -1111,16 +1111,16 @@ private def run_agents() {
                     docker.image(docker_image_name).inside(docker_args_agent) {
                         try {
                             stage('Setup Docker') {
-                                sh 'apt-get clean'
-                                sh 'cp /tmp/nebula /etc/default/nebula'
-                                sh 'mkdir -p ~/.pip && cp /default/pip/pip.conf ~/.pip/pip.conf || true'
-                                sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
+                                stepExecutor.sh 'apt-get clean'
+                                stepExecutor.sh 'cp /tmp/nebula /etc/default/nebula'
+                                stepExecutor.sh 'mkdir -p ~/.pip && cp /default/pip/pip.conf ~/.pip/pip.conf || true'
+                                stepExecutor.sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
                                 def deps = check_update_container_lib(update_container)
                                 if (deps.size()>0){
                                     setupAgent(deps, true, update_requirements)
                                 }
                                 // Above cleans up so we need to move to a valid folder
-                                sh 'cd /tmp'
+                                stepExecutor.sh 'cd /tmp'
                             }
                             if (gauntEnv.check_device_status){
                                 stage('Check Device Status'){
@@ -1163,7 +1163,7 @@ private def run_agents() {
                     }
                 }
                 finally {
-                    sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
+                    stepExecutor.sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
                 }
             }
         }
@@ -1603,8 +1603,8 @@ private def splitMap(map, do_split=false) {
 }
 
 private def checkOs() {
-    if (isUnix()) {
-        def uname = sh script: 'uname', returnStdout: true
+    if (stepExecutor.isUnix()) {
+        def uname = stepExecutor.sh(script: 'uname', returnStdout: true)
         if (uname.startsWith('Darwin')) {
             return 'Macos'
         }
@@ -1629,7 +1629,7 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
     }
     cmd = 'nebula ' + cmd
     if (checkOs() == 'Windows') {
-        script_out = bat(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.bat(script: cmd, returnStdout: true).trim()
     }
     else {
         if (report_error){
@@ -1638,12 +1638,12 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
             cmd = cmd + " 2>&1 | tee ${outfile}"
             cmd = 'set -o pipefail; ' + cmd 
             try{
-                sh cmd
-                if (fileExists(outfile))
-                    script_out = readFile(outfile).trim()
+                stepExecutor.sh cmd
+                if (stepExecutor.fileExists(outfile))
+                    script_out = stepExecutor.readFile(outfile).trim()
             }catch(Exception ex){
-                if (fileExists(outfile)){
-                    script_out = readFile(outfile).trim()
+                if (stepExecutor.fileExists(outfile)){
+                    script_out = stepExecutor.readFile(outfile).trim()
                     lines = script_out.split('\n')
                     def err_line = false
                     for (i = 1; i < lines.size(); i++) {
@@ -1663,7 +1663,7 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                 throw new Exception("nebula failed")
             }
         }else{
-            script_out = sh(script: cmd, returnStdout: true).trim()
+            script_out = stepExecutor.sh(script: cmd, returnStdout: true).trim()
         }
     }
     // Remove lines
@@ -1701,10 +1701,10 @@ def sendLogsToElastic(... args) {
     cmd = 'telemetry log-boot-logs ' + cmd
     println(cmd)
     if (checkOs() == 'Windows') {
-        script_out = bat(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.bat(script: cmd, returnStdout: true).trim()
     }
     else {
-        script_out = sh(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.sh(script: cmd, returnStdout: true).trim()
     }
     // Remove lines
     out = ''
@@ -1738,7 +1738,7 @@ def String getURIFromSerial(String board){
         serial_no = nebula('update-config board-config instr-serial --board-name='+board)
     }
     cmd="iio_info -s | grep serial="+serial_no+" | grep -Po \"\\[.*:.*\" | sed 's/.\$//' | cut -c 2-"
-    instr_uri = sh(script:cmd, returnStdout: true).trim()
+    instr_uri = stepExecutor.sh(script:cmd, returnStdout: true).trim()
     return instr_uri
 }
 
@@ -1760,8 +1760,8 @@ private def install_nebula(update_requirements=false) {
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.nebula_repo}"]]
         ])
-        sh 'pip3 uninstall nebula -y || true'
-        sh 'pip3 install .'
+        stepExecutor.sh 'pip3 uninstall nebula -y || true'
+        stepExecutor.sh 'pip3 install .'
     }
 }
 
@@ -1770,11 +1770,11 @@ private def install_libiio() {
         run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
         dir('libiio')
         {
-            bat 'mkdir build'
-            bat('build')
+            stepExecutor.bat 'mkdir build'
+            dir('build')
             {
-                bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
-                bat 'cmake --build . --config Release --install'
+                stepExecutor.bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
+                stepExecutor.bat 'cmake --build . --config Release --install'
             }
         }
     }
@@ -1786,16 +1786,16 @@ private def install_libiio() {
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.libiio_repo}"]]
         ])
-        sh 'mkdir -p build'
+        stepExecutor.sh 'mkdir -p build'
         dir('build')
         {
-            sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
-            sh 'make'
-            sh 'sudo make install'
-            sh 'ldconfig'
+            stepExecutor.sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
+            stepExecutor.sh 'make'
+            stepExecutor.sh 'sudo make install'
+            stepExecutor.sh 'ldconfig'
             // install python bindings
             dir('bindings/python'){
-                sh 'python3 setup.py install'
+                stepExecutor.sh 'python3 setup.py install'
             }
         }
     }
@@ -1812,7 +1812,7 @@ private def install_telemetry(update_requirements=false){
             run_i('python setup.py install', true)
         }
     }else{
-        // sh 'pip3 uninstall telemetry -y || true'
+        // stepExecutor.sh 'pip3 uninstall telemetry -y || true'
         def scmVars = checkout([
             $class : 'GitSCM',
             branches : [[name: "*/${gauntEnv.telemetry_branch}"]],
@@ -1822,26 +1822,26 @@ private def install_telemetry(update_requirements=false){
         if (update_requirements){
             run_i('pip3 install -r requirements.txt', true)
         }
-        sh 'pip3 install .'
+        stepExecutor.sh 'pip3 install .'
     }
 }
 
 private def setup_locale() {
-    sh 'sudo apt-get install -y locales'
-    sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
+    stepExecutor.sh 'sudo apt-get install -y locales'
+    stepExecutor.sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
 }
 
 private def setup_libserialport() {
-    sh 'sudo apt-get install -y autoconf automake libtool'
-    sh 'git clone https://github.com/sigrokproject/libserialport.git'
+    stepExecutor.sh 'sudo apt-get install -y autoconf automake libtool'
+    stepExecutor.sh 'git clone https://github.com/sigrokproject/libserialport.git'
     dir('libserialport'){
-        sh './autogen.sh'
-        sh './configure --prefix=/usr/sp'
-        sh 'make'
-        sh 'make install'
-        sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
-        sh 'cp /usr/sp/include/* /usr/include/'
-        sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
+        stepExecutor.sh './autogen.sh'
+        stepExecutor.sh './configure --prefix=/usr/sp'
+        stepExecutor.sh 'make'
+        stepExecutor.sh 'make install'
+        stepExecutor.sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
+        stepExecutor.sh 'cp /usr/sp/include/* /usr/include/'
+        stepExecutor.sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
     }
 }
 
@@ -1901,7 +1901,7 @@ def get_gitsha(String board){
         return
     }
     
-    if (fileExists('outs/properties.yaml')){
+    if (stepExecutor.fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
         }
@@ -1912,9 +1912,9 @@ def get_gitsha(String board){
             hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
             linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
         }
-    } else if(fileExists('outs/properties.txt')){
+    } else if(stepExecutor.fileExists('outs/properties.txt')){
         dir ('outs'){
-            def file = readFile 'properties.txt'
+            def file = stepExecutor.readFile 'properties.txt'
             lines = file.readLines()
             for (line in lines){
                 echo line
@@ -1988,17 +1988,17 @@ private def extractLockName(String bname, String agent){
     return lockName
 }
 
-private def run_i(cmd, do_retry=false) {
+def run_i(cmd, do_retry=false) {
     def retry_count = 1
     if(do_retry){
         retry_count = gauntEnv.max_retry
     }
-    retry(retry_count){
+    stepExecutor.retry(retry_count){
         if (checkOs() == 'Windows') {
-            bat cmd
+            stepExecutor.bat cmd
         }
         else {
-            sh cmd
+            stepExecutor.sh cmd
         }
     }
 }
@@ -2015,8 +2015,8 @@ private def  createMFile(){
     // Utility method to write matlab commands in a .m file
     def String command_oneline = gauntEnv.matlab_commands.join(";")
     writeFile file: 'matlab_commands.m', text: command_oneline
-    sh 'ls -l matlab_commands.m'
-    sh 'cat matlab_commands.m'
+    stepExecutor.sh 'ls -l matlab_commands.m'
+    stepExecutor.sh 'cat matlab_commands.m'
 }
 
 private def parseForLogging (String stage, String xmlFile, String board) {
@@ -2027,6 +2027,6 @@ private def parseForLogging (String stage, String xmlFile, String board) {
     forLogging."${stage_logs}".each {
         cmd = 'cat ' + xmlFile + ' | sed -rn \'s/.*' 
         cmd+= it + '="([0-9]+)".*/\\1/p\''
-        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
+        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, stepExecutor.sh(returnStdout: true, script: cmd).trim())
     }
 }

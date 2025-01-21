@@ -13,8 +13,23 @@ class StepExecutor implements IStepExecutor{
     }
 
     @Override
-    int sh(String command) {
-        this._steps.sh returnStatus: true, script: "${command}"
+    Integer sh(String command){
+        return this._steps.sh(command)
+    }
+
+    @Override
+    String sh(Map kwargs = [:]){
+        return this._steps.sh(kwargs)
+    }
+    
+    @Override
+    Integer bat(String command){
+        return this._steps.bat(command)
+    }
+    
+    @Override
+    String bat(Map kwargs = [:]){
+        return this._steps.bat(kwargs)
     }
 
     @Override
@@ -54,5 +69,28 @@ class StepExecutor implements IStepExecutor{
         )
     }
 
-        
+    @Override
+    void retry(int count, Closure cls){
+        this._steps.retry(count, cls)
+    }
+
+    @Override
+    void archiveArtifacts(Map kwargs = [:]) {
+        this._steps.archiveArtifacts(kwargs)
+    }
+
+    @Override
+    boolean isUnix() {
+        this._steps.isUnix()
+    }
+
+    @Override
+    boolean fileExists(String file) {
+        return this._steps.fileExists(file)
+    }
+
+    @Override
+    String readFile(String file) {
+        return this._steps.readFile(file)
+    }
 }

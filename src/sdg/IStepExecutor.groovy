@@ -4,8 +4,11 @@ import jenkins.model.Jenkins
 
 interface IStepExecutor {
 
-    // Jenkins steps as needed 
-    int sh(String command)
+    // Jenkins steps as needed
+    Integer sh(String command)
+    String sh(Map kwargs)
+    Integer bat(String command)
+    String bat(Map kwargs)
     void error(String message)
     void stage(String name, Closure cls)
     void echo(String message)
@@ -17,4 +20,9 @@ interface IStepExecutor {
         String firmwareVersion,
         String bootfile_source
     )
+    void retry(int count, Closure cls)
+    void archiveArtifacts(Map kwargs) 
+    boolean isUnix()
+    boolean fileExists(String file)
+    String readFile(String file)
 }
