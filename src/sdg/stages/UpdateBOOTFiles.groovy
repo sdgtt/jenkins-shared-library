@@ -4,13 +4,31 @@ import sdg.stages.IStage
 import sdg.NominalException
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
-
+/**
+ * This class represents the "UpdateBOOTFiles" stage in the Jenkins pipeline.
+ * It contains methods related to updating BOOT files.
+ */
 class UpdateBOOTFiles implements IStage {
-    // Sample Stage Class
+    
+    /**
+     * Retrieves the name of the stage.
+     *
+     * @return A string representing the name of the stage, which is "UpdateBOOTFiles".
+     */
     String getStageName(){
         return "UpdateBOOTFiles"
     }
 
+    /**
+     * Returns a closure that executes a stage in the Jenkins pipeline.
+     *
+     * @return Closure that takes three parameters: gauntlet, board, and an optional ml_bootbin_case.
+     *         The closure executes a stage using the gauntlet's stepExecutor and calls the stageSteps method.
+     *
+     * @param gauntlet The gauntlet object that contains the stepExecutor.
+     * @param board The board parameter to be passed to the stageSteps method.
+     * @param ml_bootbin_case Optional parameter to be passed to the stageSteps method.
+     */
     Closure getCls(){
         return { gauntlet, board, ml_bootbin_case=null ->
             gauntlet.stepExecutor.stage(getStageName()){
@@ -19,6 +37,13 @@ class UpdateBOOTFiles implements IStage {
         }
     }
 
+    /**
+     * Executes the steps for the UpdateBOOTFiles stage.
+     *
+     * @param gauntlet The Gauntlet instance used to execute the stage.
+     * @param board The name of the board for which the BOOT files are being updated.
+     * @param ml_bootbin_case The case identifier for the ML boot binary.
+     */
     void stageSteps(Gauntlet gauntlet, String board, String ml_bootbin_case){
         def logger = gauntlet.logger
         def gauntEnv = gauntlet.gauntEnv
