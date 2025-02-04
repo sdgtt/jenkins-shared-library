@@ -57,7 +57,7 @@ class UpdateBOOTFiles implements IStage {
                         cmd += ' --source=' + gauntEnv.bootfile_source
                         cmd += ' --branch=' + gauntEnv.branches.toString()
                         cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
-                        cmd += ' ' + gauntEnv.filetype
+                        cmd += gauntEnv.filetype
                         gauntlet.nebula(cmd, true, true, true)
                     }
                     //get git sha properties of files
