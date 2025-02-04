@@ -7,7 +7,7 @@ import sdg.IStepExecutor
 import sdg.ioc.*
 import groovy.lang.GroovyShell
 
-class test_SimplyPrint extends Specification {
+class TestSimplyPrint extends Specification {
 
     def shell
     def getGauntEnv
