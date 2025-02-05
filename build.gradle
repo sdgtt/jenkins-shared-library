@@ -1,6 +1,7 @@
 plugins {
     id 'groovy'
     id 'java'
+    id 'jacoco'
 }
 
 repositories {
@@ -43,10 +44,18 @@ sourceSets {
     }
 }
 
-
 test {
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
     }
 }

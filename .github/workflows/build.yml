@@ -36,14 +36,20 @@ jobs:
     - name: Create gradle wrapper and grant execute permission for gradlew
       run: gradle wrapper && chmod +x gradlew
 
-    - name: Build with Gradle
-      run: ./gradlew build
+    - name: Run tests with coverage
+      run: ./gradlew test jacocoTestReport
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
         name: test-results
         path: build/reports/tests
+
+    - name: Upload code coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: build/reports/jacoco/test/html
 
     - name: Generate docs
       run: ./gradlew groovydoc
