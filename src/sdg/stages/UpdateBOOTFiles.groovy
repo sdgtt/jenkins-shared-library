@@ -92,28 +92,28 @@ class UpdateBOOTFiles implements IStage {
                 }
 
                 if(gauntEnv.toolbox_generated_bootbin) {
-                    println("Replace bootbin with one generated from toolbox")
+                    logger.info("Replace bootbin with one generated from toolbox")
                     // Get list of files in ml_bootbins folder
                     def ml_bootfiles = sh (script: "ls   ml_bootbins", returnStdout: true).trim()
-                    println("ml_bootfiles: " + ml_bootfiles)
+                    logger.info("ml_bootfiles: " + ml_bootfiles)
                     // Filter bootbin for specific case (rx,tx,rxtx)
                     def found = false;
                     for (String bootfile : ml_bootfiles.split("\\r?\\n")) {
-                        println("Inspecting " + bootfile + " for " + ml_bootbin_case + "_BOOT.BIN")
-                        println("Must contain board: " + board)
-                        println(bootfile.contains(board) && bootfile.contains("_"+ml_bootbin_case+"_BOOT.BIN"))
+                        logger.info("Inspecting " + bootfile + " for " + ml_bootbin_case + "_BOOT.BIN")
+                        logger.info("Must contain board: " + board)
+                        logger.info(bootfile.contains(board) && bootfile.contains("_"+ml_bootbin_case+"_BOOT.BIN"))
                         if (bootfile.contains(board) && bootfile.contains("_"+ml_bootbin_case+"_BOOT.BIN")) {
                             // Copy bootbin to outs folder
-                            println("Copy " + bootfile + " to outs folder")
+                            logger.info("Copy " + bootfile + " to outs folder")
                             sh "cp ml_bootbins/${bootfile} outs/BOOT.BIN"
                             found = true;
                             break
                         }
                     }
                     if (!found) {
-                        println("No bootbin found for " + ml_bootbin_case + " case")
-                        println("Skipping Update BOOT Files stage")
-                        println("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
+                        logger.info("No bootbin found for " + ml_bootbin_case + " case")
+                        logger.info("Skipping Update BOOT Files stage")
+                        logger.info("Skipping "+gauntEnv.ml_test_stages.toString()+" related test stages")
                         gauntEnv.internal_stages_to_skip[board] = gauntEnv.ml_test_stages;
                         return;
                     }
