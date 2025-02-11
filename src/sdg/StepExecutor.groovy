@@ -93,4 +93,9 @@ class StepExecutor implements IStepExecutor{
     String readFile(String file) {
         return this._steps.readFile(file)
     }
+
+    @Override
+    void dir(String dir, Closure cls) {
+        this._steps.dir(dir, cls)
+    }
 }

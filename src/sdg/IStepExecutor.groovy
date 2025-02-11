@@ -25,4 +25,5 @@ interface IStepExecutor {
     boolean isUnix()
     boolean fileExists(String file)
     String readFile(String file)
+    void dir(String dir, Closure cls)
 }

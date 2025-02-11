@@ -36,6 +36,7 @@ def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, boot
     logger = new Logger(this)
     gauntEnv = stepExecutor.getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
+    gauntEnv.env = ContextRegistry.getContext().getEnv()
 }
 
 // @NonCPS
@@ -87,8 +88,8 @@ private def setup_agents() {
                 stage('Query agents') {
                     // Get necessary configuration for basic work
                     if (gauntEnv.workspace == '') {
-                        gauntEnv.workspace = env.WORKSPACE
-                        gauntEnv.build_no = env.BUILD_NUMBER
+                        gauntEnv.workspace = gauntEnv.env.WORKSPACE
+                        gauntEnv.build_no = gauntEnv.env.BUILD_NUMBER
                     }
                     board = nebula('update-config board-config board-name -y ' + gauntEnv.nebula_config_path + '/' +agent_name)
                     board_map[agent_name] = board
@@ -140,7 +141,7 @@ private def update_agent() {
                 }
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
-                        gauntEnv.nebula_config_path = '/tmp/'+ env.JOB_NAME + '/'+ env.BUILD_NUMBER
+                        gauntEnv.nebula_config_path = '/tmp/'+ gauntEnv.env.JOB_NAME + '/'+ gauntEnv.env.BUILD_NUMBER
                         if(gauntEnv.nebula_config_source == 'github'){
                             dir(gauntEnv.nebula_config_path){
                                 run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
@@ -1019,7 +1020,7 @@ private def log_artifacts(){
             def command = "telemetry grab-and-log-artifacts"
             command += " --jenkins-server ${JENKINS_URL}"
             command += " --es-server ${gauntEnv.elastic_server}"
-            command += " --job-name ${env.JOB_NAME} --job ${env.BUILD_NUMBER}"
+            command += " --job-name ${gauntEnv.env.JOB_NAME} --job ${gauntEnv.env.BUILD_NUMBER}"
 
             // Pass Jenkins credentials if jenkins_credentials (credentials id) is set
             if (gauntEnv.credentials_id != ''){
@@ -1105,7 +1106,7 @@ private def run_agents() {
             echo "Acquiring lock for ${lock_name}"
             lock(lock_name){
                 try {
-                    docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + env.NODE_NAME + ':/tmp/nebula:ro'
+                    docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + gauntEnv.env.NODE_NAME + ':/tmp/nebula:ro'
                     if (enable_update_boot_pre_docker_flag)
                         pre_docker_closure.call(this, board)
                     docker.image(docker_image_name).inside(docker_args_agent) {
@@ -1126,11 +1127,11 @@ private def run_agents() {
                                 stage('Check Device Status'){
                                     def board_status = nebula("netbox.board-status --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board)
                                     if (board_status == "Active"){
-                                        comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='"+ comment + "'")
+                                        comment = "Board is Active. Lock acquired and used by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
+                                        nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
                                     }else{
-                                        comment = "Board is not active. Skipping next stages of ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='" + comment + "'")
+                                        comment = "Board is not active. Skipping next stages of ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
+                                        nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
                                         throw new NominalException('Board is not active. Skipping succeeding stages.') 
                                     }
                                 }
@@ -1154,8 +1155,8 @@ private def run_agents() {
                             println("Stopping execution of stages for ${board}")
                         }finally {
                             if (gauntEnv.check_device_status){
-                                    comment = "Releasing lock by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-                                    nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --kind='info' --comment='" + comment + "'")
+                                    comment = "Releasing lock by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
+                                    nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
                                 }
                             println("Cleaning up after board stages");
                             cleanWs();
@@ -1439,12 +1440,12 @@ def isMultiBranchPipeline(repo_url) {
     branch = ""
     ref = ""
     println("Checking if multibranch pipeline..") 
-    if (env.BRANCH_NAME){
+    if (gauntEnv.env.BRANCH_NAME){
         println("Pipeline is multibranch.")
         //check if the multibranch pipeline is for this repo
         def actualRepoUrl = scm.userRemoteConfigs[0].url
         if (actualRepoUrl == repo_url){
-            branch = env.BRANCH_NAME
+            branch = gauntEnv.env.BRANCH_NAME
             if (branch.startsWith("PR-")) {
                 pr_number = branch.substring(3)
                 println "Branch is a pull request (PR number: ${pr_number})"
@@ -1663,7 +1664,11 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                 throw new Exception("nebula failed")
             }
         }else{
-            script_out = stepExecutor.sh(script: cmd, returnStdout: true).trim()
+            script_out = stepExecutor.sh(script: cmd, returnStdout: true)
+            if (script_out == null){
+                script_out = ""
+            }
+            script_out = script_out.trim()
         }
     }
     // Remove lines
