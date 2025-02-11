@@ -138,7 +138,7 @@ class TestRecoverBoard extends Specification {
         gauntlet.set_env("env", [JOB_NAME: "test", BUILD_NUMBER: "1"])
 
         // trigger an exception
-        steps.sh("mkdir -p recovery; mv outs recovery") >> { throw new Exception() }
+        steps.sh('cp outs/bootgen_sysfiles.tgz .') >> { throw new Exception() }
         
 
         when:

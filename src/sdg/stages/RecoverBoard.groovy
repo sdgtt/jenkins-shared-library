@@ -45,6 +45,7 @@ class RecoverBoard implements IStage {
         def logger = gauntlet.logger
         def gauntEnv = gauntlet.gauntEnv
         def steps = gauntlet.stepExecutor
+        
         logger.info("Running ${getStageName()} for ${board}")
         def ref_branch = []
         def nebula_cmd = 'manager.recovery-device-manager --board-name=' + board + ' --folder=outs'
@@ -74,10 +75,10 @@ class RecoverBoard implements IStage {
                     + '" --source=' + gauntEnv.bootfile_source
                     +  ' --branch="' + ref_branch.toString()
                     +  '" --filetype="boot_partition"', true, true, true)
+
                 logger.info("Extracting reference fsbl and u-boot")
-                steps.sh("mkdir -p recovery; mv outs recovery")
-                steps.sh("cp recovery/outs/bootgen_sysfiles.tgz recovery/.")
-                steps.sh("tar -xzvf recovery/bootgen_sysfiles.tgz; cp recovery/u-boot*.elf recovery/u-boot.elf")
+                steps.sh("cp outs/bootgen_sysfiles.tgz .")
+                steps.sh("tar -xzvf bootgen_sysfiles.tgz .; cp u-boot*.elf u-boot.elf")
                 logger.info("Executing board recovery...")
                 gauntlet.nebula(nebula_cmd)
             }catch(Exception ex){
