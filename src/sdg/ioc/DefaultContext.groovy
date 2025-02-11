@@ -21,9 +21,4 @@ class DefaultContext implements IContext, Serializable {
         return true
     }
 
-    @Override
-    Map getEnv(){
-        return env
-    }
-
 }

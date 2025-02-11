@@ -36,7 +36,11 @@ def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, boot
     logger = new Logger(this)
     gauntEnv = stepExecutor.getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
-    gauntEnv.env = ContextRegistry.getContext().getEnv()
+    if(isDefaultContext){
+        gauntEnv.env = env
+    }else{
+        gauntEnv.env = [:]
+    }
 }
 
 // @NonCPS
