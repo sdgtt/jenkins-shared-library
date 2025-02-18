@@ -68,31 +68,42 @@ class RecoverBoard implements IStage {
         }else{
             if (gauntEnv.bootfile_source == "NA")
                 throw new Exception("bootfile_source must be specified")
-            try{
-                logger.info("Fetching reference boot files")
-                gauntlet.nebula('dl.bootfiles --board-name=' + board 
-                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                    + '" --source=' + gauntEnv.bootfile_source
-                    +  ' --branch="' + ref_branch.toString()
-                    +  '" --filetype="boot_partition"', true, true, true)
 
-                logger.info("Extracting reference fsbl and u-boot")
-                steps.sh("cp outs/bootgen_sysfiles.tgz .")
-                steps.sh("tar -xzvf bootgen_sysfiles.tgz .; cp u-boot*.elf u-boot.elf")
-                logger.info("Executing board recovery...")
-                gauntlet.nebula(nebula_cmd)
+            // confirm if indeed the board is dead and needs recovery
+            def to_proceed = false
+            try{
+                gauntlet.nebula('net.check_board_booted --board-name=' + board)
+                logger.info('Board is booted, no need for recovery')
             }catch(Exception ex){
-                if(gauntEnv.netbox_allow_disable){
-                    def message = "Disabled by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
-                    def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"' + ' --power-off'
-                    gauntlet.nebula(disable_command)
-                }
-                logger.error(gauntlet.getStackTrace(ex))
-                throw ex
-            }finally{
-                //archive uart logs
-                gauntlet.run_i("if [ -f recovery/${board}.log ]; then mv recovery/${board}.log uart_recover_" + board + ".log; fi")
-                steps.archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+                to_proceed = true
+            }
+            if(to_proceed){
+                try{
+                    logger.info("Fetching reference boot files")
+                    gauntlet.nebula('dl.bootfiles --board-name=' + board 
+                        + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                        + '" --source=' + gauntEnv.bootfile_source
+                        +  ' --branch="' + ref_branch.toString()
+                        +  '" --filetype="boot_partition"', true, true, true)
+
+                    logger.info("Extracting reference fsbl and u-boot")
+                    steps.sh("cp outs/bootgen_sysfiles.tgz .")
+                    steps.sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot*.elf u-boot.elf")
+                    logger.info("Executing board recovery...")
+                    gauntlet.nebula(nebula_cmd)
+                }catch(Exception ex){
+                    if(gauntEnv.netbox_allow_disable){
+                        def message = "Disabled by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
+                        def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"' + ' --power-off'
+                        gauntlet.nebula(disable_command)
+                    }
+                    logger.error(gauntlet.getStackTrace(ex))
+                    throw ex
+                }finally{
+                    //archive uart logs
+                    gauntlet.run_i("if [ -f recovery/${board}.log ]; then mv recovery/${board}.log uart_recover_" + board + ".log; fi")
+                    steps.archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+                }                
             }
         }
     }

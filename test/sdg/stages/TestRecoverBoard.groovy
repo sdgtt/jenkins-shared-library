@@ -94,6 +94,12 @@ class TestRecoverBoard extends Specification {
         gauntlet.set_env("docker_args", [])
         gauntlet.set_env("debug_level", 3)
 
+        // trigger an exception
+        steps.sh([
+            script: 'nebula net.check_board_booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
         when:
         _stage.stageSteps(gauntlet, board)
 
@@ -138,6 +144,10 @@ class TestRecoverBoard extends Specification {
         gauntlet.set_env("env", [JOB_NAME: "test", BUILD_NUMBER: "1"])
 
         // trigger an exception
+        steps.sh([
+            script: 'nebula net.check_board_booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            returnStdout: true
+        ]) >> { throw new Exception() }
         steps.sh('cp outs/bootgen_sysfiles.tgz .') >> { throw new Exception() }
         
 
