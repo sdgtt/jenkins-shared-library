@@ -72,7 +72,7 @@ class RecoverBoard implements IStage {
             // confirm if indeed the board is dead and needs recovery
             def to_proceed = false
             try{
-                gauntlet.nebula('net.check_board_booted --board-name=' + board)
+                gauntlet.nebula('net.check-board-booted --board-name=' + board)
                 logger.info('Board is booted, no need for recovery')
             }catch(Exception ex){
                 to_proceed = true

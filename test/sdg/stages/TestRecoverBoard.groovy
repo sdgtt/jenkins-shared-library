@@ -96,7 +96,7 @@ class TestRecoverBoard extends Specification {
 
         // trigger an exception
         steps.sh([
-            script: 'nebula net.check_board_booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
             returnStdout: true
         ]) >> { throw new Exception() }
 
@@ -145,7 +145,7 @@ class TestRecoverBoard extends Specification {
 
         // trigger an exception
         steps.sh([
-            script: 'nebula net.check_board_booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
             returnStdout: true
         ]) >> { throw new Exception() }
         steps.sh('cp outs/bootgen_sysfiles.tgz .') >> { throw new Exception() }
