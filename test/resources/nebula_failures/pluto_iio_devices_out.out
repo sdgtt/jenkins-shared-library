@@ -1,0 +1,7 @@
+INFO | nebula.common : Depth of config: 2
+INFO | nebula.common : board_name used: pluto
+INFO | nebula.driver : Checking uri: ip:localhost
+INFO | nebula.driver : Checking for: adm1177-iio
+INFO | nebula.driver : Checking for: ad9361-phy
+INFO | nebula.driver : Checking for: cf-ad9361-dds-core-lpc
+INFO | nebula.driver : Checking for: cf-ad9361-lpc
