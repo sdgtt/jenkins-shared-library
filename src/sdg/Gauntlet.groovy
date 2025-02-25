@@ -1835,25 +1835,6 @@ private def install_telemetry(update_requirements=false){
     }
 }
 
-private def setup_locale() {
-    stepExecutor.sh 'sudo apt-get install -y locales'
-    stepExecutor.sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
-}
-
-private def setup_libserialport() {
-    stepExecutor.sh 'sudo apt-get install -y autoconf automake libtool'
-    stepExecutor.sh 'git clone https://github.com/sigrokproject/libserialport.git'
-    dir('libserialport'){
-        stepExecutor.sh './autogen.sh'
-        stepExecutor.sh './configure --prefix=/usr/sp'
-        stepExecutor.sh 'make'
-        stepExecutor.sh 'make install'
-        stepExecutor.sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
-        stepExecutor.sh 'cp /usr/sp/include/* /usr/include/'
-        stepExecutor.sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
-    }
-}
-
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
     def default_branches = ['main', 'master']
