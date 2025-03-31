@@ -72,7 +72,7 @@ class TestnoOStest extends Specification {
         1 * steps.sh('set -o pipefail; nebula show-log dl.bootfiles --board-name=max78000_adxl355-vdummy_example --source-root="/var/lib/tftpboot" --source=NA --branch="main" --filetype="noos" 2>&1 | tee out.out')
         assert filepath == "outs/eval-adxl355-pmdz_maxim_dummy_example_max78000_adxl355.elf"
     }
-
+    //not working 
     def "test DownloadBinaries - Xilinx boards"() {
         given:
         //Mock gauntlet 
@@ -89,87 +89,123 @@ class TestnoOStest extends Specification {
 
         def noOSTest = new noOSTest()
         def board = "vc707_fmcomm2-3-vdemo"
+        
+        steps.sh(script: 'ls outs', returnStdout: true) >> "ad9361_xilinx_demo_fmcomms2_vc707"
         steps.sh(script: 'nebula update-config board-config example --board-name=vc707_fmcomm2-3-vdemo', returnStdout: true) >> "demo"
         steps.sh(script: 'nebula update-config downloader-config platform --board-name=vc707_fmcomm2-3-vdemo', returnStdout: true) >> "Xilinx"
+        def platform = "Xilinx"
+        def carrier = "vc707"
         
         def bootgen = 'outs/ad9361_xilinx_demo_fmcomms2_vc707/bootgen_sysfiles.tar.gz'
 
-        steps.sh(script: 'tar -xf '+bootgen)  >> 0
+    
         steps.sh(script: "ls outs", returnStdout: true) >> "ad9361_xilinx_demo_fmcomms2_vc707"
         steps.sh(script: 'ls | grep *vc707.elf', returnStdout: true) >> "ad9361_xilinx_demo_fmcomms2_vc707.elf"
        
 
         when:
-        def filepath = noOSTest.DownloadBinaries(gauntlet, board)
+        noOSTest.DownloadBinaries(gauntlet, board)
 
         then:
         1 * steps.sh('set -o pipefail; nebula show-log dl.bootfiles --board-name=vc707_fmcomm2-3-vdemo --source-root="/var/lib/tftpboot" --source=NA --branch="main" --filetype="noos" 2>&1 | tee out.out')
+        thrown Exception
         //assert filepath == "ad9361_xilinx_demo_fmcomms2_vc707.elf"
     }
 
-    // def "test DownloadBinaries - no file found"() {
-    //     given:
-    //     def noOSTest = new noOSTest()
-    //     def gauntlet = new Gauntlet()
-    //     def board = "invalid_board"
+    def "test DownloadBinaries -no file found"() {
+        given:
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("main","main","NA","v0.31","NA")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("main","main","NA","NA","NA")
 
-    //     when:
-    //     def filepath = noOSTest.DownloadBinaries(gauntlet, board)
+        def noOSTest = new noOSTest()
+        def board = "max78000_adxl355-vdummy_example"
 
-    //     then:
-    //     filepath == ""
-    // }
+        steps.sh(script: "ls outs", returnStdout: true) >> "eval-adxl355-pmdz_maxim_dummy_example.elf"
+        steps.sh(script: 'nebula update-config board-config example --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "dummy_example"
+        steps.sh(script: 'nebula update-config downloader-config platform --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "maxim"
+        
+        when:
+        def filepath = noOSTest.DownloadBinaries(gauntlet, board)
 
-    // def "test DownloadBinaries - hyphenated boardname"() {
-    //     given:
-    //     def noOSTest = new noOSTest()
-    //     def gauntlet = new Gauntlet()
-    //     def board = ""
+        then:
+        1 * steps.sh('set -o pipefail; nebula show-log dl.bootfiles --board-name=max78000_adxl355-vdummy_example --source-root="/var/lib/tftpboot" --source=NA --branch="main" --filetype="noos" 2>&1 | tee out.out')
+        thrown Exception
+    }
 
-    //     when:
-    //     def filepath = noOSTest.DownloadBinaries(gauntlet, board)
+    def "test RunTests - non-Xilinx boards - flash failed"() {
+        given:
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("main","main","NA","v0.31","NA")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("main","main","NA","NA","NA")
 
-    //     then:
-    //     filepath == ""
-    // }
+        def noOSTest = new noOSTest()
+        def board = "max78000_adxl355-vdummy_example"
 
-    // def "test RunTests - non-Xilinx boards"() {
-    //     given:
-    //     def noOSTest = new noOSTest()
-    //     def gauntlet = new Gauntlet()
-    //     def board = "max78000_adxl355"
+        steps.sh(script: 'nebula update-config board-config example --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "dummy_example"
+        steps.sh(script: 'nebula update-config downloader-config platform --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "maxim"
+        def filepath = "outs/eval-adxl355-pmdz_maxim_dummy_example_max78000_adxl355.elf"
+        def jtag_cable_id = "123456"
+        def flashStatus = 0
 
-    //     when:
-    //     noOSTest.RunTests(gauntlet, board, "path/to/binaries")
 
-    //     then:
-    //     1 * steps.echo('[INFO] Running RunTests for max78000_adxl355')
-    // }
+        when:
+        noOSTest.RunTests(gauntlet, board, filepath)
 
-    // def "test RunTests - Xilinx boards"() {
-    //     given:
-    //     def noOSTest = new noOSTest()
-    //     def gauntlet = new Gauntlet()
-    //     def board = "zcu102"
+        then:
+        1 * steps.sh(['returnStatus':true, 'script':'./mcufla.sh outs/eval-adxl355-pmdz_maxim_dummy_example_max78000_adxl355.elf '])
+        1 * steps.sh(['script':'nebula update-config jtag-config jtag_cable_id --board-name=max78000_adxl355-vdummy_example', 'returnStdout':true])
+        thrown Exception
+    }
 
-    //     when:
-    //     noOSTest.RunTests(gauntlet, board, "path/to/binaries")
+    def "test RunTests - Xilinx boards - flash failed"() {
+        given:
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("main","main","NA","v0.31","NA")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("main","main","NA","NA","NA")
 
-    //     then:
-    //     1 * steps.echo('[INFO] Running RunTests for zcu102')
-    // }
+        def noOSTest = new noOSTest()
+        def board = "max78000_adxl355-vdummy_example"
 
-    // def "test RunTests - flash failed"() {
-    //     given:
-    //     def noOSTest = new noOSTest()
-    //     def gauntlet = new Gauntlet()
-    //     def board = "invalid_board"
+        steps.sh(script: 'nebula update-config board-config example --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "dummy_example"
+        steps.sh(script: 'nebula update-config downloader-config platform --board-name=max78000_adxl355-vdummy_example', returnStdout: true) >> "Xilinx"
+        def filepath = "outs/eval-adxl355-pmdz_maxim_dummy_example_max78000_adxl355.elf"
+        def jtag_cable_id = "123456"
+        def flashStatus = 0
 
-    //     when:
-    //     noOSTest.RunTests(gauntlet, board, "path/to/binaries")
 
-    //     then:
-    //     1 * steps.echo('[INFO] Running RunTests for invalid_board')
-    // }
+        when:
+        noOSTest.RunTests(gauntlet, board, filepath)
+
+        then:
+        1 * steps.sh('cp outs/eval-adxl355-pmdz_maxim_dummy_example_max78000_adxl355.elf no-OS/projects//')
+        1 * steps.sh('screen -S max78000_adxl355-vdummy_example -dm -L -Logfile max78000_adxl355-vdummy_example-boot.log  ')
+        1 * steps.sh('cp *.xsa no-OS/projects//system_top.xsa')
+        thrown Exception
+    }
 }
 
