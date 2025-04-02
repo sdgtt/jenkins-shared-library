@@ -138,10 +138,8 @@ class noOSTest implements IStage {
             steps.sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
             steps.sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
             steps.sh 'cp *.xsa no-OS/projects/'+ project +'/system_top.xsa'
-            dir('no-OS'){
-                dir('projects/'+ project){
-                    steps.sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
-                }
+            steps.dir('no-OS/projects/'+project){
+                steps.sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
             }
         } else {
             gauntlet.run_i('wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh', true)
@@ -156,7 +154,7 @@ class noOSTest implements IStage {
         steps.archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
         steps.sh 'screen -XS '+board+ ' kill'
         if (example.contains('iio')){
-            retry(3){
+            steps.retry(3){
                 logger.info("---------------------------")
                 sleep(10);
                 logger.info("Check context")
