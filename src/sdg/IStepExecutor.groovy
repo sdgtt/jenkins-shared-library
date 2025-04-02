@@ -28,4 +28,5 @@ interface IStepExecutor {
     void writeFile(Map kwargs)
     void dir(String dir, Closure cls)
     void unstable(String message)
+    void sleep(int seconds)
 }

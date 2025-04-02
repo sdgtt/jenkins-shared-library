@@ -123,7 +123,7 @@ class UpdateBOOTFiles implements IStage {
                 gauntlet.nebula('manager.update-boot-files --board-name=' + board + ' --folder=outs', true, true, true)
                 if (board=="pluto"){
                     gauntlet.stepExecutor.retry(2){
-                        sleep(50)
+                        steps.sleep(50)
                         gauntlet.nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
                     }
                 }

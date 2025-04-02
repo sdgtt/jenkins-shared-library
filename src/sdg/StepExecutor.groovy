@@ -108,4 +108,9 @@ class StepExecutor implements IStepExecutor{
     void unstable(String message) {
         this._steps.unstable(message)
     }
+
+    @Override
+    void sleep(int seconds){
+        this._steps.sleep(seconds)
+    }
 }

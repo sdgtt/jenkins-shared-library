@@ -150,13 +150,13 @@ class noOSTest implements IStage {
                 throw new Exception("Flashing binary file failed.")
             }                   
         }
-        sleep(180) //wait to fully boot
+        steps.sleep(180) //wait to fully boot
         steps.archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
         steps.sh 'screen -XS '+board+ ' kill'
         if (example.contains('iio')){
             steps.retry(3){
                 logger.info("---------------------------")
-                sleep(10);
+                steps.sleep(10);
                 logger.info("Check context")
                 def cmd = 'iio_info -u serial:' + serial + ',' +baudrate+ ' &> '+board+'-iio_info.log'
                 def ret = steps.sh (returnStatus: true, script: cmd)
