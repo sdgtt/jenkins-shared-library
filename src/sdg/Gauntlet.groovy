@@ -1710,21 +1710,21 @@ def sendLogsToElastic(... args) {
     cmd = 'telemetry log-boot-logs ' + cmd
     println(cmd)
     if (checkOs() == 'Windows') {
-        script_out = stepExecutor.bat(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.bat(script: cmd, returnStdout: true)?.trim()
     }
     else {
-        script_out = stepExecutor.sh(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.sh(script: cmd, returnStdout: true)?.trim()
     }
     // Remove lines
     out = ''
     if (!full) {
-        lines = script_out.split('\n')
-        if (lines.size() == 1) {
+        lines = script_out?.split('\n')
+        if (lines?.size() == 1) {
             return script_out
         }
         out = ''
         added = 0
-        for (i = 1; i < lines.size(); i++) {
+        for (i = 1; i < lines?.size(); i++) {
             if (lines[i].contains('WARNING')) {
                 continue
             }
