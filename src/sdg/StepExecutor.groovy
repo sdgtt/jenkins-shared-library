@@ -113,4 +113,14 @@ class StepExecutor implements IStepExecutor{
     void sleep(int seconds){
         this._steps.sleep(seconds)
     }
+
+    private Map _mockEnv = null
+
+    Map getEnv() {
+        return _mockEnv ?: (_steps?.env ?: [:])
+    }
+
+    void setMockEnv(Map env) {
+        this._mockEnv = env
+    }
 }
