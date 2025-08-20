@@ -440,7 +440,7 @@ def stage_library(String stage_name) {
                         }catch(Exception ex) {
                             failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
                         }
-                        
+
                         if (setup_net_run_diagnostics) {
                             try{
                                 if (!gauntEnv.firmware_boards.contains(board)){
@@ -456,7 +456,7 @@ def stage_library(String stage_name) {
                                 failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                             }
                         }
-
+    
                         if(failed_test && !failed_test.allWhitespace){
                             // log Jira
                             def description = ""
