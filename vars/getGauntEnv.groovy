@@ -79,7 +79,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             kuiper_checker_repo: 'https://github.com/sdgtt/kuiper-post-build-checker.git',
             kuiper_checker_branch: 'master',
             send_results: false,
-            setup_net_run_diagnostics: false, // set to true to run diagnostics on the net before running the gauntlet
+            test_adi_diagnostics: false, // set to true to run diagnostics on the net before running the gauntlet
             elastic_logs : [:],
             log_jira: false,
             log_jira_stages: [],
