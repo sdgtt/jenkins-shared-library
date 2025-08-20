@@ -441,7 +441,7 @@ def stage_library(String stage_name) {
                             failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
                         }
 
-                        if (test_adi_diagnostics) {
+                        if (gauntEnv.test_adi_diagnostics) {
                             try{
                                 if (!gauntEnv.firmware_boards.contains(board)){
                                     try{
