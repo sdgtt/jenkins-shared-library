@@ -455,18 +455,20 @@ def stage_library(String stage_name) {
                             failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
                         }
                         
-                        try{
-                            if (!gauntEnv.firmware_boards.contains(board)){
-                                try{
-                                    nebula('update-config board-config serial --board-name='+board)
-                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
-                                }catch(Exception ex){
-                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                        if (gauntEnv.test_adi_diagnostics) {
+                            try{
+                                if (!gauntEnv.firmware_boards.contains(board)){
+                                    try{
+                                        nebula('update-config board-config serial --board-name='+board)
+                                        nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
+                                    }catch(Exception ex){
+                                        nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                                    }
+                                    archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                                 }
-                                archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+                            }catch(Exception ex) {
+                                failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                             }
-                        }catch(Exception ex) {
-                            failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
