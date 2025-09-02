@@ -90,6 +90,11 @@ class StepExecutor implements IStepExecutor{
     }
 
     @Override
+    void checkout(Map kwargs = [:]) {
+        this._steps.checkout(kwargs)
+    }
+
+    @Override
     boolean isUnix() {
         this._steps.isUnix()
     }
