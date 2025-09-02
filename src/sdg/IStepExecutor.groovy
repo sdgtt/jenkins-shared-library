@@ -22,6 +22,8 @@ interface IStepExecutor {
     )
     void retry(int count, Closure cls)
     void archiveArtifacts(Map kwargs) 
+    void junit(Map kwargs)
+    void publishHTML(Map kwargs)
     boolean isUnix()
     boolean fileExists(String file)
     String readFile(String file)
