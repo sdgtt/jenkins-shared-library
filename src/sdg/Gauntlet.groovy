@@ -351,13 +351,13 @@ private def run_agents() {
                             }
                             if (gauntEnv.check_device_status){
                                 stage('Check Device Status'){
-                                    def board_status = nebula("netbox.board-status --board-name=" + board)
+                                    def board_status = nebula("netbox.board-status --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board)
                                     if (board_status == "Active"){
                                         comment = "Board is Active. Lock acquired and used by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
-                                        nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
+                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='"+ comment + "'")
                                     }else{
                                         comment = "Board is not active. Skipping next stages of ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
-                                        nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
+                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='" + comment + "'")
                                         throw new NominalException('Board is not active. Skipping succeeding stages.') 
                                     }
                                 }
@@ -382,7 +382,7 @@ private def run_agents() {
                         }finally {
                             if (gauntEnv.check_device_status){
                                     comment = "Releasing lock by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
-                                    nebula("netbox.log-journal --board-name=" +board+" --kind='info' --comment='"+ comment+"'")
+                                    nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --kind='info' --comment='" + comment + "'")
                                 }
                             println("Cleaning up after board stages");
                             cleanWs();
@@ -661,16 +661,34 @@ def set_update_nebula_config(boolean enable) {
  * Check if project is part of a multibranch pipeline using 'checkout scm'
  * Declaring the GitHub Project url in a non-multibranch pipeline does not conflict with checking.
  */
-def isMultiBranchPipeline() {
-    println("Checking if multibranch pipeline..")
+def isMultiBranchPipeline(repo_url) {
+    isMultiBranch = false
+    branch = ""
+    ref = ""
+    println("Checking if multibranch pipeline..") 
     if (gauntEnv.env.BRANCH_NAME){
         println("Pipeline is multibranch.")
-        branch = "*/${gauntEnv.env.BRANCH_NAME}"
+        //check if the multibranch pipeline is for this repo
+        def actualRepoUrl = scm.userRemoteConfigs[0].url
+        if (actualRepoUrl == repo_url){
+            branch = gauntEnv.env.BRANCH_NAME
+            if (branch.startsWith("PR-")) {
+                pr_number = branch.substring(3)
+                println "Branch is a pull request (PR number: ${pr_number})"
+                ref = "+refs/pull/${pr_number}/head:refs/remotes/origin/PR-${pr_number}"
+            } else {
+                println "Branch is not a pull request."
+                ref = "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+            }
+            isMultiBranch = true  
+        }else{
+            //repo is cloned only in another multibranch pipeline
+            println("Pipeline is not CI for current repo.")
+        }
     }else {
         println("Pipeline is not multibranch.")
-        branch = ""
     }
-    return branch
+    return [isMultiBranch: isMultiBranch, branch: branch, ref: ref]
 }
 
 /**
