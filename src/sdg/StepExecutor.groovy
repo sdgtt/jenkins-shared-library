@@ -80,6 +80,16 @@ class StepExecutor implements IStepExecutor{
     }
 
     @Override
+    void junit(Map kwargs = [:]) {
+        this._steps.junit(kwargs)
+    }
+
+    @Override
+    void publishHTML(Map kwargs = [:]) {
+        this._steps.publishHTML(kwargs)
+    }
+
+    @Override
     boolean isUnix() {
         this._steps.isUnix()
     }
