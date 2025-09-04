@@ -94,7 +94,7 @@ class RecoverBoard implements IStage {
                 }catch(Exception ex){
                     if(gauntEnv.netbox_allow_disable){
                         def message = "Disabled by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
-                        def disable_command = 'netbox.disable-board --board-name=' + board + ' --failure --reason=' + '"' + message + '"' + ' --power-off'
+                        def disable_command = "netbox.disable-board --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --failure --reason=" + "\"" + message + "\"" + " --power-off"
                         gauntlet.nebula(disable_command)
                     }
                     logger.error(gauntlet.getStackTrace(ex))

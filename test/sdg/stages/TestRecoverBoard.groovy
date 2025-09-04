@@ -156,11 +156,7 @@ class TestRecoverBoard extends Specification {
 
 
         then:
-        1 * steps.sh([
-            script: 'nebula netbox.disable-board --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
-                    '--failure --reason="Disabled by test 1" --power-off',
-            returnStdout: true
-        ])
+        1 * steps.sh(['script':'nebula netbox.disable-board --netbox-ip= --netbox-token= --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 --failure --reason="Disabled by test 1" --power-off', 'returnStdout':true])
         thrown Exception
     }
 
