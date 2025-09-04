@@ -1231,7 +1231,7 @@ private def String getStackTrace(Throwable aThrowable){
 private def  createMFile(){
     // Utility method to write matlab commands in a .m file
     def String command_oneline = gauntEnv.matlab_commands.join(";")
-    writeFile file: 'matlab_commands.m', text: command_oneline
+    stepExecutor.writeFile file: 'matlab_commands.m', text: command_oneline
     stepExecutor.sh 'ls -l matlab_commands.m'
     stepExecutor.sh 'cat matlab_commands.m'
 }
