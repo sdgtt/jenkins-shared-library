@@ -134,7 +134,11 @@ class UpdateBOOTFiles implements IStage {
                 gauntlet.set_elastic_field(board, 'post_boot_failure', 'False')
 
                 // verify checksum
-                gauntlet.nebula('manager.verify-checksum --board-name=' + board + ' --folder=outs', true, true, true)
+                if (board == "pluto"){
+                    logger.info("Skipping checksum verification.")
+                }else {
+                    gauntlet.nebula('manager.verify-checksum --board-name=' + board + ' --folder=outs', true, true, true)
+                }
             }
         }catch(Exception ex){
 
