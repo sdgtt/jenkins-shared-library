@@ -80,6 +80,7 @@ class TestLibAD9361Tests extends Specification {
         // Mock other Jenkins pipeline steps
         steps.unstable(_) >> null
         steps.archiveArtifacts(_) >> null
+        steps.xunit(_) >> null
         
         ContextRegistry.registerContext(context)
         Gauntlet gauntlet = new Gauntlet()
@@ -92,9 +93,8 @@ class TestLibAD9361Tests extends Specification {
         
         def libAD9361Tests = new LibAD9361Tests()
         
-        // Override global methods that might be called
-        libAD9361Tests.metaClass.xunit = { def config -> null }
-        libAD9361Tests.metaClass.CTest = { Map params -> [:] }
+        // Make CTest available as a global function in the libAD9361Tests context
+        libAD9361Tests.metaClass.CTest = { Map params -> params }
         
         when:
         libAD9361Tests.stageSteps(gauntlet, board)
