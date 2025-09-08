@@ -129,6 +129,11 @@ class StepExecutor implements IStepExecutor{
         this._steps.sleep(seconds)
     }
 
+    @Override
+    void xunit(List testResults) {
+        this._steps.xunit(testResults)
+    }
+
     private Map _mockEnv = null
 
     Map getEnv() {

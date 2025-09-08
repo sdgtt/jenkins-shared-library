@@ -32,5 +32,6 @@ interface IStepExecutor {
     void dir(String dir, Closure cls)
     void unstable(String message)
     void sleep(int seconds)
+    void xunit(List testResults)
     Map getEnv()
 }

@@ -67,7 +67,7 @@ class LibAD9361Tests implements IStage {
             }finally{
                 steps.dir('libad9361-iio/build'){
                     steps.sh("mv Testing ${board}")
-                    xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: "${board}/**/*.xml", skipNoTestFiles: false, stopProcessingIfError: true)])
+                    steps.xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: "${board}/**/*.xml", skipNoTestFiles: false, stopProcessingIfError: true)])
                     steps.archiveArtifacts artifacts: "${board}/**/*.xml", followSymlinks: false, allowEmptyArchive: true
                 }
             }
