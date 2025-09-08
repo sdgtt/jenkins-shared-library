@@ -140,6 +140,10 @@ class StepExecutor implements IStepExecutor{
         return _mockEnv ?: (_steps?.env ?: [:])
     }
 
+    Object CTest(Map kwargs) {
+        return _steps.CTest(kwargs)
+    }
+
     void setMockEnv(Map env) {
         this._mockEnv = env
     }
