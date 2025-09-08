@@ -66,6 +66,13 @@ class MATLABTests implements IStage {
             cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
             cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
             cmd += ' -r "run(\'matlab_commands.m\');exit"'
+            
+            // Check if MATLAB executable exists before trying to run it
+            def matlabPath = '/usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab'
+            if (!steps.fileExists(matlabPath)) {
+                throw new NominalException("MATLAB executable not found at: " + matlabPath)
+            }
+            
             statusCode = steps.sh(script:cmd, returnStatus:true)
         }catch (Exception ex){
             xmlFile =  steps.sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
