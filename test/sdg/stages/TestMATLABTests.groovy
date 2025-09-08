@@ -70,6 +70,7 @@ class TestMATLABTests extends Specification {
         steps.checkout(_) >> null
         steps.writeFile(_) >> null
         steps.junit(_) >> null
+        steps.fileExists(_) >> true  // Mock MATLAB executable exists
         
         // Mock the cp command for matlab setup
         steps.sh('cp -r /root/.matlabro /root/.matlab') >> null
