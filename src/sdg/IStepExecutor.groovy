@@ -33,5 +33,6 @@ interface IStepExecutor {
     void unstable(String message)
     void sleep(int seconds)
     void xunit(List testResults)
+    Object CTest(Map kwargs)
     Map getEnv()
 }
