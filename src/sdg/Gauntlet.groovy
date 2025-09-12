@@ -92,7 +92,7 @@ private def update_agent() {
                 if(gauntEnv.install_agent_deps){
                     stage('Install Agent Dependencies') {
                         def deps = ["nebula", "telemetry"]
-                        setupAgent(deps, true, update_requirements)
+                        setupAgent(deps, true, true)
                     }
                 }
                 if(gauntEnv.update_nebula_config){
