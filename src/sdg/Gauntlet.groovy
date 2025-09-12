@@ -89,6 +89,12 @@ private def update_agent() {
                     cleanWs()
                 }
                 // automatically update nebula config
+                if(gauntEnv.install_agent_deps){
+                    stage('Install Agent Dependencies') {
+                        def deps = ["nebula", "telemetry"]
+                        setupAgent(deps, true, update_requirements)
+                    }
+                }
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
                         gauntEnv.nebula_config_path = '/tmp/'+ env.JOB_NAME + '/'+ env.BUILD_NUMBER
