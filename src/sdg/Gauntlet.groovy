@@ -347,7 +347,7 @@ def stage_library(String stage_name) {
                             }catch(Exception ex){
                                 if(gauntEnv.netbox_allow_disable){
                                     def message = "Disabled by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-                                    def disable_command = "netbox.disable-board --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + "--board-name=" + board + " --failure --reason=" + "\"" + message + "\"" + " --power-off"
+                                    def disable_command = "netbox.disable-board --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --failure --reason=" + "\"" + message + "\"" + " --power-off"
                                     nebula(disable_command)
                                 }
                                 echo getStackTrace(ex)
