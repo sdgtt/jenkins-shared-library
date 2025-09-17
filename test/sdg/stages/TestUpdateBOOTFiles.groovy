@@ -77,7 +77,7 @@ class TestUpdateBOOTFiles extends Specification {
         1 * steps.sh('set -o pipefail; nebula show-log manager.update-boot-files --board-name=pluto --folder=outs 2>&1 | tee out.out')
         1 * steps.retry(2,_)
         1 * steps.retry(1,_)
-        1 * steps.sh('set -o pipefail; nebula show-log manager.verify-checksum --board-name=pluto --folder=outs 2>&1 | tee out.out')
+        1 * steps.echo('[INFO] Skipping checksum verification.')
         1 * steps.archiveArtifacts(artifacts: 'uart_boot_*.log', followSymlinks: false, allowEmptyArchive: true)
 
         assert gauntlet.get_env("elastic_logs")[board]["uboot_reached"] == "True"

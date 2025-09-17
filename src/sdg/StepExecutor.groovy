@@ -80,6 +80,21 @@ class StepExecutor implements IStepExecutor{
     }
 
     @Override
+    void junit(Map kwargs = [:]) {
+        this._steps.junit(kwargs)
+    }
+
+    @Override
+    void publishHTML(Map kwargs = [:]) {
+        this._steps.publishHTML(kwargs)
+    }
+
+    @Override
+    void checkout(Map kwargs = [:]) {
+        this._steps.checkout(kwargs)
+    }
+
+    @Override
     boolean isUnix() {
         this._steps.isUnix()
     }
@@ -114,10 +129,19 @@ class StepExecutor implements IStepExecutor{
         this._steps.sleep(seconds)
     }
 
+    @Override
+    void xunit(List testResults) {
+        this._steps.xunit(testResults)
+    }
+
     private Map _mockEnv = null
 
     Map getEnv() {
         return _mockEnv ?: (_steps?.env ?: [:])
+    }
+
+    Object CTest(Map kwargs) {
+        return _steps.CTest(kwargs)
     }
 
     void setMockEnv(Map env) {

@@ -125,11 +125,13 @@ class TestLinuxTests extends Specification {
         // Mock gauntlet 
         context.getStepExecutor() >> steps
         context.isDefault() >> false
-        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
         steps.isUnix() >> true
         steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
         steps.fileExists('out.out') >> true
         steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        def mockGauntEnv = getGauntEnv.call("NA", "NA", "NA", "v0.31", "NA")
+        mockGauntEnv.test_adi_diagnostics = true
+        steps.getGauntEnv(_,_,_,_,_) >> mockGauntEnv
         ContextRegistry.registerContext(context)
         Gauntlet gauntlet = new Gauntlet()
         gauntlet.construct("NA","NA","NA","NA","artifactory")
@@ -203,11 +205,13 @@ class TestLinuxTests extends Specification {
         // Mock gauntlet 
         context.getStepExecutor() >> steps
         context.isDefault() >> false
-        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
         steps.isUnix() >> true
         steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
         steps.fileExists('out.out') >> true
         steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        def mockGauntEnv = getGauntEnv.call("NA", "NA", "NA", "v0.31", "NA")
+        mockGauntEnv.test_adi_diagnostics = true
+        steps.getGauntEnv(_,_,_,_,_) >> mockGauntEnv
         ContextRegistry.registerContext(context)
         Gauntlet gauntlet = new Gauntlet()
         gauntlet.construct("NA","NA","NA","NA","artifactory")

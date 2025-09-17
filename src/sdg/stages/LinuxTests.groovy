@@ -76,18 +76,20 @@ class LinuxTests implements IStage {
                 failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
             }
             
-            try{
-                if (!gauntEnv.firmware_boards.contains(board)){
-                    try{
-                        gauntlet.nebula('update-config board-config serial --board-name='+board)
-                        gauntlet.nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
-                    }catch(Exception ex){
-                        gauntlet.nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+            if (gauntEnv.test_adi_diagnostics) {
+                try{
+                    if (!gauntEnv.firmware_boards.contains(board)){
+                        try{
+                            gauntlet.nebula('update-config board-config serial --board-name='+board)
+                            gauntlet.nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
+                        }catch(Exception ex){
+                            gauntlet.nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                        }
+                        steps.archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                     }
-                    steps.archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+                }catch(Exception ex) {
+                    failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                 }
-            }catch(Exception ex) {
-                failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
             }
 
             if(failed_test && !failed_test.allWhitespace){

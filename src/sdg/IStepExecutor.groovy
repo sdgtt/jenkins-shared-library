@@ -22,6 +22,9 @@ interface IStepExecutor {
     )
     void retry(int count, Closure cls)
     void archiveArtifacts(Map kwargs) 
+    void junit(Map kwargs)
+    void publishHTML(Map kwargs)
+    void checkout(Map kwargs)
     boolean isUnix()
     boolean fileExists(String file)
     String readFile(String file)
@@ -29,5 +32,7 @@ interface IStepExecutor {
     void dir(String dir, Closure cls)
     void unstable(String message)
     void sleep(int seconds)
+    void xunit(List testResults)
+    Object CTest(Map kwargs)
     Map getEnv()
 }
