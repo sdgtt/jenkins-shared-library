@@ -16,7 +16,7 @@ This function can be called by typing following code::
 
 Using the ``vagrant box list`` command, the function checks for Vagrant box called "win" and return "true" if it exists or "false" if there is no box with this name.
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_box.groovy>`_ for code.
+Click `here for check_for_box code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_box.groovy>`_.
 
 check_for_snapshot()
 --------------------
@@ -27,7 +27,7 @@ This function can be called by typing following code::
 
 Using the ``vagrant snapshot list`` command, the function checks for Vagrant snapshot called "initial-state" and return "true" if it exists or "false" if there is no snapshot with this name.
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_snapshot.groovy>`_ for code.
+Click `here for check_for_snapshot code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_snapshot.groovy>`_.
 
 check_node()
 ------------
@@ -41,7 +41,7 @@ This definition contains two functions:
 * ``get_agents()``: return names of all online Jenkins agents.
 * ``call()``: uses ``get_agents()`` to search for a Jenkins agent called "win-vm" and return the name or if nothing is found, function will display error logs.
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_node.groovy>`_ for code.
+Click `here for check_node code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_node.groovy>`_.
 
 get_vagrant_vm_id()
 -------------------
@@ -52,7 +52,7 @@ This function can be called by typing following code::
 
 Using the ``vagrant global-status`` command, this function searches for a Vagrant VM at a specific location/workspace and returns its ID or a message if there is no VM.
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/get_vagrant_vm_id.groovy>`_ for code.
+Click `here for get_vagrant_vm_id code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/get_vagrant_vm_id.groovy>`_.
 
 run_closure()
 -------------
@@ -95,10 +95,13 @@ Let suppose that we have Vagrant VM at location "users/vagrant" and we want to r
    }
 
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/run_closure.groovy>`_ for code.
+      }
+   }
+
+Click `here for run_closure code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/run_closure.groovy>`_.
 
 setup_jenkins_agent_on_vagrant_vm()
----------------------
+------------------------------------
 
 This function can be called by typing following code::
 
@@ -106,7 +109,7 @@ This function can be called by typing following code::
 
 This will run ssh commands to install a Jenkins agent inside Vagrant VM. As an argument there is the IP of the server where Vagrant VM is located.
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_jenkins_agent.groovy>`_ for code.
+Click `here for setup_jenkins_agent code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_jenkins_agent.groovy>`_.
 
 setup_vagrant_box()
 -------------------
@@ -119,12 +122,10 @@ This will run ssh commands to download and add a box and copy a Vagrantfile in o
 
 As arguments there are:
 
-* boxaddress: HTTP URL to a box
-* newboxname: a new name for the box to be added
-* oldboxname: the name of the box in HTTP URL address
-* vagrantfilepath: an absolute path to a Vagrantfile on the current server to be used for Vagrant VM
+* path: path to place where Vagrant Box will be downloaded
+* name: a name of the box
 
-Click `here <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_vagrant_box.groovy>`_ for code.
+Click `here for setup_vagrant_box code <https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_vagrant_box.groovy>`_.
 
 End user example
 ----------------
