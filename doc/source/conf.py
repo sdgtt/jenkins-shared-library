@@ -46,7 +46,7 @@ extensions = [
     "sphinx_click",
     "sphinxcontrib.plantuml",
 ]
-# plantuml = f"java -jar ../../plantuml.jar"
+plantuml = "java -jar ../../plantuml.jar"
 autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
