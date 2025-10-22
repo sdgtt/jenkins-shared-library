@@ -12,9 +12,13 @@ First, we will discuss the bare minimum requirements or parts for the Jenkinfile
 
 .. code-block:: groovy
 
+    // Register the pipeline context
     lock(label: 'adgt_test_harness_boards'){
         @Library('sdgtt-lib@jsl_updates') _ 
-        
+
+        // Register the pipeline context
+        registerContext(this)
+
         //instantiate constructor method
         def harness = getGauntlet()
     
@@ -76,7 +80,15 @@ An example of extended usage of getGauntlet is shown below. This is helpful when
 Update Agents Libraries
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Next on the list is to update first the agents with the required library dependencies. This is done by simply calling the method update_agents. This is required to ensure that libraries are always up to date.
+Since we now secured and have access to the library, the next step is to register the Jenkins pipeline context and instantiate the constructor method.
+
+First, we need to register the pipeline context so the shared library can access Jenkins-specific features:
+
+.. code-block:: groovy
+
+    registerContext(this)
+
+Then we instantiate the getGauntlet constructor method. This method calls a map that holds all constants and data members that can be overridden when constructing. This imitates a constructor and defines an instance of a Consul object. All according to API. The simplest way to use this is to use the default values that it holds.
 
 .. code-block:: groovy
 
@@ -162,7 +174,7 @@ An example of using this method is shown below.
 
     harness.set_env('nebula_repo','https://github.com/sdgtt/nebula.git')
     harness.set_env('nebula_branch','dev')
-    harness.set_env('libiio_branch','v0.21')
+    harness.set_env('libiio_branch','v0.25')
     harness.set_env('telemetry_repo','https://github.com/sdgtt/telemetry.git')
     harness.set_env('telemetry_branch','master')
 
@@ -210,15 +222,15 @@ Example Jenkinfile
         @Library('sdgtt-lib@jsl_updates') _ 
         def hdlBranch = "NA"
         def linuxBranch = "NA"
-        def bootPartitionBranch = "2019_r2"
-        def firmwareVersion = 'v0.32'
+        def bootPartitionBranch = "2023_r2"
+        def firmwareVersion = 'v0.35'
         def bootfile_source = 'artifactory' 
         def harness = getGauntlet(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     
         //udpate repos
         harness.set_env('nebula_repo','https://github.com/sdgtt/nebula.git')
         harness.set_env('nebula_branch','dev')
-        harness.set_env('libiio_branch','v0.21')
+        harness.set_env('libiio_branch','v0.25')
         harness.set_env('telemetry_repo','https://github.com/kimpaller/telemetry.git')
         harness.set_env('telemetry_branch','master')
     
