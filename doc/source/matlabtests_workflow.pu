@@ -1,0 +1,84 @@
+@startuml MATLABTests Workflow
+start
+title Run MATLAB Toolbox Tests Stage Workflow
+:Execute MATLABTests stage;
+
+:Initialize under_scm variable;
+note right: def under_scm = true
+
+:Execute Run MATLAB Toolbox Tests stage;
+note right: stage("Run MATLAB Toolbox Tests")
+
+:Get board IP configuration;
+note right: def ip = nebula('update-config network-config dutip --board-name='+board)
+
+:Setup MATLAB environment;
+note right: sh 'cp -r /root/.matlabro /root/.matlab'
+
+:Check pipeline type and reassign under_scm;
+note right: under_scm = isMultiBranchPipeline()
+
+if (isMultiBranchPipeline()) then (yes)
+  partition "Multibranch Pipeline Path" {
+    :Checkout SCM with retry;
+    note right
+    retry(3) {
+        sleep(5)
+        checkout scm
+        sh 'git submodule update --init'
+    }
+    end note
+    
+    :Create MATLAB file;
+    note right: createMFile()
+    
+    partition "Try Block" {
+      :Run MATLAB tests;
+      note right
+      sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' 
+      /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab 
+      -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+      end note
+    }
+    
+    partition "Finally Block" {
+      :Archive JUnit results;
+      note right: junit testResults: '*.xml', allowEmptyResults: true
+    }
+  }
+  
+else (no)
+  partition "Standard Pipeline Path" {
+    :Clone MATLAB repository;
+    note right
+    sh 'git clone --recursive -b '+gauntEnv.matlab_branch+' 
+    '+gauntEnv.matlab_repo+' Toolbox'
+    end note
+    
+    :Enter Toolbox directory;
+    note right: dir('Toolbox')
+    
+    partition "Toolbox Setup (within dir)" {
+      :Create MATLAB file;
+      note right: createMFile()
+      
+      partition "Try Block" {
+        :Run MATLAB tests;
+        note right
+        sh 'IIO_URI="ip:'+ip+'" board="'+board+'" elasticserver='+gauntEnv.elastic_server+' 
+        /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab 
+        -nosplash -nodesktop -nodisplay -r "run(\'matlab_commands.m\');exit"'
+        end note
+      }
+      
+      partition "Finally Block" {
+        :Archive JUnit results;
+        note right: junit testResults: '*.xml', allowEmptyResults: true
+      }
+    }
+  }
+endif
+
+:Stage completed;
+stop
+@enduml
