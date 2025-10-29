@@ -3,52 +3,58 @@
 Pipeline Stage Library
 ======================
 
-The common pipeline stages are:
+This section discusses the available stages that can be called and added to the pipeline.
 
-Update board boot files: ``UpdateBOOTFiles``
+UpdateBOOTFiles
+---------------
 
-.. code-block:: groovy
+This stage downloads the needed files and then proceeds to update the files on the device’s SD card. After updating, the device reboots. For pluto and m2k, this stage downloads their firmware and then updates the device’s firmware.
 
-    stage("Update BOOT Files") {
-      board = nebula("update-config board-config board-name")
-      nebula("dl.bootfiles --design-name="+board)
-      nebula("manager.update-boot-files --folder=outs")
-    }
+.. uml:: updatebootfiles_workflow.pu
 
-Collect XML test logs: ``CollectLogs``
+RecoverBoard
+------------
 
-.. code-block:: groovy
+This stage enables users to recover boards when they can no longer be accessed. Reference files are first downloaded, then the board is recovered using the recovery device manager function of Nebula.
 
-    stage("Collect Logs") {
-      echo "Collect Logs"
-    }
+.. uml:: recoverboard_workflow.pu
 
-Basic Linux testing: ``LinuxTests``
+SendResults
+-----------
 
-.. code-block:: groovy
+This stage sends the collected results from all stages to the elastic server which will then be processed for easy viewing.
 
-    stage("Linux Tests") {
-      ip = nebula("uart.get-ip")
-      nebula("net.check-dmesg --ip='"+ip+"'")
-      nebula('driver.check-iio-devices --uri="ip:'+ip+'"')
-    }
+.. uml:: sendresults_workflow.pu
 
-Device specific pyadi-iio based testing: ``PyADITests``
+Test Stages
+-----------
 
-.. code-block:: groovy
+There are also available test stages defined in the stage library.
 
-    stage('Run Python Tests') {
-      ip = nebula("uart.get-ip")
-      board = nebula("update-config board-config board-name")
-      println("IP: "+ip)
-      sh "git clone https://github.com/analogdevicesinc/pyadi-iio.git"
-      dir("pyadi-iio")
-      {
-          run_i("pip3 install -r requirements.txt")
-          run_i("pip3 install -r requirements_dev.txt")
-          run_i("pip3 install pylibiio")
-          run_i("mkdir testxml")
-          run_i("python3 -m pytest --junitxml=testxml/reports.xml -v -k 'not stress' -s --uri='ip:"+ip+"' -m "+board.replaceAll("-","_"))
-          junit testResults: 'test/*.xml', allowEmptyResults: true
-      }
-    }
+LinuxTests
+^^^^^^^^^^
+
+This stage checks for dmesg errors, checks iio devices, and runs diagnostics on boards.
+
+.. uml:: linuxtests_workflow.pu
+
+PyADITests
+^^^^^^^^^^
+
+This stage runs the pyadi-iio test on the target board.
+
+.. uml:: pyaditests_workflow.pu
+
+LibAD9361Test
+^^^^^^^^^^^^^
+
+This stage runs the LibAD9361 tests available on the repository.
+
+.. uml:: libad9361tests_workflow.pu
+
+MATLABTests
+^^^^^^^^^^^
+
+This stage runs the MATLAB hardware test runner for the target boards.
+
+.. uml:: matlabtests_workflow.pu

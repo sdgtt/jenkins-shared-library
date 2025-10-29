@@ -1,258 +1,1011 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Nebula" href="nebula.html" /><link rel="prev" title="Methods" href="methods.html" />
 
-
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Pipeline Stage Library &mdash; SDG Jenkins Shared Libary v0.0.1 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.08.06 -->
+        <title>Pipeline Stage Library - SDG Jenkins Shared Libary v0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
     
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
     
-    <script type="text/javascript" src="_static/js/theme.js"></script>
 
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
     
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Artifact Management" href="artifacts.html" />
-    <link rel="prev" title="Gauntlet Hardware Pipeline" href="pipeline.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
     
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
 
-          
-            <a href="index.html" class="icon icon-home"> SDG Jenkins Shared Libary
-          
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
 
-          
-          </a>
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
 
-          
-            
-            
-          
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
 
-          
-        </div>
 
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SDG Jenkins Shared Libary v0.0.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">SDG Jenkins Shared Libary v0.0.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pipeline.html">Gauntlet Hardware Pipeline</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Pipeline Stage Library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="artifacts.html">Artifact Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jenkinsfile_conf.html">How to Configure Jenkinsfile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">Methods</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Pipeline Stage Library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nebula.html">Nebula</a></li>
+<li class="toctree-l1"><a class="reference internal" href="artifacts.html">Artifact and Test Data Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vagrant.html">Vagrant Shared Library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="node_setup.html">Agent Set Up</a></li>
 </ul>
 
-            
-          
-        </div>
-        
+</div>
+</div>
+
       </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">SDG Jenkins Shared Libary</a>
-        
-      </nav>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/stages.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="pipeline-stage-library">
+<span id="library-label"></span><h1>Pipeline Stage Library<a class="headerlink" href="#pipeline-stage-library" title="Permalink to this heading"></a></h1>
+<p>This section discusses the available stages that can be called and added to the pipeline.</p>
+<section id="updatebootfiles">
+<h2>UpdateBOOTFiles<a class="headerlink" href="#updatebootfiles" title="Permalink to this heading"></a></h2>
+<p>This stage downloads the needed files and then proceeds to update the files on the device’s SD card. After updating, the device reboots. For pluto and m2k, this stage downloads their firmware and then updates the device’s firmware.</p>
+<p class="plantuml">
+<img src="_images/plantuml-0a2ade973ba447594bd017dcd10d8085ffd1f03d.png" alt="&#64;startuml UpdateBOOTFiles Workflow
+start
+title UpdateBOOTFiles Stage Workflow
+:Execute UpdateBOOTFiles stage;
+:Print board name and branches;
 
+partition &quot;Try Block&quot; {
+  if (Board is Pluto?) then (yes)
+    :Download firmware files via Nebula;
+    note right: dl.bootfiles ____board-name={board} ____branch={firmwareVersion} ____firmware
+  else (no)
+    :Download boot files via Nebula;
+    note right: dl.bootfiles ____board-name={board} ____source-root={source_root} ____source={source} ____branch={branches}
+  endif
+  :Get git SHA for board;
+  :Update boot files on device;
+  note right: manager.update-boot-files ____board-name={board} ____folder=outs
+  if (Board is Pluto?) then (yes)
+    :Set local NIC IP from USB device;
+    note right: uart.set-local-nic-ip-from-usbdev ____board-name={board}
+  endif
+  :Set elastic fields (success);
+  note right
+  set_elastic_field(board, 'uboot_reached', 'True')
+  set_elastic_field(board, 'kernel_started', 'True')
+  set_elastic_field(board, 'linux_prompt_reached', 'True')
+  set_elastic_field(board, 'post_boot_failure', 'False')
+  end note
+}
 
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
+partition &quot;Exception Handling&quot; {
+  if (Exception occurs?) then (yes)
+    :Log stack trace;
+    switch (Exception type?)
+    case (u-boot not reached)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = False
+      board, kernel_started = False
+      board, linux_prompt_reached = False
+      end note
+    case (u-boot menu cannot boot kernel)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = False
+      board, linux_prompt_reached = False
+      end note
+    case (Linux not fully booting)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = True
+      board, linux_prompt_reached = False
+      end note
+    case (Ethernet/SSH issues)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = True
+      board, linux_prompt_reached = True
+      board, post_boot_failure = True
+      end note
+    case (Other errors)
+      :Log unexpected failure;
+    endswitch
+    :Get git SHA for board;
+    if (send_results enabled?) then (yes)
+      :Set failing stage info;
+      note right
+      last_failing_stage = 'UpdateBOOTFiles'
+      last_failing_stage_failure = exception message
+      end note
+      :Call SendResults stage;
+    endif
+    :Throw UpdateBOOTFiles failed exception;
+    note right: Exception thrown but finally block still executes
+  endif
+}
 
+partition &quot;Finally Block&quot; {
+  :Archive UART logs;
+  note right
+  run_i(&quot;if [ -f ${board}.log ]; then mv ${board}.log uart_boot_&quot; + board + &quot;.log; fi&quot;)
+  archiveArtifacts artifacts: 'uart_boot_*.log', followSymlinks: false, allowEmptyArchive: true
+  end note
+}
 
+stop
+&#64;enduml
+    Success Case:
+    - uboot_reached: True
+    - kernel_started: True  
+    - linux_prompt_reached: True
+    - post_boot_failure: False
+end note
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+alt Exception occurs
+    UBF -&gt; UBF: Analyze exception message
     
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>Pipeline Stage Library</li>
+    alt u-boot not reached
+        UBF -&gt; ES: Set uboot_reached=False, kernel_started=False, linux_prompt_reached=False
+    else u-boot menu cannot boot kernel
+        UBF -&gt; ES: Set uboot_reached=True, kernel_started=False, linux_prompt_reached=False
+    else Linux not fully booting
+        UBF -&gt; ES: Set uboot_reached=True, kernel_started=True, linux_prompt_reached=False
+    else Ethernet/SSH issues
+        UBF -&gt; ES: Set uboot_reached=True, kernel_started=True, linux_prompt_reached=True, post_boot_failure=True
+    else Other errors
+        UBF -&gt; UBF: Log unexpected failure
+    end
     
+    UBF -&gt; UBF: get_gitsha(board)
     
-      <li class="wy-breadcrumbs-aside">
-        
-          
-            <a href="_sources/stages.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
+    alt send_results enabled
+        UBF -&gt; ES: Set last_failing_stage=UpdateBOOTFiles
+        UBF -&gt; ES: Set last_failing_stage_failure message
+        UBF -&gt; UBF: Call SendResults stage
+    end
     
-  </ul>
+    UBF -&gt; JP: Throw UpdateBOOTFiles failed exception
+end
 
+UBF -&gt; UBF: Archive UART logs (rename {board}.log to uart_boot_{board}.log)
+UBF -&gt; JP: Stage completed
+
+&#64;enduml"/>
+</p>
+</section>
+<section id="recoverboard">
+<h2>RecoverBoard<a class="headerlink" href="#recoverboard" title="Permalink to this heading"></a></h2>
+<p>This stage enables users to recover boards when they can no longer be accessed. Reference files are first downloaded, then the board is recovered using the recovery device manager function of Nebula.</p>
+<p class="plantuml">
+<img src="_images/plantuml-87f8bc0477ae687df67606dc1baf94346a248331.png" alt="&#64;startuml RecoverBoard Workflow
+start
+title RecoverBoard Stage Workflow
+:Execute RecoverBoard stage;
+:Define reference branches;
+note right: ref_branch = ['boot_partition', 'release']
+if (Board is pluto?) then (yes)
+  :Log &quot;Recover stage does not support pluto yet!&quot;;
+  stop
+else (no)
+  :Enter recovery directory;
+  partition &quot;Try Block&quot; {
+    :Fetch reference boot files;
+    note right: 'dl.bootfiles - -board-name=' + board + ' - -source-root=&quot;' + gauntEnv.nebula_local_fs_source_root + '&quot; - -source=' + gauntEnv.bootfile_source +  ' - -branch=&quot;' + ref_branch.toString() + '&quot;'
+    :Extract reference fsbl and u-boot;
+    note right
+    cd outs/
+    cp bootgen_sysfiles.tgz ..
+    tar -xzvf bootgen_sysfiles.tgz
+    cp u-boot-*.elf u-boot.elf
+    end note
+    :Execute board recovery;
+    note right: manager.recovery-device-manager ____board-name={board} ____folder=outs ____sdcard
+  }
+  partition &quot;Exception Handling&quot; {
+    if (Exception occurs?) then (yes)
+      :Log stack trace;
+      :Re-throw exception;
+      note right: throw ex
+    endif
+  }
+  partition &quot;Finally Block&quot; {
+    :Archive UART logs;
+    note right
+    run_i(&quot;if [ -f ${board}.log ]; then mv ${board}.log uart_recover_&quot; + board + &quot;.log; fi&quot;)
+    archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+    end note
+  }
+endif
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+<section id="sendresults">
+<h2>SendResults<a class="headerlink" href="#sendresults" title="Permalink to this heading"></a></h2>
+<p>This stage sends the collected results from all stages to the elastic server which will then be processed for easy viewing.</p>
+<p class="plantuml">
+<img src="_images/plantuml-4c8c2e4b9d5f6b43a5cf7c7374b974b880d0af5f.png" alt="&#64;startuml SendResults Workflow
+start
+title SendResults Stage Workflow
+:Execute SendResults stage;
+:Initialize release flags;
+note right
+is_hdl_release = &quot;False&quot;
+is_linux_release = &quot;False&quot;
+is_boot_partition_release = &quot;False&quot;
+end note
+
+if (bootPartitionBranch == 'NA'?) then (yes)
+  :Set HDL and Linux release flags;
+  note right
+  is_hdl_release = ( gauntEnv.hdlBranch == &quot;release&quot; )? &quot;True&quot;: &quot;False&quot;
+  is_linux_release = ( gauntEnv.linuxBranch == &quot;release&quot; )? &quot;True&quot;: &quot;False&quot;
+  end note
+else (no)
+  :Set boot partition release flag;
+  note right
+  is_boot_partition_release = ( gauntEnv.bootPartitionBranch == &quot;release&quot; )? &quot;True&quot;: &quot;False&quot;
+  end note
+endif
+
+:Log elastic logs and start message;
+:Build elastic command string;
+note right
+cmd = 'boot_folder_name ' + board
+cmd += ' hdl_hash ' + '\'' + get_elastic_field(board, 'hdl_hash' , 'NA') + '\''
+cmd += ' linux_hash ' +  '\'' + get_elastic_field(board, 'linux_hash' , 'NA') + '\''
+cmd += ' boot_partition_hash ' + '\'' + gauntEnv.boot_partition_hash + '\''
+cmd += ' hdl_branch ' + gauntEnv.hdlBranch
+cmd += ' linux_branch ' + gauntEnv.linuxBranch
+cmd += ' boot_partition_branch ' + gauntEnv.bootPartitionBranch
+cmd += ' is_hdl_release ' + is_hdl_release
+cmd += ' is_linux_release '  +  is_linux_release
+cmd += ' is_boot_partition_release ' + is_boot_partition_release
+end note
+
+:Add boot status fields;
+note right
+cmd += ' uboot_reached ' + get_elastic_field(board, 'uboot_reached', 'False')
+cmd += ' linux_prompt_reached ' + get_elastic_field(board, 'linux_prompt_reached', 'False')
+cmd += ' drivers_enumerated ' + get_elastic_field(board, 'drivers_enumerated', '0')
+cmd += ' drivers_missing ' + get_elastic_field(board, 'drivers_missing', '0')
+cmd += ' dmesg_warnings_found ' + get_elastic_field(board, 'dmesg_warns' , '0')
+cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
+end note
+
+:Add Jenkins metadata;
+note right
+cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
+cmd += ' jenkins_project_name ' + env.JOB_NAME
+cmd += ' jenkins_agent ' + env.NODE_NAME
+cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
+end note
+
+:Add test results;
+note right
+cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
+cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
+cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
+cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
+cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
+end note
+
+:Send logs to Elastic Search;
+note right: sendLogsToElastic(cmd)
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+<section id="test-stages">
+<h2>Test Stages<a class="headerlink" href="#test-stages" title="Permalink to this heading"></a></h2>
+<p>There are also available test stages defined in the stage library.</p>
+<section id="linuxtests">
+<h3>LinuxTests<a class="headerlink" href="#linuxtests" title="Permalink to this heading"></a></h3>
+<p>This stage checks for dmesg errors, checks iio devices, and runs diagnostics on boards.</p>
+<p class="plantuml">
+<img src="_images/plantuml-fc4fc6de42e5804dc01b0212b0653c4a6b599d4e.png" alt="&#64;startuml LinuxTests Workflow
+start
+title LinuxTests Stage Workflow
+:Execute LinuxTests stage;
+:Initialize variables;
+note right
+failed_test = ''
+drivers_count = 0
+missing_drivers = 0
+end note
+
+partition &quot;Try Block&quot; {
+  :Get board IP address;
+  note right: def ip = nebula('update-config network-config dutip --board-name='+board)
   
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-            
-  <section id="pipeline-stage-library">
-<span id="library-label"></span><h1>Pipeline Stage Library<a class="headerlink" href="#pipeline-stage-library" title="Permalink to this headline">¶</a></h1>
-<p>The common pipeline stages are:</p>
-<p>Update board boot files: <code class="docutils literal notranslate"><span class="pre">UpdateBOOTFiles</span></code></p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">stage</span><span class="o">(</span><span class="s2">&quot;Update BOOT Files&quot;</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">board</span> <span class="o">=</span> <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;update-config board-config board-name&quot;</span><span class="o">)</span>
-  <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;dl.bootfiles --design-name=&quot;</span><span class="o">+</span><span class="n">board</span><span class="o">)</span>
-  <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;manager.update-boot-files --folder=outs&quot;</span><span class="o">)</span>
-<span class="o">}</span>
-</pre></div>
-</div>
-<p>Collect XML test logs: <code class="docutils literal notranslate"><span class="pre">CollectLogs</span></code></p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">stage</span><span class="o">(</span><span class="s2">&quot;Collect Logs&quot;</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">echo</span> <span class="s2">&quot;Collect Logs&quot;</span>
-<span class="o">}</span>
-</pre></div>
-</div>
-<p>Basic Linux testing: <code class="docutils literal notranslate"><span class="pre">LinuxTests</span></code></p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">stage</span><span class="o">(</span><span class="s2">&quot;Linux Tests&quot;</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">ip</span> <span class="o">=</span> <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;uart.get-ip&quot;</span><span class="o">)</span>
-  <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;net.check-dmesg --ip=&#39;&quot;</span><span class="o">+</span><span class="n">ip</span><span class="o">+</span><span class="s2">&quot;&#39;&quot;</span><span class="o">)</span>
-  <span class="n">nebula</span><span class="o">(</span><span class="s1">&#39;driver.check-iio-devices --uri=&quot;ip:&#39;</span><span class="o">+</span><span class="n">ip</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="o">)</span>
-<span class="o">}</span>
-</pre></div>
-</div>
-<p>Device specific pyadi-iio based testing: <code class="docutils literal notranslate"><span class="pre">PyADITests</span></code></p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Run Python Tests&#39;</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">ip</span> <span class="o">=</span> <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;uart.get-ip&quot;</span><span class="o">)</span>
-  <span class="n">board</span> <span class="o">=</span> <span class="n">nebula</span><span class="o">(</span><span class="s2">&quot;update-config board-config board-name&quot;</span><span class="o">)</span>
-  <span class="n">println</span><span class="o">(</span><span class="s2">&quot;IP: &quot;</span><span class="o">+</span><span class="n">ip</span><span class="o">)</span>
-  <span class="n">sh</span> <span class="s2">&quot;git clone https://github.com/analogdevicesinc/pyadi-iio.git&quot;</span>
-  <span class="n">dir</span><span class="o">(</span><span class="s2">&quot;pyadi-iio&quot;</span><span class="o">)</span>
-  <span class="o">{</span>
-      <span class="n">run_i</span><span class="o">(</span><span class="s2">&quot;pip3 install -r requirements.txt&quot;</span><span class="o">)</span>
-      <span class="n">run_i</span><span class="o">(</span><span class="s2">&quot;pip3 install -r requirements_dev.txt&quot;</span><span class="o">)</span>
-      <span class="n">run_i</span><span class="o">(</span><span class="s2">&quot;pip3 install pylibiio&quot;</span><span class="o">)</span>
-      <span class="n">run_i</span><span class="o">(</span><span class="s2">&quot;mkdir testxml&quot;</span><span class="o">)</span>
-      <span class="n">run_i</span><span class="o">(</span><span class="s2">&quot;python3 -m pytest --junitxml=testxml/reports.xml -v -k &#39;not stress&#39; -s --uri=&#39;ip:&quot;</span><span class="o">+</span><span class="n">ip</span><span class="o">+</span><span class="s2">&quot;&#39; -m &quot;</span><span class="o">+</span><span class="n">board</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="s2">&quot;-&quot;</span><span class="o">,</span><span class="s2">&quot;_&quot;</span><span class="o">))</span>
-      <span class="n">junit</span> <span class="nl">testResults:</span> <span class="s1">&#39;test/*.xml&#39;</span><span class="o">,</span> <span class="nl">allowEmptyResults:</span> <span class="kc">true</span>
-  <span class="o">}</span>
-<span class="o">}</span>
-</pre></div>
-</div>
+  partition &quot;DMESG Check&quot; {
+    :Check DMESG for errors;
+    note right: nebula(&quot;net.check-dmesg - - ip='&quot; + ip + &quot;' - - board-name=&quot; + board)
+    if (DMESG check fails?) then (yes)
+      :Add failure to failed_test;
+      note right: failed_test = failed_test + &quot;[dmesg check failed: ${ex.getMessage()}]&quot;
+    endif
+  }
+  
+  partition &quot;IIO Devices Check&quot; {
+    :Check IIO devices;
+    note right: nebula('driver.check-iio-devices - - uri=&quot;ip:'+ip+'&quot; - - board-name='+board, true, true, true)
+    if (IIO devices check fails?) then (yes)
+      :Add failure to failed_test;
+      :Parse missing devices;
+      :Write missing devices log;
+      :Set elastic field for missing drivers;
+    note right
+        failed_test += &quot;[iio_devices check failed: ${ex.getMessage()}]&quot;
+        missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll(&quot;'\$&quot;,&quot;&quot;))
+        missing_drivers = missing_devs.size()
+        writeFile(file: board+'_missing_devs.log', text: missing_devs.join(&quot;,&quot;))
+        set_elastic_field(board, 'drivers_missing', missing_drivers.toString())
+    end note
+    endif
+  }
+  
+  :Get drivers enumerated;
+  note right: nebula('update-config driver-config iio_device_names -b '+board, false, true, false)
+  
+  partition &quot;Diagnostics Check&quot; {
+    if (Board is not firmware board?) then (yes)
+      :Run network diagnostics;
+      note right: nebula(&quot;net.run-diagnostics - - ip='&quot;+ip+&quot;' - - board-name=&quot;+board, true, true, true)
+      :Archive diagnostic reports;
+      note right: archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+      if (Diagnostics fails?) then (yes)
+        :Add failure to failed_test;
+        note right: failed_test = failed_test + &quot; [diagnostics failed: ${ex.getMessage()}]&quot;
+      endif
+    endif
+  }
+  
+  if (Any tests failed?) then (yes)
+    :Throw Linux Tests Failed exception;
+    note right: if(failed_test &amp;&amp; !failed_test.allWhitespace)
+  endif
+}
+
+partition &quot;Exception Handling&quot; {
+  if (Exception occurs?) then (yes)
+    :Throw NominalException;
+    note right: throw new NominalException(ex.getMessage())
+  endif
+}
+
+partition &quot;Finally Block&quot; {
+  :Count DMESG errors and warnings;
+  note right
+    set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
+    set_elastic_field(board, 'dmesg_warns', sh(returnStdout: true, script: 'cat dmesg_warn.log | wc -l').trim())
+  end note
+  
+  :Rename and archive logs;
+  note right
+    run_i(&quot;if [ -f dmesg.log ]; then mv dmesg.log dmesg_&quot; + board + &quot;.log; fi&quot;)
+    run_i(&quot;if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_&quot; + board + &quot;_err.log; fi&quot;)
+    run_i(&quot;if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_&quot; + board + &quot;_warn.log; fi&quot;)
+    archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
+  end note
+}
+
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+<section id="pyaditests">
+<h3>PyADITests<a class="headerlink" href="#pyaditests" title="Permalink to this heading"></a></h3>
+<p>This stage runs the pyadi-iio test on the target board.</p>
+<p class="plantuml">
+<img src="_images/plantuml-66fc22820fcbd8ca5a461f50ddead1feeabf351f.png" alt="&#64;startuml PyADITests Workflow
+start
+title Run Python Tests Stage Workflow
+:Execute Run Python Tests stage;
+
+partition &quot;Try Block&quot; {
+  :Get board configuration and declare variables;
+  note right
+  ip = nebula('update-config network-config dutip - - board-name=' + board)
+  serial = nebula('update-config uart-config address - - board-name=' + board)
+  def uri;
+  println('IP: ' + ip)
+  end note
+  
+  :Clone pytest-libiio repository;
+  note right
+  run_i('git clone -b &quot;' + gauntEnv.pytest_libiio_branch + '&quot; ' + gauntEnv.pytest_libiio_repo, true)
+  end note
+  
+  partition &quot;pytest-libiio Setup&quot; {
+    :Install pytest-libiio in its directory;
+    note right
+    dir('pytest-libiio') {
+        run_i('python3 setup.py install', true)
+    }
+    end note
+  }
+  
+  :Clone pyadi-iio repository;
+  note right
+  run_i('git clone -b &quot;' + gauntEnv.pyadi_iio_branch + '&quot; ' + gauntEnv.pyadi_iio_repo, true)
+  end note
+  
+  :Enter pyadi-iio directory;
+  note right: dir('pyadi-iio')
+  
+  partition &quot;pyadi-iio Setup (within dir)&quot; {
+    
+    :Install dependencies;
+    note right
+    run_i('pip3 install -r requirements.txt', true)
+    run_i('pip3 install -r requirements_dev.txt', true)
+    run_i('pip3 install pylibiio', true)
+    end note
+    
+    :Create test directories;
+    note right
+    run_i('mkdir testxml')
+    run_i('mkdir testhtml')
+    end note
+    
+    :Determine URI source;
+    if (iio_uri_source == &quot;ip&quot;?) then (yes)
+      :Set IP URI;
+      note right: uri = &quot;ip:&quot; + ip
+    else (no)
+      :Set serial URI;
+      note right: uri = &quot;serial:&quot; + serial + &quot;,&quot; + gauntEnv.iio_uri_baudrate.toString()
+    endif
+    
+    :Configure board markers;
+    note right
+    check = check_for_marker(board)
+    board = board.replaceAll('-', '_')
+    board_name = check.board_name.replaceAll('-', '_')
+    marker = check.marker
+    end note
+    
+    :Build pytest command;
+    note right
+    cmd = &quot;python3 -m pytest - - html=testhtml/report.html - - junitxml=testxml/&quot; + board + &quot;_reports.xml - - adi-hw-map -v -k 'not stress' -s - - uri='ip:&quot;+ip+&quot;' -m &quot; + board_name + &quot; - - capture=tee-sys&quot; + marker
+    end note
+    
+    :Execute pytest tests;
+    note right: statusCode = sh script:cmd, returnStatus:true
+    
+    if (HTML report exists?) then (yes)
+      :Publish HTML report;
+      note right
+    publishHTML(target : [
+        escapeUnderscores: false,
+        allowMissing: false,
+        alwaysLinkToLastBuild: false,
+        keepAll: true,
+        reportDir: 'testhtml',
+        reportFiles: 'report.html',
+        reportName: board,
+        reportTitles: board])
+    }
+      end note
+    endif
+    
+    if (XML results exist?) then (yes)
+      partition &quot;Parse pytest results (within try-catch)&quot; {
+        :Define pytest metrics to parse;
+        note right
+        def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
+        end note
+        
+        :Parse each metric from XML;
+        note right
+        pytest_logs.each {
+            cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*'
+            cmd+= it + '=&quot;([0-9]+)&quot;.*/\\1/p\''
+            set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
+        }
+        end note
+        
+        if (Parsing succeeds?) then (no)
+          :Log parsing failure;
+          note right
+          catch(Exception ex){
+              println('Parsing pytest results failed')
+              echo getStackTrace(ex)
+          }
+          end note
+        endif
+      }
+    endif
+    
+    :Evaluate pytest status code;
+    
+    if ((statusCode != 5) &amp;&amp; (statusCode != 0)) then (yes)
+      :throw new NominalException('PyADITests Failed');
+    else (no)
+    endif
+  }
+}
+
+partition &quot;Finally Block&quot; {
+  :Archive test results;
+  note right: junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true
+}
+
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+<section id="libad9361test">
+<h3>LibAD9361Test<a class="headerlink" href="#libad9361test" title="Permalink to this heading"></a></h3>
+<p>This stage runs the LibAD9361 tests available on the repository.</p>
+<p class="plantuml">
+<img src="_images/plantuml-2e99995e0aa308ee0ab6df0b822f244f066e89e3.png" alt="&#64;startuml LibAD9361Tests Workflow
+start
+title Test libad9361 Stage Workflow
+:Execute LibAD9361Tests stage;
+
+:Define supported boards list;
+note right 
+def supported_boards = [
+    zynq-zed-adv7511-ad9361-fmcomms2-3',
+    zynq-zc706-adv7511-ad9361-fmcomms5',
+    zynq-adrv9361-z7035-fmc',
+    zynq-zed-adv7511-ad9364-fmcomms4',
+    pluto']
+end note
+
+if (Board supported and branch available?) then (yes)
+  note right: supported_boards.contains(board) &amp;&amp; gauntEnv.libad9361_iio_branch != null
+  
+  partition &quot;Try Block&quot; {
+    :Execute Test libad9361 stage;
+    :Get board IP configuration;
+    note right: def ip = nebula(&quot;update-config -s network-config -f dutip --board-name=&quot;+board)
+    
+    :Clone libad9361-iio repository;
+    note right: run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+    
+    :Enter libad9361-iio directory;
+    note right: dir('libad9361-iio')
+    
+    partition &quot;Build Setup (within dir)&quot; {
+      :Create build directory;
+      note right: sh 'mkdir build'
+      
+      :Enter build directory;
+      note right: dir('build')
+      
+      partition &quot;CMake Build Process&quot; {
+        :Configure with CMake;
+        note right: sh 'cmake ..'
+        
+        :Compile with Make;
+        note right: sh 'make'
+        
+        :Run CTest with URI;
+        note right: sh 'URI_AD9361=&quot;ip:'+ip+'&quot; ctest -T test --no-compress-output -V'
+      }
+    }
+  }
+  
+  partition &quot;Finally Block&quot; {
+    :Process test results;
+    note right
+    dir('libad9361-iio/build') {
+        xunit([CTest(
+            deleteOutputFiles: true,
+            failIfNotNew: true,
+            pattern: 'Testing/**/*.xml',
+            skipNoTestFiles: false,
+            stopProcessingIfError: true
+        )])
+    }
+    end note
+  }
+  
+else (no)
+  :Skip board testing;
+  note right: println(&quot;LibAD9361Tests: Skipping board: &quot;+board)
+endif
+
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+<section id="matlabtests">
+<h3>MATLABTests<a class="headerlink" href="#matlabtests" title="Permalink to this heading"></a></h3>
+<p>This stage runs the MATLAB hardware test runner for the target boards.</p>
+<p class="plantuml">
+<img src="_images/plantuml-9def803f6f95f35337d1a54f62c15d6d0209e0e4.png" alt="&#64;startuml MATLABTests Workflow
+start
+title Run MATLAB Toolbox Tests Stage Workflow
+:Execute MATLABTests stage;
+
+:Initialize under_scm variable;
+note right: def under_scm = true
+
+:Execute Run MATLAB Toolbox Tests stage;
+note right: stage(&quot;Run MATLAB Toolbox Tests&quot;)
+
+:Get board IP configuration;
+note right: def ip = nebula('update-config network-config dutip --board-name='+board)
+
+:Setup MATLAB environment;
+note right: sh 'cp -r /root/.matlabro /root/.matlab'
+
+:Check pipeline type and reassign under_scm;
+note right: under_scm = isMultiBranchPipeline()
+
+if (isMultiBranchPipeline()) then (yes)
+  partition &quot;Multibranch Pipeline Path&quot; {
+    :Checkout SCM with retry;
+    note right
+    retry(3) {
+        sleep(5)
+        checkout scm
+        sh 'git submodule update --init'
+    }
+    end note
+    
+    :Create MATLAB file;
+    note right: createMFile()
+    
+    partition &quot;Try Block&quot; {
+      :Run MATLAB tests;
+      note right
+      sh 'IIO_URI=&quot;ip:'+ip+'&quot; board=&quot;'+board+'&quot; elasticserver='+gauntEnv.elastic_server+' 
+      /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab 
+      -nosplash -nodesktop -nodisplay -r &quot;run(\'matlab_commands.m\');exit&quot;'
+      end note
+    }
+    
+    partition &quot;Finally Block&quot; {
+      :Archive JUnit results;
+      note right: junit testResults: '*.xml', allowEmptyResults: true
+    }
+  }
+  
+else (no)
+  partition &quot;Standard Pipeline Path&quot; {
+    :Clone MATLAB repository;
+    note right
+    sh 'git clone --recursive -b '+gauntEnv.matlab_branch+' 
+    '+gauntEnv.matlab_repo+' Toolbox'
+    end note
+    
+    :Enter Toolbox directory;
+    note right: dir('Toolbox')
+    
+    partition &quot;Toolbox Setup (within dir)&quot; {
+      :Create MATLAB file;
+      note right: createMFile()
+      
+      partition &quot;Try Block&quot; {
+        :Run MATLAB tests;
+        note right
+        sh 'IIO_URI=&quot;ip:'+ip+'&quot; board=&quot;'+board+'&quot; elasticserver='+gauntEnv.elastic_server+' 
+        /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab 
+        -nosplash -nodesktop -nodisplay -r &quot;run(\'matlab_commands.m\');exit&quot;'
+        end note
+      }
+      
+      partition &quot;Finally Block&quot; {
+        :Archive JUnit results;
+        note right: junit testResults: '*.xml', allowEmptyResults: true
+      }
+    }
+  }
+endif
+
+:Stage completed;
+stop
+&#64;enduml"/>
+</p>
+</section>
+</section>
 </section>
 
-
-           </div>
-           
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="nebula.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Nebula</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="methods.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Methods</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2021, SDGTT
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="artifacts.html" class="btn btn-neutral float-right" title="Artifact Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="pipeline.html" class="btn btn-neutral float-left" title="Gauntlet Hardware Pipeline" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
     </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Pipeline Stage Library</a><ul>
+<li><a class="reference internal" href="#updatebootfiles">UpdateBOOTFiles</a></li>
+<li><a class="reference internal" href="#recoverboard">RecoverBoard</a></li>
+<li><a class="reference internal" href="#sendresults">SendResults</a></li>
+<li><a class="reference internal" href="#test-stages">Test Stages</a><ul>
+<li><a class="reference internal" href="#linuxtests">LinuxTests</a></li>
+<li><a class="reference internal" href="#pyaditests">PyADITests</a></li>
+<li><a class="reference internal" href="#libad9361test">LibAD9361Test</a></li>
+<li><a class="reference internal" href="#matlabtests">MATLABTests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &#169; Copyright 2020, Travis F. Collins &lt;travis.collins@analog.com&gt;.
-
-    </p>
-  </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
+          </div>
         </div>
       </div>
-
-    </section>
-
+      
+      
+    </aside>
   </div>
-  
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
-    
-   
-
-</body>
+</div><script src="_static/jquery.js?v=5d32c60e"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=57cfd03c"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
 </html>

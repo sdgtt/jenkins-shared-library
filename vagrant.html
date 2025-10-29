@@ -1,0 +1,545 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Agent Set Up" href="node_setup.html" /><link rel="prev" title="Artifact and Test Data Management" href="artifacts.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.08.06 -->
+        <title>Vagrant Shared Library - SDG Jenkins Shared Libary v0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SDG Jenkins Shared Libary v0.0.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">SDG Jenkins Shared Libary v0.0.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="pipeline.html">Gauntlet Hardware Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jenkinsfile_conf.html">How to Configure Jenkinsfile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stages.html">Pipeline Stage Library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nebula.html">Nebula</a></li>
+<li class="toctree-l1"><a class="reference internal" href="artifacts.html">Artifact and Test Data Management</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Vagrant Shared Library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="node_setup.html">Agent Set Up</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/vagrant.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="vagrant-shared-library">
+<h1>Vagrant Shared Library<a class="headerlink" href="#vagrant-shared-library" title="Permalink to this heading"></a></h1>
+<p>This is a jenkins project that uses Vagrant to build test environments. Virtual machines with different operating systems with MATLAB and Vivado installed.</p>
+<p>In order to use those functions in a Jenkins pipeline you will need to add a library (Dashboard -&gt; Manage Jenkins -&gt; Configure System -&gt; Global Pipeline Libraries) and following line at the beginging of the Jenkinsfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@Library</span><span class="p">(</span><span class="s1">&#39;library_name@branch_from_where_to_take_the_code&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="check-for-box">
+<h2>check_for_box()<a class="headerlink" href="#check-for-box" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">boolean</span> <span class="n">check</span> <span class="o">=</span> <span class="n">check_for_box</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">vagrant</span> <span class="pre">box</span> <span class="pre">list</span></code> command, the function checks for Vagrant box called “win” and return “true” if it exists or “false” if there is no box with this name.</p>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_box.groovy">here for check_for_box code</a>.</p>
+</section>
+<section id="check-for-snapshot">
+<h2>check_for_snapshot()<a class="headerlink" href="#check-for-snapshot" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">boolean</span> <span class="n">check</span> <span class="o">=</span> <span class="n">check_for_snapshot</span><span class="p">(</span><span class="s2">&quot;initial-state&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">vagrant</span> <span class="pre">snapshot</span> <span class="pre">list</span></code> command, the function checks for Vagrant snapshot called “initial-state” and return “true” if it exists or “false” if there is no snapshot with this name.</p>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_for_snapshot.groovy">here for check_for_snapshot code</a>.</p>
+</section>
+<section id="check-node">
+<h2>check_node()<a class="headerlink" href="#check-node" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="n">check_node</span><span class="p">(</span><span class="s2">&quot;win-vm&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This definition contains two functions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_agents()</span></code>: return names of all online Jenkins agents.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">call()</span></code>: uses <code class="docutils literal notranslate"><span class="pre">get_agents()</span></code> to search for a Jenkins agent called “win-vm” and return the name or if nothing is found, function will display error logs.</p></li>
+</ul>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/check_node.groovy">here for check_node code</a>.</p>
+</section>
+<section id="get-vagrant-vm-id">
+<h2>get_vagrant_vm_id()<a class="headerlink" href="#get-vagrant-vm-id" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">vm_id</span> <span class="o">=</span> <span class="n">get_vagrant_vm_id</span><span class="p">(</span><span class="s2">&quot;path/where/to/search/for/vm&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">vagrant</span> <span class="pre">global-status</span></code> command, this function searches for a Vagrant VM at a specific location/workspace and returns its ID or a message if there is no VM.</p>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/get_vagrant_vm_id.groovy">here for get_vagrant_vm_id code</a>.</p>
+</section>
+<section id="run-closure">
+<h2>run_closure()<a class="headerlink" href="#run-closure" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_closure</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are two parameters: “name” is the name of Jenkins agent installed inside Vagrant VM and “cls” is from closure.</p>
+<p>This function runs a closure inside a Vagrant VM.</p>
+<p>Let suppose that we have Vagrant VM at location “users/vagrant” and we want to run a closure inside it. We will use following Jenkinsfile for that and will return the host name:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@Library</span><span class="p">(</span><span class="s1">&#39;library_name@master&#39;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test</span><span class="p">(</span><span class="n">String</span> <span class="n">agent</span><span class="p">,</span> <span class="n">Closure</span> <span class="bp">cls</span><span class="p">){</span>
+ <span class="k">try</span> <span class="p">{</span>
+      <span class="n">vm_id</span> <span class="o">=</span> <span class="n">get_vagrant_vm_id</span><span class="p">(</span><span class="s2">&quot;users/vagrant&quot;</span><span class="p">)</span>
+      <span class="n">println</span><span class="p">(</span><span class="s2">&quot;Found existing vagrant vm id: &quot;</span> <span class="o">+</span><span class="n">vm_id</span><span class="p">)</span>
+      <span class="n">sh</span> <span class="s2">&quot;VAGRANT_DEFAULT_PROVIDER=virtualbox vagrant up &quot;</span> <span class="o">+</span><span class="n">vm_id</span>
+      <span class="n">echo</span> <span class="s2">&quot;Vagrant set up complete!&quot;</span>
+
+      <span class="n">name</span> <span class="o">=</span> <span class="n">check_node</span><span class="p">(</span><span class="s1">&#39;win-vm&#39;</span><span class="p">)</span>
+      <span class="n">run_closure</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+
+      <span class="n">sh</span> <span class="s1">&#39;vagrant halt&#39;</span>
+   <span class="p">}</span> <span class="n">catch</span> <span class="p">(</span><span class="ne">Exception</span> <span class="n">e</span><span class="p">)</span> <span class="p">{}</span>
+<span class="p">}</span>
+
+<span class="n">node</span><span class="p">(</span><span class="s2">&quot;master&quot;</span><span class="p">)</span> <span class="p">{</span>
+     <span class="n">stage</span><span class="p">(</span><span class="s2">&quot;One&quot;</span><span class="p">){</span>
+         <span class="n">test</span><span class="p">(</span><span class="s1">&#39;master&#39;</span><span class="p">){</span>
+             <span class="n">stage</span><span class="p">(</span><span class="s1">&#39;test1&#39;</span><span class="p">){</span>
+                 <span class="n">bat</span> <span class="s1">&#39;hostname&#39;</span>
+             <span class="p">}</span>
+         <span class="p">}</span>
+      <span class="n">cleanWs</span><span class="p">()</span>
+     <span class="p">}</span>
+<span class="p">}</span>
+
+
+   <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/run_closure.groovy">here for run_closure code</a>.</p>
+</section>
+<section id="setup-jenkins-agent-on-vagrant-vm">
+<h2>setup_jenkins_agent_on_vagrant_vm()<a class="headerlink" href="#setup-jenkins-agent-on-vagrant-vm" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">setup_jenkins_agent_on_vagrant_vm</span><span class="p">(</span><span class="s2">&quot;&lt;IP&gt;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will run ssh commands to install a Jenkins agent inside Vagrant VM. As an argument there is the IP of the server where Vagrant VM is located.</p>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_jenkins_agent.groovy">here for setup_jenkins_agent code</a>.</p>
+</section>
+<section id="setup-vagrant-box">
+<h2>setup_vagrant_box()<a class="headerlink" href="#setup-vagrant-box" title="Permalink to this heading"></a></h2>
+<p>This function can be called by typing following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">setup_vagrant_box</span><span class="p">(</span><span class="s2">&quot;&lt;boxaddress&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;newboxname&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;oldboxname&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;vagrantfilepath&gt;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will run ssh commands to download and add a box and copy a Vagrantfile in order to spin up a Vagrant VM.</p>
+<p>As arguments there are:</p>
+<ul class="simple">
+<li><p>path: path to place where Vagrant Box will be downloaded</p></li>
+<li><p>name: a name of the box</p></li>
+</ul>
+<p>Click <a class="reference external" href="https://github.com/sdgtt/jenkins-shared-library/blob/add-vagrant-scripts/vars/setup_vagrant_box.groovy">here for setup_vagrant_box code</a>.</p>
+</section>
+<section id="end-user-example">
+<h2>End user example<a class="headerlink" href="#end-user-example" title="Permalink to this heading"></a></h2>
+<p>As a end user, this Jenkinsfile can be copied and pasted in “Pipeline definition” section of a Jenkins job (New Item -&gt; Pipeline -&gt; Pipeline script). Run the job after the requested informations are completed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>@Library(&#39;test-lib@add-vagrant-scripts&#39;)
+
+def setup(String agent, Closure cls){
+   try {
+      trigger = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause).userUrl.toString()
+      println(trigger)
+      if (trigger == &quot;&lt;jenkins_path_to_place_where_the_job_is_created&gt;&quot;) {
+            vm_id = get_vagrant_vm_id(&quot;&lt;jenkins_path_to_the_job&gt;&quot;)
+
+            //check for any vm in your workspace
+            if (vm_id.contains(&quot;There&quot;)) {
+               echo &quot;There is no vagrant environment.&quot;
+               echo &quot;Setup vagrant.&quot;
+
+               //if there is no box called &quot;win&quot;, one will be downloaded from Artifactory
+               if (!check_for_box(&quot;win&quot;)) {
+                  echo &quot;There is no vagrant box! Download one.&quot;
+                  setup_vagrant_box(&quot;https://artifactory.analog.com:443/artifactory/sdg-vagrant-dev/&lt;name_of_the_box_you_want_to_download&gt;.box&quot;, &quot;win&quot;, &quot;test_no_updates&quot;, &quot;&lt;path_to_your_Vagrantfile&gt;&quot;)
+               }
+
+               sh &#39;VAGRANT_DEFAULT_PROVIDER=virtualbox vagrant up&#39;
+
+               //a Jenkins agent will be installed on that vm
+               setup_jenkins_agent_on_vagrant_vm(&quot;&lt;IP_of_jenkins_master&quot;)
+               echo &quot;Vagrant set up complete!&quot;
+
+               //will use snapshots in order to can use the vm multiple times and to have it each time clear
+               echo  &quot;No snapshot! Save one!&quot;
+               sh &#39;vagrant snapshot save default initial-state&#39;
+
+               //run code inside the vm
+               name = check_node(&#39;win-vm&#39;)
+               run_closure(name, cls)
+
+               sh &#39;vagrant snapshot restore default initial-state&#39;
+            } else {
+               //if the vm is already set on your workspace
+               println(&quot;Found existing vagrant vm id: &quot; +vm_id)
+               sh &quot;VAGRANT_DEFAULT_PROVIDER=virtualbox vagrant up &quot; +vm_id
+               echo &quot;Vagrant set up complete!&quot;
+
+               //make sure that you have a snapshot of it and run the code
+               if (check_for_snapshot(&quot;initial-state&quot;)) {
+                  name = check_node(&#39;win-vm&#39;)
+                  run_closure(name, cls)
+
+                  sh &#39;vagrant snapshot restore default initial-state&#39;
+               } else{
+                  echo  &quot;No snapshot! Save one!&quot;
+                  sh &#39;vagrant snapshot save default initial-state&#39;
+
+                  name = check_node(&#39;win-vm&#39;)
+                  run_closure(name, cls)
+
+                  sh &#39;vagrant snapshot restore default initial-state&#39;
+               }
+               sh &#39;vagrant halt&#39;
+            }
+      }
+   } catch (Exception e) {}
+   return true
+}
+
+node(&quot;master&quot;) {
+      stage(&quot;One&quot;){
+            setup(&#39;master&#39;){
+               stage(&#39;test1&#39;){
+                  //here you can insert the code you want to run inside vm
+                  //bat &#39;&lt;YOUR_CODE&gt;&#39;
+                  bat &#39;hostname&#39;
+               }
+            }
+      }
+}
+</pre></div>
+</div>
+<p>The result after this code is runned is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="n">node</span>
+<span class="n">Running</span> <span class="n">on</span> <span class="n">win</span><span class="o">-</span><span class="n">vm</span><span class="o">-</span><span class="n">af45e971</span> <span class="ow">in</span> <span class="n">C</span><span class="p">:</span>\<span class="n">jenkins</span>\<span class="n">workspace</span>\<span class="n">test</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="p">{</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="n">stage</span> <span class="p">(</span><span class="n">hide</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="p">{</span> <span class="p">(</span><span class="n">test1</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="n">bat</span>
+
+<span class="n">C</span><span class="p">:</span>\<span class="n">jenkins</span>\<span class="n">workspace</span>\<span class="n">test</span><span class="o">&gt;</span><span class="n">hostname</span>
+<span class="n">vagrant</span><span class="o">-</span><span class="mi">10</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="p">}</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="o">//</span> <span class="n">stage</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="p">}</span>
+<span class="p">[</span><span class="n">Pipeline</span><span class="p">]</span> <span class="o">//</span> <span class="n">node</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="node_setup.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Agent Set Up</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="artifacts.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Artifact and Test Data Management</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2021, SDGTT
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Vagrant Shared Library</a><ul>
+<li><a class="reference internal" href="#check-for-box">check_for_box()</a></li>
+<li><a class="reference internal" href="#check-for-snapshot">check_for_snapshot()</a></li>
+<li><a class="reference internal" href="#check-node">check_node()</a></li>
+<li><a class="reference internal" href="#get-vagrant-vm-id">get_vagrant_vm_id()</a></li>
+<li><a class="reference internal" href="#run-closure">run_closure()</a></li>
+<li><a class="reference internal" href="#setup-jenkins-agent-on-vagrant-vm">setup_jenkins_agent_on_vagrant_vm()</a></li>
+<li><a class="reference internal" href="#setup-vagrant-box">setup_vagrant_box()</a></li>
+<li><a class="reference internal" href="#end-user-example">End user example</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/jquery.js?v=5d32c60e"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=57cfd03c"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
