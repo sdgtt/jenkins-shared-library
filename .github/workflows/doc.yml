@@ -73,7 +73,7 @@ jobs:
   DeployMainDoc:
     runs-on: ubuntu-latest
     needs: [CheckDocs, Doc]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/docs_update'
+    if: github.ref == 'refs/heads/refactor-2' || github.ref == 'refs/heads/docs_update'
 
     steps:
       - uses: actions/checkout@v2
@@ -102,13 +102,13 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
-          destination_dir: main
+          destination_dir: gh-pages
 
   DeployDevelopmentDoc:
     runs-on: ubuntu-latest
     needs: [CheckDocs, Doc]
     # Only run on pull requests to main and non-forks
-    if: github.event_name == 'pull_request' && github.base_ref == 'main' && ! github.event.pull_request.head.repo.fork
+    if: github.event_name == 'pull_request' && github.base_ref == 'refactor-2' && ! github.event.pull_request.head.repo.fork
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
