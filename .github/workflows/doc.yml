@@ -102,7 +102,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
-          destination_dir: gh-pages
 
   DeployDevelopmentDoc:
     runs-on: ubuntu-latest
