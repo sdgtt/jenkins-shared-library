@@ -102,8 +102,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
-          publish_branch: refactor-2
-          destination_dir: docs
 
   DeployDevelopmentDoc:
     runs-on: ubuntu-latest
@@ -139,8 +137,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
-          publish_branch: refactor-2
-          destination_dir: prs/${{ github.head_ref }}
 
   Deploy:
     runs-on: ubuntu-latest
@@ -176,5 +172,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
-          publish_branch: refactor-2
-          destination_dir: docs
