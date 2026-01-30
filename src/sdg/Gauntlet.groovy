@@ -503,7 +503,7 @@ def stage_library(String stage_name) {
                         // temporarily get pytest-libiio from another source
                         run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
                         dir('pytest-libiio'){
-                            run_i('python3 setup.py install', true)
+                            run_i('pip3 install .', true)
                         }
                         //install libad9361 python bindings
                         try{
