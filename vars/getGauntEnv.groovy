@@ -14,6 +14,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             bootPartitionBranch: bootPartitionBranch,
             branches: ( bootPartitionBranch == 'NA')? hdlBranch : bootPartitionBranch,
             filetype: ( bootPartitionBranch == 'NA')? ' --filetype="hdl_linux"' : ' --filetype="boot_partition"',
+            url_template: 'NA',
             firmwareVersion: firmwareVersion,
             bootfile_source: bootfile_source,
             job_trigger: 'manual',
@@ -25,12 +26,14 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             boards: [],
             required_hardware: [],
             required_agent: [],
+            include_variants: false,
             firmware_boards: ['pluto','m2k'],
             enable_docker: false,
-            docker_image: 'tfcollins/test-harness-ci:latest',
+            docker_image: 'tfcollins/test-harness-ci-ubuntu-22_04:latest',
             docker_args: ['MATLAB','Vivado'],
             docker_host_mode: true,
             update_nebula_config: true,
+            check_device_status: true,
             nebula_config_source: 'netbox',
             netbox_test_agent: false,
             netbox_ip: '',
@@ -43,6 +46,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             netbox_nebula_template: null,
             netbox_include_variants: true,
             netbox_include_children: true,
+            netbox_allow_disable: true,
             enable_update_boot_pre_docker: false,
             board_sub_categories : ['rx2tx2'],
             setup_called: false,
@@ -53,6 +57,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             iio_uri_baudrate: 921600,
             configure_called: false,
             required_libraries: ['nebula', 'libiio', 'telemetry'],
+            install_agent_deps: false,
             pytest_libiio_repo: 'https://github.com/tfcollins/pytest-libiio.git',
             pytest_libiio_branch: 'master',
             pyadi_iio_repo: 'https://github.com/analogdevicesinc/pyadi-iio.git',
@@ -79,9 +84,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             kuiper_checker_repo: 'https://github.com/sdgtt/kuiper-post-build-checker.git',
             kuiper_checker_branch: 'master',
             send_results: false,
+            test_adi_diagnostics: false, // set to true to run diagnostics on the net before running the gauntlet
             elastic_logs : [:],
-            log_jira: false,
-            log_jira_stages: [],
             max_retry: 3,
             recovery_ref: "SD",
             log_artifacts: false,
@@ -93,6 +97,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             ml_test_stages: 0,
             internal_stages_to_skip: [:], // Number of stages to skip. Used for test skipping for MATLAB
             update_lib_requirements: false, // Set to true to run installation of requirements.txt of nebula and telemetry
-            update_container_lib: false // Set to true to force update libiio, nebula, telemetry base on master branch inside docker container
+            update_container_lib: false, // Set to true to force update libiio, nebula, telemetry base on master branch inside docker container
+            nebula_config_path: ''
     ]
 }

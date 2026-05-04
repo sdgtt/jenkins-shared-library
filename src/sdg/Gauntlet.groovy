@@ -43,7 +43,11 @@ private def setup_agents() {
             node(agent_name) {
                 stage('Query agents') {
                     // Get necessary configuration for basic work
-                    board = nebula('update-config board-config board-name')
+                    if (gauntEnv.workspace == '') {
+                        gauntEnv.workspace = env.WORKSPACE
+                        gauntEnv.build_no = env.BUILD_NUMBER
+                    }
+                    board = nebula('update-config board-config board-name -y ' + gauntEnv.nebula_config_path + '/' +agent_name)
                     board_map[agent_name] = board
                 }
             }
@@ -78,19 +82,30 @@ private def update_agent() {
 
         jobs[agent_name] = {
             node(agent_name) {
-                stage('Update agents') {
-                    def deps = check_update_container_lib(update_container_lib)
-                    setupAgent(deps, false, update_requirements)
+                // clean up residue containers and detached screen sessions
+                stage('Clean up residue docker containers') {
+                    sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
+                    cleanWs()
                 }
                 // automatically update nebula config
+                if(gauntEnv.install_agent_deps){
+                    stage('Install Agent Dependencies') {
+                        def deps = ["nebula", "telemetry"]
+                        setupAgent(deps, true, true)
+                    }
+                }
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
-                        run_i('sudo rm -rf nebula-config')
+                        gauntEnv.nebula_config_path = '/tmp/'+ env.JOB_NAME + '/'+ env.BUILD_NUMBER
                         if(gauntEnv.nebula_config_source == 'github'){
-                            run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                            dir(gauntEnv.nebula_config_path){
+                                run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
+                            }
                         }else if(gauntEnv.nebula_config_source == 'netbox'){
-                            run_i('mkdir nebula-config')
-                            dir('nebula-config'){
+                            gauntEnv.nebula_config_path += '/nebula-config'
+                            run_i('mkdir -p ' + gauntEnv.nebula_config_path)
+                            dir(gauntEnv.nebula_config_path){
                                 def custom = ""
                                 if(gauntEnv.netbox_include_variants == false){
                                     custom = custom + " --no-include-variants"
@@ -120,20 +135,7 @@ private def update_agent() {
                         }else{
                             println(gauntEnv.nebula_config_source + ' as config source is not supported yet.')
                         }
-                        
-                        if (fileExists('nebula-config/' + agent_name)){
-                            run_i('sudo mv nebula-config/' + agent_name + ' /etc/default/nebula')
-                        }else{
-                            // create and empty file
-                            run_i('sudo mv nebula-config/null-agent' + ' /etc/default/nebula')
-                        }
-                        
                     }
-                }
-                // clean up residue containers and detached screen sessions
-                stage('Clean up residue docker containers') {
-                    sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
-                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
                 }
             }
         }
@@ -185,11 +187,13 @@ def stage_library(String stage_name) {
                                         throw new Exception("Either hdl_branch/linux_branch or boot_partition_branch must be specified")
                                     if (gauntEnv.bootfile_source == "NA")
                                         throw new Exception("bootfile_source must be specified")
-                                    nebula('dl.bootfiles --board-name=' + board 
-                                            + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                                            + '" --source=' + gauntEnv.bootfile_source
-                                            +  ' --branch="' + gauntEnv.branches.toString()
-                                            +  '"' + gauntEnv.filetype, true, true, true) 
+                                    def cmd = 'dl.bootfiles --board-name=' + board
+                                    cmd += ' --source-root=' + gauntEnv.nebula_local_fs_source_root
+                                    cmd += ' --source=' + gauntEnv.bootfile_source
+                                    cmd += ' --branch=' + gauntEnv.branches.toString()
+                                    cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
+                                    cmd += ' ' + gauntEnv.filetype
+                                    nebula(cmd, true, true, true)
                                 }
                                 //get git sha properties of files
                                 get_gitsha(board)
@@ -233,10 +237,18 @@ def stage_library(String stage_name) {
                                     nebula('uart.set-local-nic-ip-from-usbdev --board-name=' + board)
                                 }
                             }
+
                             set_elastic_field(board, 'uboot_reached', 'True')
                             set_elastic_field(board, 'kernel_started', 'True')
                             set_elastic_field(board, 'linux_prompt_reached', 'True')
                             set_elastic_field(board, 'post_boot_failure', 'False')
+
+                            // verify checksum
+                            if (board == "pluto"){
+                                echo "Skipping checksum verification."
+                            }else {
+                                nebula('manager.verify-checksum --board-name=' + board + ' --folder=outs', true, true, true)
+                            }  
                         }
                     }
                 }
@@ -255,7 +267,8 @@ def stage_library(String stage_name) {
                         set_elastic_field(board, 'kernel_started', 'True')
                         set_elastic_field(board, 'linux_prompt_reached', 'False')
                     }else if (ex.getMessage().contains('Linux is functional but Ethernet is broken after updating boot files') ||
-                              ex.getMessage().contains('SSH not working but ping does after updating boot files')){
+                              ex.getMessage().contains('SSH not working but ping does after updating boot files') ||
+                              ex.getMessage().contains('Checksum does not match')){
                         set_elastic_field(board, 'uboot_reached', 'True')
                         set_elastic_field(board, 'kernel_started', 'True')
                         set_elastic_field(board, 'linux_prompt_reached', 'True')
@@ -278,14 +291,6 @@ def stage_library(String stage_name) {
                     }
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
-                    // log Jira
-                    try{
-                        description = failing_msg
-                    }catch(Exception desc){
-                        println('Error updating description.')
-                    }finally{
-                        logJira([board:board, summary:'Update BOOT files failed.', description:description, attachment:[board+".log"]]) 
-                    }
                     throw new Exception('UpdateBOOTFiles failed: '+ ex.getMessage())
                 }finally{
                     //archive uart logs
@@ -320,29 +325,44 @@ def stage_library(String stage_name) {
                     echo "Recover stage does not support pluto yet!"
                 }else{
                     dir ('recovery'){
-                        if (gauntEnv.bootfile_source == "NA")
-                            throw new Exception("bootfile_source must be specified")
+                        // confirm if indeed the board is dead and needs recovery
+                        def to_proceed = false
                         try{
-                            echo "Fetching reference boot files"
-                            nebula('dl.bootfiles --board-name=' + board 
-                                + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                                + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + ref_branch.toString()
-                                +  '" --filetype="boot_partition"', true, true, true)
-                            echo "Extracting reference fsbl and u-boot"
-                            dir('outs'){
-                                sh("cp bootgen_sysfiles.tgz ..")
-                            }
-                            sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot*.elf u-boot.elf")
-                            echo "Executing board recovery..."
-                            nebula(nebula_cmd)
+                            nebula('net.check_board_booted --board-name=' + board)
+                            echo 'Board is booted, no need for recovery'
                         }catch(Exception ex){
-                            echo getStackTrace(ex)
-                            throw ex
-                        }finally{
-                            //archive uart logs
-                            run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_recover_" + board + ".log; fi")
-                            archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+                            to_proceed = true
+                        }
+                        if(to_proceed){
+                            try{
+                                if (gauntEnv.bootfile_source == "NA")
+                                    throw new Exception("bootfile_source must be specified")
+                                echo "Fetching reference boot files"
+                                nebula('dl.bootfiles --board-name=' + board 
+                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                                    + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + ref_branch.toString()
+                                    +  '" --filetype="boot_partition"', true, true, true)
+                                echo "Extracting reference fsbl and u-boot"
+                                dir('outs'){
+                                    sh("cp bootgen_sysfiles.tgz ..")
+                                }
+                                sh("tar -xzvf bootgen_sysfiles.tgz; cp u-boot*.elf u-boot.elf")
+                                echo "Executing board recovery..."
+                                nebula(nebula_cmd)
+                            }catch(Exception ex){
+                                if(gauntEnv.netbox_allow_disable){
+                                    def message = "Disabled by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                    def disable_command = "netbox.disable-board --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --failure --reason=" + "\"" + message + "\"" + " --power-off"
+                                    nebula(disable_command)
+                                }
+                                echo getStackTrace(ex)
+                                throw ex
+                            }finally{
+                                //archive uart logs
+                                run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_recover_" + board + ".log; fi")
+                                archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+                            }
                         }
                     }
                 }
@@ -441,32 +461,23 @@ def stage_library(String stage_name) {
                             failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
                         }
                         
-                        try{
-                            if (!gauntEnv.firmware_boards.contains(board)){
-                                try{
-                                    nebula('update-config board-config serial --board-name='+board)
-                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
-                                }catch(Exception ex){
-                                    nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                        if (gauntEnv.test_adi_diagnostics) {
+                            try{
+                                if (!gauntEnv.firmware_boards.contains(board)){
+                                    try{
+                                        nebula('update-config board-config serial --board-name='+board)
+                                        nebula("net.run-diagnostics --ip='"+ip+"' --board-type=rpi --board-name="+board, true, true, true)
+                                    }catch(Exception ex){
+                                        nebula("net.run-diagnostics --ip='"+ip+"' --board-name="+board, true, true, true)
+                                    }
+                                    archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
                                 }
-                                archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+                            }catch(Exception ex) {
+                                failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                             }
-                        }catch(Exception ex) {
-                            failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
                         }
 
                         if(failed_test && !failed_test.allWhitespace){
-                            // log Jira
-                            def description = ""
-                            try{
-                                description += "*Missing drivers: " + missing_devs.size().toString() + "* (" + missing_devs.join(", ") + ")\n"
-                                dmesg_errs = readFile("dmesg_err_filtered.log").readLines()
-                                description += "*dmesg errors: ${dmesg_errs.size()}*\n" + dmesg_errs.join("\n")
-                            }catch(Exception desc){
-                                println('Error updating description.')
-                            }finally{
-                                logJira([board:board, summary:'Linux tests failed.', description:description, attachment:[board+"_diag_report.tar.bz2","dmesg.log"]]) 
-                            }
                             unstable("Linux Tests Failed: ${failed_test}")
                         }
                     }catch(Exception ex) {
@@ -492,6 +503,7 @@ def stage_library(String stage_name) {
                         //def ip = nebula('uart.get-ip')
                         def ip;
                         def serial;
+                        def baudrate;
                         def uri;
                         def description = ""
                         def pytest_attachment = null
@@ -499,7 +511,7 @@ def stage_library(String stage_name) {
                         // temporarily get pytest-libiio from another source
                         run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
                         dir('pytest-libiio'){
-                            run_i('python3 setup.py install', true)
+                            run_i('pip3 install .', true)
                         }
                         //install libad9361 python bindings
                         try{
@@ -519,14 +531,17 @@ def stage_library(String stage_name) {
                         }
                         //scm pyadi-iio
                         dir('pyadi-iio'){
-                            under_scm = isMultiBranchPipeline()
-                            if (under_scm){
-                                 println("Multibranch pipeline. Checkout scm")
-                            }else{
-                                println("Not a multibranch pipeline. Cloning "+gauntEnv.pyadi_iio_branch+" branch from "+gauntEnv.pyadi_iio_repo)
-                                run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo+' .', true)
-                            }
+                            def result = isMultiBranchPipeline(gauntEnv.pyadi_iio_repo)
+                            result.branch = !result.isMultiBranch ? gauntEnv.pyadi_iio_branch : result.branch
+                            cloneConfigs = [credentialsId: '', url: gauntEnv.pyadi_iio_repo]
+                            cloneConfigs['refspec'] = result.isMultiBranch ? result.ref : cloneConfigs['refspec']
+                            checkout([
+                                $class : 'GitSCM',
+                                branches : [[name: result.branch]],
+                                userRemoteConfigs: [cloneConfigs]
+                            ])
                         }
+
                         dir('pyadi-iio')
                         {
                             run_i('pip3 install -r requirements.txt', true)
@@ -539,7 +554,8 @@ def stage_library(String stage_name) {
                                 uri = "ip:" + ip;
                             }else{
                                 serial = nebula('update-config uart-config address --board-name='+board)
-                                uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+                                baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+                                uri = "serial:" + serial + "," + baudrate
                             }
                             check = check_for_marker(board)
                             board = board.replaceAll('-', '_')
@@ -578,17 +594,6 @@ def stage_library(String stage_name) {
                             // throw exception if pytest failed
                             if ((statusCode != 5) && (statusCode != 0)){
                                 // Ignore error 5 which means no tests were run
-                                // log Jira
-                                dir('testxml'){
-                                    try{
-                                        sh 'grep \" name=.*<failure\" *.xml | sed \'s/.*name=\"\\(.*\\)" .*<failure.*/\\1/\' > failures.txt'
-                                        description += readFile 'failures.txt'
-                                    }catch(Exception desc){
-                                        println('Error updating description.')
-                                    }finally{
-                                        logJira([board:board, summary:'PyADI tests failed.', description: description, attachment:[pytest_attachment]])  
-                                    }
-                                } 
                                 unstable("PyADITests Failed")
                             }                
                         }
@@ -618,7 +623,7 @@ def stage_library(String stage_name) {
                             run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
                             dir('libad9361-iio')
                             {
-                                sh 'mkdir build'
+                                sh 'mkdir -p build'
                                 dir('build')
                                 {
                                     sh 'cmake -DPYTHON_BINDINGS=ON ..'
@@ -630,14 +635,6 @@ def stage_library(String stage_name) {
                             }
                         }
                     }catch(Exception ex){
-                        // log Jira
-                        try{
-                            description = "LibAD9361Tests Failed: ${ex.getMessage()}"
-                        } catch(Exception desc){
-                                println('Error updating description.')
-                        } finally{
-                            logJira([board:board, summary:'libad9361 tests failed.', description:description]) 
-                        }
                         unstable("LibAD9361Tests Failed: ${ex.getMessage()}")
                     }finally{
                         dir('libad9361-iio/build'){
@@ -654,120 +651,60 @@ def stage_library(String stage_name) {
     case 'MATLABTests':
         println('Added Run MATLAB Toolbox Tests')
         cls = { String board ->
-            def under_scm = true
             stage("Run MATLAB Toolbox Tests") {
                 def ip = nebula('update-config network-config dutip --board-name='+board)
                 def description = ""
                 def xmlFile = board+'_HWTestResults.xml'
                 sh 'cp -r /root/.matlabro /root/.matlab'
-                under_scm = isMultiBranchPipeline()
-                if (under_scm)
-                {   
-                    println("Multibranch pipeline. Checkout scm.")
-                    retry(3) {
-                        sleep(5)
-                        checkout scm
-                        sh 'git submodule update --init'
+                def result = isMultiBranchPipeline(gauntEnv.matlab_repo)
+                result.branch = !result.isMultiBranch ? gauntEnv.matlab_branch : result.branch
+                cloneConfigs = [credentialsId: '', url: gauntEnv.matlab_repo]
+                cloneConfigs['refspec'] = result.isMultiBranch ? result.ref : cloneConfigs['refspec']
+                checkout([
+                    $class : 'GitSCM',
+                    branches : [[name: result.branch]],
+                    userRemoteConfigs: [cloneConfigs],
+                    extensions: [
+                        [$class: 'SubmoduleOption', recursiveSubmodules: true, trackingSubmodules: false]
+                    ]
+                ])
+                createMFile()
+                try{
+                    cmd = 'chown -R user $(pwd) ; ' 
+                    cmd += 'sudo -u user IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
+                    cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
+                    cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
+                    cmd += ' -r "run(\'matlab_commands.m\');exit"'
+                    statusCode = sh script:cmd, returnStatus:true
+                }catch (Exception ex){
+                    xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
+                    throw new NominalException(ex.getMessage())
+                }finally{
+                    junit testResults: '*.xml', allowEmptyResults: true
+                    // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
+                    // get MATLAB hardware test results for logging
+                    if(fileExists(xmlFile)){
+                        try{
+                            parseForLogging ('matlab', xmlFile, board)
+                        }catch(Exception ex){
+                            println('Parsing MATLAB hardware results failed')
+                            echo getStackTrace(ex)
+                        }
                     }
-                    createMFile()
-                    try{
-                        cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
-                        cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
-                        cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
-                        cmd += ' -r "run(\'matlab_commands.m\');exit"'
-                        statusCode = sh script:cmd, returnStatus:true
-                    }catch (Exception ex){
-                        // log Jira
-                        xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
-                        try{
-                            description += readFile 'failures.txt'
-                        }catch(Exception desc){
-                            println('Error updating description.')
-                        }finally{
-                            logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
-                        }
-                        throw new NominalException(ex.getMessage())
-                    }finally{
-                            junit testResults: '*.xml', allowEmptyResults: true
-                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
-                            // get MATLAB hardware test results for logging
-                            if(fileExists(xmlFile)){
-                                try{
-                                    parseForLogging ('matlab', xmlFile, board)
-                                }catch(Exception ex){
-                                    println('Parsing MATLAB hardware results failed')
-                                    echo getStackTrace(ex)
-                                }
-                            }
-                            // Print test result summary and set stage status depending on test result
-                            if (statusCode != 0) {
-                                currentBuild.result = 'FAILURE'
-                            }
-                            switch (statusCode) {
-                                case 1:
-                                    unstable("MATLAB: Error encountered when running the tests.")
-                                    break
-                                case 2:
-                                    unstable("MATLAB: Some tests failed.")
-                                    break
-                                case 3:
-                                    unstable("MATLAB: Some tests did not run to completion.")
-                                    break
-                            }
-                        }
-                }
-                else
-                {   
-                    println("Not a multibranch pipeline. Cloning "+gauntEnv.matlab_branch+" branch from "+gauntEnv.matlab_repo)
-                    sh 'git clone --recursive -b '+gauntEnv.matlab_branch+' '+gauntEnv.matlab_repo+' Toolbox'
-                    dir('Toolbox')
-                    {
-                        createMFile()
-                        try{
-                            cmd = 'IIO_URI="ip:'+ip+'" board="'+board+'" M2K_URI="'+getURIFromSerial(board)+'"'
-                            cmd += ' elasticserver='+gauntEnv.elastic_server+' timeout -s KILL '+gauntEnv.matlab_timeout
-                            cmd += ' /usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab -nosplash -nodesktop -nodisplay'
-                            cmd += ' -r "run(\'matlab_commands.m\');exit"'
-                            statusCode = sh script:cmd, returnStatus:true
-                        }catch (Exception ex){
-                            // log Jira
-                            xmlFile =  sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
-                            try{
-                                description += readFile 'failures.txt'
-                            }catch(Exception desc){
-                                println('Error updating description.')
-                            }finally{
-                                logJira([board:board, summary:'MATLAB tests failed.', description: description, attachment:[xmlFile]])  
-                            }
-                            throw new NominalException(ex.getMessage())
-                        }finally{
-                            junit testResults: '*.xml', allowEmptyResults: true
-                            // archiveArtifacts artifacts: xmlFile, followSymlinks: false, allowEmptyArchive: true
-                            // get MATLAB hardware test results for logging
-                            if(fileExists(xmlFile)){
-                                try{
-                                    parseForLogging ('matlab', xmlFile, board)
-                                }catch(Exception ex){
-                                    println('Parsing MATLAB hardware results failed')
-                                    echo getStackTrace(ex)
-                                }
-                            }
-                            // Print test result summary and set stage status depending on test result
-                            if (statusCode != 0) {
-                                currentBuild.result = 'FAILURE'
-                            }
-                            switch (statusCode) {
-                                case 1:
-                                    unstable("MATLAB: Error encountered when running the tests.")
-                                    break
-                                case 2:
-                                    unstable("MATLAB: Some tests failed.")
-                                    break
-                                case 3:
-                                    unstable("MATLAB: Some tests did not run to completion.")
-                                    break
-                            }
-                        }
+                    // Print test result summary and set stage status depending on test result
+                    if (statusCode != 0) {
+                        currentBuild.result = 'FAILURE'
+                    }
+                    switch (statusCode) {
+                        case 1:
+                        unstable("MATLAB: Error encountered when running the tests.")
+                            break
+                        case 2:
+                            unstable("MATLAB: Some tests failed.")
+                            break
+                        case 3:
+                            unstable("MATLAB: Some tests did not run to completion.")
+                            break
                     }
                 }
             }
@@ -830,7 +767,7 @@ def stage_library(String stage_name) {
                 sh 'git clone https://github.com/analogdevicesinc/libtinyiiod.git'
                 dir('libtinyiiod')
                 {
-                    sh 'mkdir build'
+                    sh 'mkdir -p build'
                     dir('build')
                     {
                         sh 'cmake -DBUILD_EXAMPLES=OFF ..'
@@ -842,7 +779,7 @@ def stage_library(String stage_name) {
                 sh 'git clone -b v0.1.0 https://github.com/analogdevicesinc/iio-emu.git'
                 dir('iio-emu')
                 {
-                    sh 'mkdir build'
+                    sh 'mkdir -p build'
                     dir('build')
                     {
                         sh 'cmake -DBUILD_TOOLS=ON ..'
@@ -861,95 +798,107 @@ def stage_library(String stage_name) {
         break
     case 'noOSTest':
         cls = { String board ->
-            def under_scm = true
+            //sh 'sudo apt update'
+            //sh 'sudo apt install -y libudev-dev pkg-config texinfo'
             def example = nebula('update-config board-config example --board-name='+board)
-            stage('Check JTAG connection'){
-                nebula('manager.check-jtag --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+            def platform = nebula('update-config downloader-config platform --board-name='+board)
+            def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
+            def filepath = ''
+            //check if boards are up
+            if (platform == 'Xilinx'){
+                stage('Check JTAG connection'){
+                    nebula('manager.board-diagnostics --board-name=' + board + ' --vivado-version=' +gauntEnv.vivado_ver)
+                }
             }
-            stage('Build NO-OS Project'){
-                def pwd = sh(returnStdout: true, script: 'pwd').trim()
-                withEnv(['VERBOSE=1', 'BUILD_DIR=' +pwd]){
-                    def project = nebula('update-config board-config no-os-project --board-name='+board)
-                    def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
-                    def files = ['2019.1':'system_top.hdf', '2020.1':'system_top.xsa', '2021.1':'system_top.xsa']
-                    sh 'apt-get install libncurses5-dev libncurses5 -y' //remove once docker image is updated
-                    try{
-                        file = files[gauntEnv.vivado_ver.toString()]
-                    }catch(Exception ex){
-                        throw new Exception('Vivado version not supported: '+ gauntEnv.vivado_ver) 
+            //download no-os files from artifactory
+            stage('Download binaries'){
+                nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
+                                    +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
+                def binaryfiles = sh (script: "ls outs", returnStdout: true).trim()
+                println("binary files: " + binaryfiles)
+                def found = false;
+                for (String binaryfile : binaryfiles.split("\\r?\\n")) {
+                    def carrier = board.split('_')[0]
+                    def daughter = board.split('_')[1]
+                    if (daughter.contains('-')){
+                        daughter = daughter.split('-')[0]
                     }
-                    try{
-                        nebula('dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source
-                                +  ' --branch="' + gauntEnv.hdlBranch.toString() +  '" --filetype="noos"')
-                    }catch(Exception ex){
-                        throw new Exception('Downloader error: '+ ex.getMessage()) 
-                    }
-
-                    dir('no-OS'){
-                        under_scm = isMultiBranchPipeline()
-                        if (under_scm){
-                            retry(3) {
-                                sleep(5)
-                                sh 'git submodule update --recursive --init'
-                            }
-                        }
-                        else {
-                            println("Not a multibranch pipeline. Cloning "+gauntEnv.no_os_branch+" branch from "+gauntEnv.no_os_repo)
-                            retry(3) {
-                                sleep(2)
-                                sh 'git clone --recursive -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo+' .'
-                            }
-                        }
-                    }
-                    sh 'cp '+pwd+'/outs/' +file+ ' no-OS/projects/'+ project +'/'
-                    dir('no-OS'){
-                        if (gauntEnv.vivado_ver == '2020.1'){
-                            sh 'git revert 76c709e'
-                        }
-                        dir('projects/'+ project){
-                            def buildfile = readJSON file: 'builds.json'
-                            flag = buildfile['xilinx'][example]['flags']
-                            if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
-                                sh 'ln /usr/bin/make /usr/bin/gmake'
-                            }
-                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make HARDWARE=' +file+ ' '+flag
-                            retry(3){
-                                sleep(2)
-                                sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
+                    if (binaryfile.contains(example) && binaryfile.contains(carrier) && binaryfile.contains(daughter)){
+                        if (platform == "Xilinx"){
+                            bootgen = 'outs/'+binaryfile+'/bootgen_sysfiles.tar.gz'
+                            sh 'tar -xf '+bootgen
+                            filepath = sh(returnStdout: true, script: 'ls | grep *'+carrier+'.elf').trim()
+                            println("File/filepath: "+filepath) 
+                            found = true;
+                            break
+                        }else {
+                            if (binaryfile.contains('.elf')) {
+                                filepath = 'outs/'+binaryfile
+                                println("File/filepath: "+filepath) 
+                                found = true;
+                                break
                             }
                         }
                     }
                 }
+                if (!found) {
+                    //for now, stop test pipeline if file is not found
+                    throw new NominalException("No elf found for "+board)
+                }  
             }
-            switch (example){
-                case 'iio':
-                    stage('Check Context'){
-                        def serial = nebula('update-config uart-config address --board-name='+board)
-                        def baudrate = nebula('update-config uart-config baudrate --board-name='+board)
-                        try{
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +gauntEnv.iio_uri_baudrate.toString()
-                            }
-                        }catch(Exception ex){
-                            retry(3){
-                                echo '---------------------------'
-                                sleep(10);
-                                echo "Check context"
-                                sh 'iio_info -u serial:' + serial + ',' +baudrate
-                            }
+            //load binary file to target board
+            stage('Test no-OS binary files'){
+                echo filepath
+                def project = nebula('update-config downloader-config no_os_project --board-name='+board)
+                def jtag_cable_id = nebula('update-config jtag-config jtag_cable_id --board-name='+board)
+                def serial = nebula('update-config uart-config address --board-name='+board)
+                if (gauntEnv.vivado_ver == '2020.1' || gauntEnv.vivado_ver == '2021.1' ){
+                    sh 'ln /usr/bin/make /usr/bin/gmake'
+                }
+                if (example.contains('iio')){
+                    screen_baudrate = gauntEnv.iio_uri_baudrate
+                } else {
+                    screen_baudrate = baudrate
+                }
+                sh 'screen -S ' +board+ ' -dm -L -Logfile ' +board+'-boot.log ' +serial+ ' '+screen_baudrate
+                if (platform == "Xilinx"){
+                    sh 'git clone --depth=1 -b '+gauntEnv.no_os_branch+' '+gauntEnv.no_os_repo
+                    sh 'cp '+filepath+ ' no-OS/projects/'+ project +'/'
+                    sh 'cp *.xsa no-OS/projects/'+ project +'/system_top.xsa'
+                    dir('no-OS'){
+                        dir('projects/'+ project){
+                            sh 'source /opt/Xilinx/Vivado/' +gauntEnv.vivado_ver+ '/settings64.sh && make run' +' JTAG_CABLE_ID='+jtag_cable_id
                         }
                     }
-                    break
-                case 'dma_example':
-                    // TODO
-                default:
-                    throw new Exception('Example not yet supported: ' + example)
+                } else {
+                    run_i('wget https://raw.githubusercontent.com/analogdevicesinc/no-OS/'+gauntEnv.no_os_branch+'/tools/scripts/mcufla.sh', true)
+                    sh 'chmod +x mcufla.sh'
+                    cmd = './mcufla.sh ' +filepath+' '+jtag_cable_id
+                    def flashStatus = sh returnStatus: true, script: cmd
+                    if ((flashStatus != 0)){
+                        throw new sdg.NominalException("Flashing binary file failed.")
+                    }                   
+                }
+                sleep(180) //wait to fully boot
+                archiveArtifacts artifacts: "*-boot.log", followSymlinks: false, allowEmptyArchive: true
+                sh 'screen -XS '+board+ ' kill'
             }
-
-             
+            if (example.contains('iio')){
+                stage('Check Context'){
+                    def serial = nebula('update-config uart-config address --board-name='+board)
+                    retry(3){
+                        echo '---------------------------'
+                        sleep(10);
+                        echo "Check context"
+                        cmd = 'iio_info -u serial:' + serial + ',' +baudrate+ ' &> '+board+'-iio_info.log'
+                        def ret = sh returnStatus: true, script: cmd
+                        archiveArtifacts artifacts: "*-iio_info.log", followSymlinks: false, allowEmptyArchive: true
+                        if (ret != 0){
+                            throw new Exception("Failed.")
+                        }
+                    }
+                }
+            }
         }
             break
     case 'PowerCycleBoard':
@@ -1047,6 +996,7 @@ private def run_agents() {
     docker_args.add('-v /etc/default:/default:ro')
     docker_args.add('-v /dev:/dev')
     docker_args.add('-v /etc/timezone:/etc/timezone:ro')
+    
     docker_args.add('-v /etc/localtime:/etc/localtime:ro')
     if (gauntEnv.docker_host_mode) {
         docker_args.add('--network host')
@@ -1060,28 +1010,33 @@ private def run_agents() {
         def k
         def ml_variants = ['rx','tx','rx_tx']
         def ml_variant_index = 0
+        def lock_name = extractLockName(board, agent)
+
         node(agent) {
-            try{
-                gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
-                for (k = 0; k < num_stages; k++) {
-                    if (gauntEnv.internal_stages_to_skip[board] > 0) {
-                        println("Skipping test stage")
-                        gauntEnv.internal_stages_to_skip[board]--
-                        continue;
+            echo "Acquiring lock for ${lock_name}"
+            lock(lock_name){
+                try{
+                    gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
+                    for (k = 0; k < num_stages; k++) {
+                        if (gauntEnv.internal_stages_to_skip[board] > 0) {
+                            println("Skipping test stage")
+                            gauntEnv.internal_stages_to_skip[board]--
+                            continue;
+                        }
+                        println("Stage called for board: "+board)
+                        println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
+                        if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                            stages[k].call(board, ml_variants[ml_variant_index++])
+                        else
+                            stages[k].call(board)
                     }
-                    println("Stage called for board: "+board)
-                    println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                    if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                        stages[k].call(board, ml_variants[ml_variant_index++])
-                    else
-                        stages[k].call(board)
+                }catch(NominalException ex){
+                    println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
+                    println("Stopping execution of stages for ${board}")
+                }finally {
+                    println("Cleaning up after board stages");
+                    cleanWs();
                 }
-            }catch(NominalException ex){
-                println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
-                println("Stopping execution of stages for ${board}")
-            }finally {
-                println("Cleaning up after board stages");
-                cleanWs();
             }
         }
     }
@@ -1090,52 +1045,73 @@ private def run_agents() {
         def k
         def ml_variants = ['rx','tx','rx_tx']
         def ml_variant_index = 0
+        def docker_args_agent = ''
+        def lock_name = extractLockName(board, agent)
+
         node(agent) {
-            try {
-                if (enable_update_boot_pre_docker_flag)
-                    pre_docker_closure.call(board)
-                docker.image(docker_image_name).inside(docker_args) {
-                    try {
-                        stage('Setup Docker') {
-                            sh 'apt-get clean'
-                            sh 'cd /var/lib/apt && mv lists lists.bak; mkdir -p lists/partial'
-                            sh 'cp /default/nebula /etc/default/nebula'
-                            sh 'cp /default/pip.conf /etc/pip.conf || true'
-                            sh 'cp /default/pydistutils.cfg /root/.pydistutils.cfg || true'
-                            sh 'mkdir -p /root/.config/pip && cp /default/pip.conf /root/.config/pip/pip.conf || true'
-                            sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
-                            def deps = check_update_container_lib(update_container)
-                            if (deps.size()>0){
-                                setupAgent(deps, true, update_requirements)
+            echo "Acquiring lock for ${lock_name}"
+            lock(lock_name){
+                try {
+                    docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + env.NODE_NAME + ':/tmp/nebula:ro'
+                    if (enable_update_boot_pre_docker_flag)
+                        pre_docker_closure.call(board)
+                    docker.image(docker_image_name).inside(docker_args_agent) {
+                        try {
+                            stage('Setup Docker') {
+                                sh 'apt-get clean'
+                                sh 'cp /tmp/nebula /etc/default/nebula'
+                                sh 'mkdir -p ~/.pip && cp /default/pip/pip.conf ~/.pip/pip.conf || true'
+                                sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
+                                def deps = check_update_container_lib(update_container)
+                                if (deps.size()>0){
+                                    setupAgent(deps, true, update_requirements)
+                                }
+                                // Above cleans up so we need to move to a valid folder
+                                sh 'cd /tmp'
                             }
-                            // Above cleans up so we need to move to a valid folder
-                            sh 'cd /tmp'
-                        }
-                        gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
-                        for (k = 0; k < num_stages; k++) {
-                            if (gauntEnv.internal_stages_to_skip[board] > 0) {
-                                println("Skipping test stage")
-                                gauntEnv.internal_stages_to_skip[board]--
-                                continue;
+                            if (gauntEnv.check_device_status){
+                                stage('Check Device Status'){
+                                    def board_status = nebula("netbox.board-status --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board)
+                                    if (board_status == "Active"){
+                                        comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='"+ comment + "'")
+                                    }else{
+                                        comment = "Board is not active. Skipping next stages of ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                        nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='" + comment + "'")
+                                        throw new NominalException('Board is not active. Skipping succeeding stages.') 
+                                    }
+                                }
                             }
-                            println("Stage called for board: "+board)
-                            println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                            if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                                stages[k].call(board, ml_variants[ml_variant_index++])
-                            else
-                                stages[k].call(board)
+                            gauntEnv.internal_stages_to_skip[board] = 0; // Initialize
+                            for (k = 0; k < num_stages; k++) {
+                                if (gauntEnv.internal_stages_to_skip[board] > 0) {
+                                    println("Skipping test stage")
+                                    gauntEnv.internal_stages_to_skip[board]--
+                                    continue;
+                                }
+                                println("Stage called for board: "+board)
+                                println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
+                                if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                                    stages[k].call(board, ml_variants[ml_variant_index++])
+                                else
+                                    stages[k].call(board)
+                            }
+                        }catch(NominalException ex){
+                            println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
+                            println("Stopping execution of stages for ${board}")
+                        }finally {
+                            if (gauntEnv.check_device_status){
+                                    comment = "Releasing lock by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                    nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --kind='info' --comment='" + comment + "'")
+                                }
+                            println("Cleaning up after board stages");
+                            cleanWs();
                         }
-                    }catch(NominalException ex){
-                        println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
-                        println("Stopping execution of stages for ${board}")
-                    }finally {
-                        println("Cleaning up after board stages");
-                        cleanWs();
                     }
                 }
-            }
-            finally {
-                sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
+                finally {
+                    sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
+                }
             }
         }
     }
@@ -1160,33 +1136,26 @@ jobs[agent+"-"+board] = {
   }
 }
 */
-        // Always lock DUTs
-        def lock_name = extractLockName(board, agent)
-        echo "Acquiring lock for ${lock_name}"
 
         if (gauntEnv.enable_docker) {
             println("Enable resource queueing")
             jobs[agent + '-' + board] = {
-                lock(lock_name){
-                    oneNodeDocker(
-                        agent,
-                        num_stages,
-                        stages,
-                        board,
-                        docker_image,
-                        enable_update_boot_pre_docker,
-                        pre_docker_cls,
-                        docker_status,
-                        update_container_lib,
-                        update_lib_requirements
-                    )
-                }
+                oneNodeDocker(
+                    agent,
+                    num_stages,
+                    stages,
+                    board,
+                    docker_image,
+                    enable_update_boot_pre_docker,
+                    pre_docker_cls,
+                    docker_status,
+                    update_container_lib,
+                    update_lib_requirements
+                )
             };
         } else {
             jobs[agent + '-' + board] = {
-                lock(lock_name) {
-                    oneNode(agent, num_stages, stages, board, docker_status)
-                }
+                oneNode(agent, num_stages, stages, board, docker_status)
             };
         }
     }
@@ -1407,21 +1376,34 @@ def set_update_nebula_config(boolean enable) {
  * Check if project is part of a multibranch pipeline using 'checkout scm'
  * Declaring the GitHub Project url in a non-multibranch pipeline does not conflict with checking.
  */
-def isMultiBranchPipeline() {
+def isMultiBranchPipeline(repo_url) {
     isMultiBranch = false
-    println("Checking if multibranch pipeline..")
-    try
-    {
-        retry(3){
-            checkout scm
-            isMultiBranch = true
+    branch = ""
+    ref = ""
+    println("Checking if multibranch pipeline..") 
+    if (env.BRANCH_NAME){
+        println("Pipeline is multibranch.")
+        //check if the multibranch pipeline is for this repo
+        def actualRepoUrl = scm.userRemoteConfigs[0].url
+        if (actualRepoUrl == repo_url){
+            branch = env.BRANCH_NAME
+            if (branch.startsWith("PR-")) {
+                pr_number = branch.substring(3)
+                println "Branch is a pull request (PR number: ${pr_number})"
+                ref = "+refs/pull/${pr_number}/head:refs/remotes/origin/PR-${pr_number}"
+            } else {
+                println "Branch is not a pull request."
+                ref = "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+            }
+            isMultiBranch = true  
+        }else{
+            //repo is cloned only in another multibranch pipeline
+            println("Pipeline is not CI for current repo.")
         }
+    }else {
+        println("Pipeline is not multibranch.")
     }
-    catch(all)
-    {
-        println("Not a multibranch pipeline")
-    }
-    return isMultiBranch
+    return [isMultiBranch: isMultiBranch, branch: branch, ref: ref]
 }
 
 /**
@@ -1433,122 +1415,12 @@ def set_recovery_reference(reference) {
 }
 
 /**
- * Enable logging issues to Jira. Setting true will update existing Jira issues or create a new issue.
- * @param log_jira Boolean of enable jira logging.
- */
-def set_log_jira(log_jira) {
-    gauntEnv.log_jira = log_jira
-}
-
-/**
- * Set stages where Jira issues should be updated or created.
- * @param log_jira_stages List of stage names
- */
-def set_log_jira_stages(log_jira_stages) {
-    gauntEnv.log_jira_stages = log_jira_stages
-}
-
-/**
  * Enables logging of test build artifacts to telemetry at the end of the build
  * @param enable boolean replaces default gauntEnv.log_artifacts
  * set to true to log artifacts data to telemetry, or set to false(default) otherwise
  */
 def set_log_artifacts(boolean enable) {
     gauntEnv.log_artifacts = enable
-}
-
-
-/**
- * Creates or updates existing Jira issue for carrier-daughter board
- * Each stage has its own Jira thread for each carrier-daughter board
- * Required key: jiraArgs.summary, other fields have default values or optional
- * attachments is a list of filesnames to upload in the Jira issue
- * Default values:  Jira site: ADI SDG
- *                  project: HTH
- *                  issuetype: Bug
- *                  assignee: JPineda3
- *                  component: KuiperTesting
- */
-
-def logJira(jiraArgs) {
-    defaultFields = [site:'sdg-jira',project:'HTH', assignee:'JPineda3', issuetype:'Bug', components:"KuiperTesting", description:"Issue exists in recent build."]
-    optionalFields = ['assignee','issuetype','description']
-    def key = ''
-    // Assign default values if not defined in jiraArgs
-    for (field in defaultFields.keySet()){
-        if (!jiraArgs.containsKey(field)){
-            jiraArgs.put(field,defaultFields."${field}")
-        }
-    }
-    // Append [carier-daugther] to summary
-    jiraArgs.board = jiraArgs.board.replaceAll('_', '-')
-    try{
-        jiraArgs.summary = "["+nebula('update-config board-config carrier --board-name='+jiraArgs.board )+"-"+nebula('update-config board-config daughter --board-name='+jiraArgs.board )+"] ".concat(jiraArgs.summary)
-    }catch(Exception summary){
-        println('Jira: Cannot append [carier-daugther] to summary.')
-    }
-    // Include hdl and linux hash if available
-    try{
-        jiraArgs.description = "{color:#de350b}*[hdl_hash:"+get_elastic_field(jiraArgs.board, 'hdl_hash' , 'NA')+", linux_hash:"+get_elastic_field(jiraArgs.board, 'linux_hash' , 'NA')+"]*{color}\n".concat(jiraArgs.description)
-        jiraArgs.description = "["+env.JOB_NAME+'-build-'+env.BUILD_NUMBER+"]\n".concat(jiraArgs.description)
-    }catch(Exception desc){
-        println('Jira: Cannot include hdl and linux hash to description.')
-    }
-    echo 'Checking if Jira logging is enabled..'
-    try{
-        if (gauntEnv.log_jira) {
-            echo 'Checking if stage is included in log_jira_stages'
-            if  (gauntEnv.log_jira_stages.isEmpty() || !gauntEnv.log_jira_stages.isEmpty() && (env.STAGE_NAME in gauntEnv.log_jira_stages)) {
-                println('Jira logging is enabled for '+env.STAGE_NAME+'. Checking if Jira issue with summary '+jiraArgs.summary+' exists..')
-                existingIssuesSearch  = jiraJqlSearch jql: "project='${jiraArgs.project}' and summary  ~ '\"${jiraArgs.summary}\"'", site: jiraArgs.site, failOnError: true
-                // Comment on existing Jira ticket
-                if (existingIssuesSearch.data.total != 0){ 
-                    echo 'Updating existing issue..'
-                    existingIssue = existingIssuesSearch.data.issues
-                    key = existingIssue[0].key
-                    issueUpdate = jiraArgs.description
-                    comment = [body: issueUpdate]
-                    jiraAddComment site: jiraArgs.site, idOrKey: key, input: comment
-                }
-                // Create new Jira ticket
-                else{
-                    echo 'Issue does not exist. Creating new Jira issue..'
-                    // Required fields
-                    issue = [fields: [
-                        project: [key: jiraArgs.project],
-                        summary: jiraArgs.summary,
-                        assignee: [name: jiraArgs.assignee],
-                        issuetype: [name: jiraArgs.issuetype],
-                        components: [[name:jiraArgs.components]]]]
-                    // Optional fields
-                    for (field in optionalFields){
-                        if (jiraArgs.containsKey(field)){
-                            if (field == 'description'){
-                                issue.fields.put(field,jiraArgs."${field}")
-                            }else{
-                                issue.fields.put(field,[name:jiraArgs."${field}"])
-                            }
-                        }
-                    }
-                    def newIssue = jiraNewIssue issue: issue, site: jiraArgs.site
-                    key = newIssue.data.key
-                }
-                // Upload attachment if any
-                if (jiraArgs.containsKey("attachment") && jiraArgs.attachment != null){ 
-                    echo 'Uploading attachments..'
-                    for (attachmentFile in jiraArgs.attachment){
-                        def attachment = jiraUploadAttachment site: jiraArgs.site, idOrKey: key, file: attachmentFile
-                    } 
-                }
-            }else{
-                println('Jira logging is not enabled for '+env.STAGE_NAME+'.')
-            }
-        }else{
-            echo 'Jira logging is disabled for all stages.'
-        }
-    }catch(Exception jiraError){
-        println('Error creating/updating Jira issue.')
-    }
 }
 
 /**
@@ -1577,23 +1449,62 @@ def update_agents() {
 private def check_required_hardware() {
 
     stage('Check Required Hardware'){
-        def s = gauntEnv.required_hardware.size()
-        def b = gauntEnv.boards.size()
         def rh = gauntEnv.required_hardware
+        def ab = gauntEnv.boards
+        def s = rh.size()
+        def b = ab.size()
         def filtered_board_list = []
         def filtered_agent_list = []
+        def found_rh = []
+        def special_naming_cases = [
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb":\
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-jesd204-fsm",
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-vsync-fmcomms8":\
+            "zynqmp-adrv9009-zu11eg-revb-adrv2crr-fmc-revb-sync-fmcomms8-jesd204-fsm"
+        ]
 
         if (s != 0){
             // if required_hardware is not set, required hardware will be taken from nebula-config
+            // recreate required_hardware list
             println("Found boards:")
             for (k = 0; k < b; k++) {
-                println("Agent: "+gauntEnv.agents[k]+" Board: "+gauntEnv.boards[k])
-                if (gauntEnv.required_hardware.contains(gauntEnv.boards[k])){
-                    filtered_board_list.add(gauntEnv.boards[k])
-                    filtered_agent_list.add(gauntEnv.agents[k])
-                    rh.remove(rh.indexOf(gauntEnv.boards[k]))
-                }// else do nothing
+                def board = gauntEnv.boards[k]
+                def agent = gauntEnv.agents[k]
+                if (rh.contains(board)){
+                    println("Found required hardware Board: "+ board + " Agent: "+ agent)
+                    filtered_board_list.add(board)
+                    filtered_agent_list.add(agent)
+                    found_rh.add(board)
+                }else{
+                    def base = board
+                    def variant = null
+                    // get base name from variant
+                    if(board.contains("-v")){
+                        base = board.split("-v")[0]
+                        variant = board.split("-v")[1]
+                    }
+                    // get base name from special cases, this takes precedence
+                    if(special_naming_cases.containsKey(board)){
+                        base = special_naming_cases[board]
+                    }
+                    if(rh.contains(base)){
+                        println("Found required hardware Board: "+ base + " Variant"+ variant +" Agent: "+ agent)
+                        filtered_board_list.add(board)
+                        filtered_agent_list.add(agent)   
+                        if(!found_rh.contains(base)){
+                            found_rh.add(base)
+                        }
+                    }
+                }
             }
+
+            for (k=0;k < s;k++){
+                required_board = rh[k]
+                if(found_rh.contains(required_board)){
+                    rh.remove(required_board)
+                }
+            }
+
             gauntEnv.boards = filtered_board_list
             gauntEnv.agents = filtered_agent_list
 
@@ -1811,9 +1722,7 @@ private def install_nebula(update_requirements=false) {
         def scmVars = checkout([
             $class : 'GitSCM',
             branches : [[name: "*/${gauntEnv.nebula_branch}"]],
-            doGenerateSubmoduleConfigurations: false,
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
-            submoduleCfg: [],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.nebula_repo}"]]
         ])
         sh 'pip3 uninstall nebula -y || true'
@@ -1835,15 +1744,14 @@ private def install_libiio() {
         }
     }
     else {
+        def isBranch = sh(script: "git ls-remote --heads ${gauntEnv.libiio_repo} ${gauntEnv.libiio_branch}", returnStdout: true).trim().contains("refs/heads/${gauntEnv.libiio_branch}")
         def scmVars = checkout([
             $class : 'GitSCM',
-            branches : [[name: "refs/tags/${gauntEnv.libiio_branch}"]],
-            doGenerateSubmoduleConfigurations: false,
+            branches : [[name: isBranch ? "*/${gauntEnv.libiio_branch}" : "refs/tags/${gauntEnv.libiio_branch}"]],
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
-            submoduleCfg: [],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.libiio_repo}"]]
         ])
-        sh 'mkdir build'
+        sh 'mkdir -p build'
         dir('build')
         {
             sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
@@ -1873,9 +1781,7 @@ private def install_telemetry(update_requirements=false){
         def scmVars = checkout([
             $class : 'GitSCM',
             branches : [[name: "*/${gauntEnv.telemetry_branch}"]],
-            doGenerateSubmoduleConfigurations: false,
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
-            submoduleCfg: [],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.telemetry_repo}"]]
         ])
         if (update_requirements){
@@ -1906,12 +1812,12 @@ private def setup_libserialport() {
 
 private def check_update_container_lib(update_container_lib=false) {
     def deps = []
-    def default_branch = 'master'
+    def default_branches = ['main', 'master']
     if (update_container_lib){
         deps = gauntEnv.required_libraries
     }else{
         for(lib in gauntEnv.required_libraries){
-            if(gauntEnv[lib+'_branch'] != default_branch){
+            if(!default_branches.contains(gauntEnv[lib+'_branch'])){
                 deps.add(lib)
             }
         }
@@ -2002,12 +1908,15 @@ private def check_for_marker(String board){
     def marker = ''
     def board_name = board
     def valid_markers = [ "cmos", "lvds"]
+    def noos_markers = ["iio_example", "dummy_example", "iio", "demo", "dma_example", "dma_irq_example" ]
     if (board.contains("-v")){
         if (board.split("-v")[1] in valid_markers){
             board_name = board.split("-v")[0]
             marker = ' --' + board.split("-v")[1]
             return [board_name:board_name, marker:marker]
-        
+        }else if(board.split("-v")[1].replace("-","_") in noos_markers){
+            board_name = board.split("-v")[0]
+            return [board_name:board_name, marker:marker]
         }else {
             board_name = board.replace("-v","-")
             return [board_name:board_name, marker:marker]
