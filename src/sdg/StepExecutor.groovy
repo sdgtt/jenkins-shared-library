@@ -147,4 +147,14 @@ class StepExecutor implements IStepExecutor{
     void setMockEnv(Map env) {
         this._mockEnv = env
     }
+
+    @Override
+    void withCredentials(List credentials, Closure body) {
+        this._steps.withCredentials(credentials, body)
+    }
+
+    @Override
+    Object string(Map kwargs) {
+        return this._steps.string(kwargs)
+    }
 }

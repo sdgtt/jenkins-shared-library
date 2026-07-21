@@ -251,7 +251,16 @@ def old_stage_library(String stage_name) {
                                     cmd += ' --branch=' + gauntEnv.branches.toString()
                                     cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
                                     cmd += ' ' + gauntEnv.filetype
-                                    nebula(cmd, true, true, true)
+                                    if (gauntEnv.bootfile_source == "cloudsmith") {
+                                        stepExecutor.withCredentials([
+                                            stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                                        ]) {
+                                            cmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                                            nebula(cmd, true, true, true)
+                                        }
+                                    } else {
+                                        nebula(cmd, true, true, true)
+                                    }
                                 }
                                 //get git sha properties of files
                                 get_gitsha(board)
@@ -396,11 +405,21 @@ def old_stage_library(String stage_name) {
                                 if (gauntEnv.bootfile_source == "NA")
                                     throw new Exception("bootfile_source must be specified")
                                 echo "Fetching reference boot files"
-                                nebula('dl.bootfiles --board-name=' + board 
-                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                                def dlCmd = 'dl.bootfiles --board-name=' + board
+                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root
                                     + '" --source=' + gauntEnv.bootfile_source
                                     +  ' --branch="' + ref_branch.toString()
-                                    +  '" --filetype="boot_partition"', true, true, true)
+                                    +  '" --filetype="boot_partition"'
+                                if (gauntEnv.bootfile_source == "cloudsmith") {
+                                    stepExecutor.withCredentials([
+                                        stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                                    ]) {
+                                        dlCmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                                        nebula(dlCmd, true, true, true)
+                                    }
+                                } else {
+                                    nebula(dlCmd, true, true, true)
+                                }
                                 echo "Extracting reference fsbl and u-boot"
                                 dir('outs'){
                                     sh("cp bootgen_sysfiles.tgz ..")
