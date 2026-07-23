@@ -90,6 +90,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             recovery_ref: "SD",
             log_artifacts: false,
             credentials_id: '',
+            cloudsmith_auth_id: '',
             toolbox_generated_bootbin: false,
             ml_toolbox: '',
             ml_branch: '',

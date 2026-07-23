@@ -121,6 +121,54 @@ class TestRecoverBoard extends Specification {
         ])
     }
 
+    def "test stageSteps for non-pluto with cloudsmith source"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","cloudsmith")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","cloudsmith")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        gauntlet.set_env("cloudsmith_auth_id", "cloudsmith-svc-cred")
+
+        // trigger board-not-booted exception so recovery proceeds
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3',
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
+        def dl_cmd = 'dl.bootfiles --board-name=' + board +
+            ' --source-root="/var/lib/tftpboot"' +
+            ' --source=cloudsmith' +
+            ' --branch="release"' +
+            ' --filetype="boot_partition"' +
+            ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[INFO] Fetching reference boot files')
+        1 * steps.withCredentials(_, _) >> { args -> args[1].call() }
+        1 * steps.string(credentialsId: 'cloudsmith-svc-cred', variable: 'CLOUDSMITH_AUTH')
+        1 * steps.sh('set -o pipefail; nebula show-log ' + dl_cmd + ' 2>&1 | tee out.out')
+        1 * steps.echo('[INFO] Extracting reference fsbl and u-boot')
+        1 * steps.echo('[INFO] Executing board recovery...')
+    }
+
     def "test stageSteps for non-pluto with exception"() {
         given:
 
