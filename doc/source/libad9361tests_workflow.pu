@@ -1,0 +1,72 @@
+@startuml LibAD9361Tests Workflow
+start
+title Test libad9361 Stage Workflow
+:Execute LibAD9361Tests stage;
+
+:Define supported boards list;
+note right 
+def supported_boards = [
+    zynq-zed-adv7511-ad9361-fmcomms2-3',
+    zynq-zc706-adv7511-ad9361-fmcomms5',
+    zynq-adrv9361-z7035-fmc',
+    zynq-zed-adv7511-ad9364-fmcomms4',
+    pluto']
+end note
+
+if (Board supported and branch available?) then (yes)
+  note right: supported_boards.contains(board) && gauntEnv.libad9361_iio_branch != null
+  
+  partition "Try Block" {
+    :Execute Test libad9361 stage;
+    :Get board IP configuration;
+    note right: def ip = nebula("update-config -s network-config -f dutip --board-name="+board)
+    
+    :Clone libad9361-iio repository;
+    note right: run_i('git clone -b '+ gauntEnv.libad9361_iio_branch + ' ' + gauntEnv.libad9361_iio_repo, true)
+    
+    :Enter libad9361-iio directory;
+    note right: dir('libad9361-iio')
+    
+    partition "Build Setup (within dir)" {
+      :Create build directory;
+      note right: sh 'mkdir build'
+      
+      :Enter build directory;
+      note right: dir('build')
+      
+      partition "CMake Build Process" {
+        :Configure with CMake;
+        note right: sh 'cmake ..'
+        
+        :Compile with Make;
+        note right: sh 'make'
+        
+        :Run CTest with URI;
+        note right: sh 'URI_AD9361="ip:'+ip+'" ctest -T test --no-compress-output -V'
+      }
+    }
+  }
+  
+  partition "Finally Block" {
+    :Process test results;
+    note right
+    dir('libad9361-iio/build') {
+        xunit([CTest(
+            deleteOutputFiles: true,
+            failIfNotNew: true,
+            pattern: 'Testing/**/*.xml',
+            skipNoTestFiles: false,
+            stopProcessingIfError: true
+        )])
+    }
+    end note
+  }
+  
+else (no)
+  :Skip board testing;
+  note right: println("LibAD9361Tests: Skipping board: "+board)
+endif
+
+:Stage completed;
+stop
+@enduml

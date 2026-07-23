@@ -7,7 +7,7 @@ What is Nebula?
 To aid in development board management and interfacing the Nebula python tool is used.
 To know more about this tool, visit: `Nebula`_
 
-.. _Nebula: https://nebula-fpga-dev.readthedocs.io/en/latest/?badge=latest
+.. _Nebula: https://sdgtt.github.io/nebula/main/flow.html
 
 Using Nebula in Jenkins Shared Library
 --------------------------------------

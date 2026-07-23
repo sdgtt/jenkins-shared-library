@@ -1,0 +1,61 @@
+plugins {
+    id 'groovy'
+    id 'java'
+    id 'jacoco'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.jenkins-ci.org/releases/'
+        url 'https://repo.jenkins-ci.org/public/'
+    }
+}
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:3.0.9'
+    implementation 'com.cloudbees:groovy-cps:1.24'
+    implementation 'org.jenkins-ci.main:jenkins-core:2.121.2'
+    implementation('org.jenkinsci.plugins:pipeline-model-definition:2.2214.vb_b_34b_2ea_9b_83') {
+        artifact {
+            extension = 'jar'
+        }
+    }
+    // testImplementation 'junit:junit:4.13.2'
+    // testImplementation 'org.mockito:mockito-core:3.11.2'
+    testImplementation 'com.lesfurets:jenkins-pipeline-unit:1.9'
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+    testImplementation 'org.spockframework:spock-junit4:2.0-groovy-3.0'
+    testImplementation 'cglib:cglib-nodep:3.3.0'
+
+   
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src', 'vars']
+        }
+    }
+    test {
+        groovy {
+            srcDirs = ['test']
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}

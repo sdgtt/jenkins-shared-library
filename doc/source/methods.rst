@@ -170,7 +170,7 @@ Sample usage:
 
     harness.set_env('nebula_repo','https://github.com/sdgtt/nebula.git')
     harness.set_env('nebula_branch','dev')
-    harness.set_env('libiio_branch','v0.21')
+    harness.set_env('libiio_branch','v0.25')
     harness.set_env('telemetry_repo','https://github.com/sdgtt/telemetry.git')
     harness.set_env('telemetry_branch','master')
 
@@ -362,7 +362,7 @@ Sample usage:
 .. code-block:: groovy
 
     harness = getGauntlet()
-    harness.set_elastic_server('192.168.2.1')
+    harness.set_elastic_server('192.168.10.1')
 
 set_send_telemetry
 ^^^^^^^^^^^^^^^^^^
