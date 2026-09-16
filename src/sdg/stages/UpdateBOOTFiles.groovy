@@ -83,7 +83,16 @@ class UpdateBOOTFiles implements IStage {
                         cmd += ' --branch=' + gauntEnv.branches.toString()
                         cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
                         cmd += gauntEnv.filetype
-                        gauntlet.nebula(cmd, true, true, true)
+                        if (gauntEnv.bootfile_source == "cloudsmith") {
+                            gauntlet.stepExecutor.withCredentials([
+                                gauntlet.stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                            ]) {
+                                cmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                                gauntlet.nebula(cmd, true, true, true)
+                            }
+                        } else {
+                            gauntlet.nebula(cmd, true, true, true)
+                        }
                     }
                     //get git sha properties of files
                     gauntlet.get_gitsha(board)

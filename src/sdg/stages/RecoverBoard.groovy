@@ -80,11 +80,17 @@ class RecoverBoard implements IStage {
             if(to_proceed){
                 try{
                     logger.info("Fetching reference boot files")
-                    gauntlet.nebula('dl.bootfiles --board-name=' + board 
-                        + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
-                        + '" --source=' + gauntEnv.bootfile_source
-                        +  ' --branch="' + ref_branch.toString()
-                        +  '" --filetype="boot_partition"', true, true, true)
+                    def dlCmd = 'dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source + ' --branch="' + ref_branch.toString() + '" --filetype="boot_partition"'
+                    if (gauntEnv.bootfile_source == "cloudsmith") {
+                        gauntlet.stepExecutor.withCredentials([
+                            gauntlet.stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                        ]) {
+                            dlCmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                            gauntlet.nebula(dlCmd, true, true, true)
+                        }
+                    } else {
+                        gauntlet.nebula(dlCmd, true, true, true)
+                    }
 
                     logger.info("Extracting reference fsbl and u-boot")
                     steps.sh("cp outs/bootgen_sysfiles.tgz .")

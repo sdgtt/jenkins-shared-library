@@ -35,4 +35,6 @@ interface IStepExecutor {
     void xunit(List testResults)
     Object CTest(Map kwargs)
     Map getEnv()
+    void withCredentials(List credentials, Closure body)
+    Object string(Map kwargs)
 }
