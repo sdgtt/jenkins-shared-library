@@ -1102,10 +1102,13 @@ private def run_agents() {
                         }
                         println("Stage called for board: "+board)
                         println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                        if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                        // arity: 1 = legacy user stage {board}, >=2 = class stage {gauntlet, board}
+                        if ((stages[k].maximumNumberOfParameters() > 2) && gauntEnv.toolbox_generated_bootbin)
                             stages[k].call(this, board, ml_variants[ml_variant_index++])
-                        else
+                        else if (stages[k].maximumNumberOfParameters() > 1)
                             stages[k].call(this, board)
+                        else
+                            stages[k].call(board)
                     }
                 }catch(NominalException ex){
                     println("oneNode: A nominal exception was encountered ${ex.getMessage()}")
@@ -1168,10 +1171,13 @@ private def run_agents() {
                                 }
                                 println("Stage called for board: "+board)
                                 println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                                if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
+                                // arity: 1 = legacy user stage {board}, >=2 = class stage {gauntlet, board}
+                                if ((stages[k].maximumNumberOfParameters() > 2) && gauntEnv.toolbox_generated_bootbin)
                                     stages[k].call(this, board, ml_variants[ml_variant_index++])
-                                else
+                                else if (stages[k].maximumNumberOfParameters() > 1)
                                     stages[k].call(this, board)
+                                else
+                                    stages[k].call(board)
                             }
                         }catch(NominalException ex){
                             println("oneNodeDocker: A nominal exception was encountered ${ex.getMessage()}")
