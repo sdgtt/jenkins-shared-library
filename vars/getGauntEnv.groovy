@@ -101,5 +101,6 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             update_container_lib: false, // Set to true to force update libiio, nebula, telemetry base on master branch inside docker container
             nebula_config_path: '',
             debug_level: 1,
+            version_rollback: '2026_r1/2026_07_22-14_02_35',
     ]
 }

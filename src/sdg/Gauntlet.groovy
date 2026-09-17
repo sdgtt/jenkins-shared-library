@@ -408,7 +408,7 @@ def old_stage_library(String stage_name) {
                                 def dlCmd = 'dl.bootfiles --board-name=' + board
                                     + ' --source-root="' + gauntEnv.nebula_local_fs_source_root
                                     + '" --source=' + gauntEnv.bootfile_source
-                                    +  ' --branch="' + ref_branch.toString()
+                                    +  ' --branch="' + gauntEnv.version_rollback
                                     +  '" --filetype="boot_partition"'
                                 if (gauntEnv.bootfile_source == "cloudsmith") {
                                     stepExecutor.withCredentials([
