@@ -47,18 +47,23 @@ class RecoverBoard implements IStage {
         def steps = gauntlet.stepExecutor
         
         logger.info("Running ${getStageName()} for ${board}")
-        def ref_branch = []
+        def refBranch
         def nebula_cmd = 'manager.recovery-device-manager --board-name=' + board + ' --folder=outs'
         switch(gauntEnv.recovery_ref){
             case "SD":
                 nebula_cmd = nebula_cmd + ' --sdcard'
-                ref_branch = 'release'
+                refBranch = 'release'
                 break;
             case "boot_partition_master":
-                ref_branch = 'master'
+                refBranch = 'master'
                 break;
             case "boot_partition_release":
-                ref_branch = 'release'
+                refBranch = 'release'
+                break;
+            case "version_rollback":
+                if (!gauntEnv.version_rollback)
+                    throw new Exception("version_rollback must be specified")
+                refBranch = gauntEnv.version_rollback
                 break;
             default:
                 throw new Exception('Unknown recovery ref branch: ' + gauntEnv.recovery_ref)
@@ -80,7 +85,7 @@ class RecoverBoard implements IStage {
             if(to_proceed){
                 try{
                     logger.info("Fetching reference boot files")
-                    def dlCmd = 'dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source + ' --branch="' + ref_branch.toString() + '" --filetype="boot_partition"'
+                    def dlCmd = 'dl.bootfiles --board-name=' + board + ' --source-root="' + gauntEnv.nebula_local_fs_source_root + '" --source=' + gauntEnv.bootfile_source + ' --branch="' + refBranch + '" --filetype="boot_partition"'
                     if (gauntEnv.bootfile_source == "cloudsmith") {
                         gauntlet.stepExecutor.withCredentials([
                             gauntlet.stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')

@@ -1496,7 +1496,7 @@ def isMultiBranchPipeline(repo_url) {
 
 /**
  * Set the value of reference branch for the board recovery stage.
- * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release'
+ * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release', 'version_rollback'
  */
 def set_recovery_reference(reference) {
     gauntEnv.recovery_ref = reference

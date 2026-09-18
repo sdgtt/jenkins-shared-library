@@ -116,9 +116,91 @@ class TestRecoverBoard extends Specification {
         1 * steps.echo('[INFO] Executing board recovery...')
         1 * steps.sh([
             script: 'nebula manager.recovery-device-manager --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
-                    '--folder=outs --sdcard', 
+                    '--folder=outs --sdcard',
             returnStdout: true
         ])
+    }
+
+    def "test stageSteps for non-pluto with version_rollback"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        // select the version_rollback recovery mode with a known-good version
+        gauntlet.set_env("recovery_ref", "version_rollback")
+        gauntlet.set_env("version_rollback", "2026_r1/2026_07_22-14_02_35")
+
+        // trigger board-not-booted exception so recovery proceeds
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3',
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[INFO] Fetching reference boot files')
+        1 * steps.sh(
+            'set -o pipefail; nebula show-log dl.bootfiles --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+            '--source-root="/var/lib/tftpboot" --source=artifactory --branch="2026_r1/2026_07_22-14_02_35" --filetype="boot_partition" ' +
+            '2>&1 | tee out.out'
+        )
+        1 * steps.echo('[INFO] Extracting reference fsbl and u-boot')
+        1 * steps.echo('[INFO] Executing board recovery...')
+        // version_rollback mode does not add --sdcard
+        1 * steps.sh([
+            script: 'nebula manager.recovery-device-manager --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+                    '--folder=outs',
+            returnStdout: true
+        ])
+    }
+
+    def "test stageSteps for version_rollback without value throws"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        // select version_rollback mode but leave the value unset (default '')
+        gauntlet.set_env("recovery_ref", "version_rollback")
+        gauntlet.set_env("version_rollback", "")
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        thrown Exception
     }
 
     def "test stageSteps for non-pluto with cloudsmith source"() {
