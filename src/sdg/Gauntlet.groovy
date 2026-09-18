@@ -1,10 +1,23 @@
 package sdg
+
 import sdg.FailSafeWrapper
 import sdg.NominalException
+import sdg.Logger
+import sdg.ioc.*
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+import com.cloudbees.groovy.cps.NonCPS
 
 /** A map that holds all constants and data members that can be override when constructing  */
 gauntEnv
+
+/** context */
+isDefaultContext
+
+/** steps */
+stepExecutor
+
+/** logger */
+logger
 
 /**
  * Imitates a constructor
@@ -18,8 +31,43 @@ gauntEnv
  */
 def construct(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source) {
     // initialize gauntEnv
-    gauntEnv = getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
+    isDefaultContext = ContextRegistry.getContext().isDefault()
+    stepExecutor = ContextRegistry.getContext().getStepExecutor()
+    logger = new Logger(this)
+    gauntEnv = stepExecutor.getGauntEnv(hdlBranch, linuxBranch, bootPartitionBranch, firmwareVersion, bootfile_source)
     gauntEnv.agents_online = getOnlineAgents()
+    if(isDefaultContext){
+        gauntEnv.env = env
+    }else{
+        gauntEnv.env = [:]
+    }
+}
+
+// @NonCPS
+def getOnlineAgents() {
+    
+    def online_agents = []
+    if(!isDefaultContext){
+        return online_agents
+    }
+    def jenkins = Jenkins.instance
+    for (agent in jenkins.getNodes()) {
+        def computer = agent.computer
+        if (computer.name == 'alpine') {
+            continue
+        }
+        if (!computer.offline) {
+            if (!gauntEnv.required_agent.isEmpty()){
+                if (computer.name in gauntEnv.required_agent){
+                    online_agents.add(computer.name)
+                }
+            }else{
+                online_agents.add(computer.name)
+            }
+        }
+    }
+    logger.info("Online agents: ${online_agents}")
+    return online_agents
 }
 
 /* *
@@ -44,8 +92,8 @@ private def setup_agents() {
                 stage('Query agents') {
                     // Get necessary configuration for basic work
                     if (gauntEnv.workspace == '') {
-                        gauntEnv.workspace = env.WORKSPACE
-                        gauntEnv.build_no = env.BUILD_NUMBER
+                        gauntEnv.workspace = gauntEnv.env.WORKSPACE
+                        gauntEnv.build_no = gauntEnv.env.BUILD_NUMBER
                     }
                     board = nebula('update-config board-config board-name -y ' + gauntEnv.nebula_config_path + '/' +agent_name)
                     board_map[agent_name] = board
@@ -84,8 +132,8 @@ private def update_agent() {
             node(agent_name) {
                 // clean up residue containers and detached screen sessions
                 stage('Clean up residue docker containers') {
-                    sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
-                    sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
+                    stepExecutor.sh 'sudo docker ps -q -f status=exited | xargs --no-run-if-empty sudo docker rm'
+                    stepExecutor.sh 'sudo screen -ls | grep Detached | cut -d. -f1 | awk "{print $1}" | sudo xargs -r kill' //close all detached screen session on the agent
                     cleanWs()
                 }
                 // automatically update nebula config
@@ -97,7 +145,7 @@ private def update_agent() {
                 }
                 if(gauntEnv.update_nebula_config){
                     stage('Update Nebula Config') {
-                        gauntEnv.nebula_config_path = '/tmp/'+ env.JOB_NAME + '/'+ env.BUILD_NUMBER
+                        gauntEnv.nebula_config_path = '/tmp/'+ gauntEnv.env.JOB_NAME + '/'+ gauntEnv.env.BUILD_NUMBER
                         if(gauntEnv.nebula_config_source == 'github'){
                             dir(gauntEnv.nebula_config_path){
                                 run_i('git clone -b "' + gauntEnv.nebula_config_branch + '" ' + gauntEnv.nebula_config_repo, true)
@@ -152,6 +200,16 @@ private def update_agent() {
  * @return Closure of stage requested
  */
 def stage_library(String stage_name) {
+    stageClass = getStage(stage_name)
+    return stageClass.getCls()
+}
+
+/**
+ * Add stage to agent pipeline
+ * @param stage_name String name of stage
+ * @return Closure of stage requested
+ */
+def old_stage_library(String stage_name) {
     switch (stage_name) {
     case 'UpdateBOOTFiles':
             println('Added Stage UpdateBOOTFiles')
@@ -193,7 +251,16 @@ def stage_library(String stage_name) {
                                     cmd += ' --branch=' + gauntEnv.branches.toString()
                                     cmd += (gauntEnv.url_template == 'NA')? "" : ' --url-template=' + gauntEnv.url_template
                                     cmd += ' ' + gauntEnv.filetype
-                                    nebula(cmd, true, true, true)
+                                    if (gauntEnv.bootfile_source == "cloudsmith") {
+                                        stepExecutor.withCredentials([
+                                            stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                                        ]) {
+                                            cmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                                            nebula(cmd, true, true, true)
+                                        }
+                                    } else {
+                                        nebula(cmd, true, true, true)
+                                    }
                                 }
                                 //get git sha properties of files
                                 get_gitsha(board)
@@ -287,7 +354,7 @@ def stage_library(String stage_name) {
                     if (gauntEnv.send_results){
                         set_elastic_field(board, 'last_failing_stage', 'UpdateBOOTFiles')
                         set_elastic_field(board, 'last_failing_stage_failure', failing_msg)
-                        stage_library('SendResults').call(board)
+                        stage_library('SendResults').call(this, board)
                     }
                     if (is_nominal_exception)
                         throw new NominalException('UpdateBOOTFiles failed: '+ ex.getMessage())
@@ -338,11 +405,21 @@ def stage_library(String stage_name) {
                                 if (gauntEnv.bootfile_source == "NA")
                                     throw new Exception("bootfile_source must be specified")
                                 echo "Fetching reference boot files"
-                                nebula('dl.bootfiles --board-name=' + board 
-                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root 
+                                def dlCmd = 'dl.bootfiles --board-name=' + board
+                                    + ' --source-root="' + gauntEnv.nebula_local_fs_source_root
                                     + '" --source=' + gauntEnv.bootfile_source
-                                    +  ' --branch="' + ref_branch.toString()
-                                    +  '" --filetype="boot_partition"', true, true, true)
+                                    +  ' --branch="' + gauntEnv.version_rollback
+                                    +  '" --filetype="boot_partition"'
+                                if (gauntEnv.bootfile_source == "cloudsmith") {
+                                    stepExecutor.withCredentials([
+                                        stepExecutor.string(credentialsId: gauntEnv.cloudsmith_auth_id, variable: 'CLOUDSMITH_AUTH')
+                                    ]) {
+                                        dlCmd += ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+                                        nebula(dlCmd, true, true, true)
+                                    }
+                                } else {
+                                    nebula(dlCmd, true, true, true)
+                                }
                                 echo "Extracting reference fsbl and u-boot"
                                 dir('outs'){
                                     sh("cp bootgen_sysfiles.tgz ..")
@@ -966,7 +1043,7 @@ private def log_artifacts(){
             def command = "telemetry grab-and-log-artifacts"
             command += " --jenkins-server ${JENKINS_URL}"
             command += " --es-server ${gauntEnv.elastic_server}"
-            command += " --job-name ${env.JOB_NAME} --job ${env.BUILD_NUMBER}"
+            command += " --job-name ${gauntEnv.env.JOB_NAME} --job ${gauntEnv.env.BUILD_NUMBER}"
 
             // Pass Jenkins credentials if jenkins_credentials (credentials id) is set
             if (gauntEnv.credentials_id != ''){
@@ -1025,8 +1102,11 @@ private def run_agents() {
                         }
                         println("Stage called for board: "+board)
                         println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                        if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                            stages[k].call(board, ml_variants[ml_variant_index++])
+                        // arity: 1 = legacy user stage {board}, >=2 = class stage {gauntlet, board}
+                        if ((stages[k].maximumNumberOfParameters() > 2) && gauntEnv.toolbox_generated_bootbin)
+                            stages[k].call(this, board, ml_variants[ml_variant_index++])
+                        else if (stages[k].maximumNumberOfParameters() > 1)
+                            stages[k].call(this, board)
                         else
                             stages[k].call(board)
                     }
@@ -1052,31 +1132,31 @@ private def run_agents() {
             echo "Acquiring lock for ${lock_name}"
             lock(lock_name){
                 try {
-                    docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + env.NODE_NAME + ':/tmp/nebula:ro'
+                    docker_args_agent = docker_args + ' -v '+ gauntEnv.nebula_config_path + '/' + gauntEnv.env.NODE_NAME + ':/tmp/nebula:ro'
                     if (enable_update_boot_pre_docker_flag)
-                        pre_docker_closure.call(board)
+                        pre_docker_closure.call(this, board)
                     docker.image(docker_image_name).inside(docker_args_agent) {
                         try {
                             stage('Setup Docker') {
-                                sh 'apt-get clean'
-                                sh 'cp /tmp/nebula /etc/default/nebula'
-                                sh 'mkdir -p ~/.pip && cp /default/pip/pip.conf ~/.pip/pip.conf || true'
-                                sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
+                                stepExecutor.sh 'apt-get clean'
+                                stepExecutor.sh 'cp /tmp/nebula /etc/default/nebula'
+                                stepExecutor.sh 'mkdir -p ~/.pip && cp /default/pip/pip.conf ~/.pip/pip.conf || true'
+                                stepExecutor.sh 'cp /default/pyadi_test.yaml /etc/default/pyadi_test.yaml || true'
                                 def deps = check_update_container_lib(update_container)
                                 if (deps.size()>0){
                                     setupAgent(deps, true, update_requirements)
                                 }
                                 // Above cleans up so we need to move to a valid folder
-                                sh 'cd /tmp'
+                                stepExecutor.sh 'cd /tmp'
                             }
                             if (gauntEnv.check_device_status){
                                 stage('Check Device Status'){
                                     def board_status = nebula("netbox.board-status --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board)
                                     if (board_status == "Active"){
-                                        comment = "Board is Active. Lock acquired and used by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                        comment = "Board is Active. Lock acquired and used by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
                                         nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='"+ comment + "'")
                                     }else{
-                                        comment = "Board is not active. Skipping next stages of ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                        comment = "Board is not active. Skipping next stages of ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
                                         nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board +" --kind='info' --comment='" + comment + "'")
                                         throw new NominalException('Board is not active. Skipping succeeding stages.') 
                                     }
@@ -1091,8 +1171,11 @@ private def run_agents() {
                                 }
                                 println("Stage called for board: "+board)
                                 println("Num arguments for stage: "+stages[k].maximumNumberOfParameters().toString()) 
-                                if ((stages[k].maximumNumberOfParameters() > 1) && gauntEnv.toolbox_generated_bootbin)
-                                    stages[k].call(board, ml_variants[ml_variant_index++])
+                                // arity: 1 = legacy user stage {board}, >=2 = class stage {gauntlet, board}
+                                if ((stages[k].maximumNumberOfParameters() > 2) && gauntEnv.toolbox_generated_bootbin)
+                                    stages[k].call(this, board, ml_variants[ml_variant_index++])
+                                else if (stages[k].maximumNumberOfParameters() > 1)
+                                    stages[k].call(this, board)
                                 else
                                     stages[k].call(board)
                             }
@@ -1101,7 +1184,7 @@ private def run_agents() {
                             println("Stopping execution of stages for ${board}")
                         }finally {
                             if (gauntEnv.check_device_status){
-                                    comment = "Releasing lock by ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+                                    comment = "Releasing lock by ${gauntEnv.env.JOB_NAME} ${gauntEnv.env.BUILD_NUMBER}"
                                     nebula("netbox.log-journal --netbox-ip=" + gauntEnv.netbox_ip + " --netbox-token=" + gauntEnv.netbox_token + " --board-name=" + board + " --kind='info' --comment='" + comment + "'")
                                 }
                             println("Cleaning up after board stages");
@@ -1110,7 +1193,7 @@ private def run_agents() {
                     }
                 }
                 finally {
-                    sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
+                    stepExecutor.sh 'docker ps -q -f status=exited | xargs --no-run-if-empty docker rm'
                 }
             }
         }
@@ -1172,6 +1255,11 @@ jobs[agent+"-"+board] = {
 def get_env(String param) {
     return gauntEnv[param]
 }
+
+def get_env() {
+    return gauntEnv
+}
+
 
 /* *
  * Env setter method
@@ -1381,12 +1469,12 @@ def isMultiBranchPipeline(repo_url) {
     branch = ""
     ref = ""
     println("Checking if multibranch pipeline..") 
-    if (env.BRANCH_NAME){
+    if (gauntEnv.env.BRANCH_NAME){
         println("Pipeline is multibranch.")
         //check if the multibranch pipeline is for this repo
         def actualRepoUrl = scm.userRemoteConfigs[0].url
         if (actualRepoUrl == repo_url){
-            branch = env.BRANCH_NAME
+            branch = gauntEnv.env.BRANCH_NAME
             if (branch.startsWith("PR-")) {
                 pr_number = branch.substring(3)
                 println "Branch is a pull request (PR number: ${pr_number})"
@@ -1408,7 +1496,7 @@ def isMultiBranchPipeline(repo_url) {
 
 /**
  * Set the value of reference branch for the board recovery stage.
- * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release'
+ * @param reference string. Available options: 'SD', 'boot_partition_master', 'boot_partition_release', 'version_rollback'
  */
 def set_recovery_reference(reference) {
     gauntEnv.recovery_ref = reference
@@ -1544,32 +1632,9 @@ private def splitMap(map, do_split=false) {
     return [keys, values]
 }
 
-@NonCPS
-private def getOnlineAgents() {
-    def jenkins = Jenkins.instance
-    def online_agents = []
-    for (agent in jenkins.getNodes()) {
-        def computer = agent.computer
-        if (computer.name == 'alpine') {
-            continue
-        }
-        if (!computer.offline) {
-            if (!gauntEnv.required_agent.isEmpty()){
-                if (computer.name in gauntEnv.required_agent){
-                    online_agents.add(computer.name)
-                }
-            }else{
-                online_agents.add(computer.name)
-            }
-        }
-    }
-    println(online_agents)
-    return online_agents
-}
-
 private def checkOs() {
-    if (isUnix()) {
-        def uname = sh script: 'uname', returnStdout: true
+    if (stepExecutor.isUnix()) {
+        def uname = stepExecutor.sh(script: 'uname', returnStdout: true)
         if (uname.startsWith('Darwin')) {
             return 'Macos'
         }
@@ -1594,7 +1659,7 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
     }
     cmd = 'nebula ' + cmd
     if (checkOs() == 'Windows') {
-        script_out = bat(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.bat(script: cmd, returnStdout: true).trim()
     }
     else {
         if (report_error){
@@ -1603,12 +1668,12 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
             cmd = cmd + " 2>&1 | tee ${outfile}"
             cmd = 'set -o pipefail; ' + cmd 
             try{
-                sh cmd
-                if (fileExists(outfile))
-                    script_out = readFile(outfile).trim()
+                stepExecutor.sh cmd
+                if (stepExecutor.fileExists(outfile))
+                    script_out = stepExecutor.readFile(outfile).trim()
             }catch(Exception ex){
-                if (fileExists(outfile)){
-                    script_out = readFile(outfile).trim()
+                if (stepExecutor.fileExists(outfile)){
+                    script_out = stepExecutor.readFile(outfile).trim()
                     lines = script_out.split('\n')
                     def err_line = false
                     for (i = 1; i < lines.size(); i++) {
@@ -1628,7 +1693,11 @@ def nebula(cmd, full=false, show_log=false, report_error=false) {
                 throw new Exception("nebula failed")
             }
         }else{
-            script_out = sh(script: cmd, returnStdout: true).trim()
+            script_out = stepExecutor.sh(script: cmd, returnStdout: true)
+            if (script_out == null){
+                script_out = ""
+            }
+            script_out = script_out.trim()
         }
     }
     // Remove lines
@@ -1666,21 +1735,21 @@ def sendLogsToElastic(... args) {
     cmd = 'telemetry log-boot-logs ' + cmd
     println(cmd)
     if (checkOs() == 'Windows') {
-        script_out = bat(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.bat(script: cmd, returnStdout: true)?.trim()
     }
     else {
-        script_out = sh(script: cmd, returnStdout: true).trim()
+        script_out = stepExecutor.sh(script: cmd, returnStdout: true)?.trim()
     }
     // Remove lines
     out = ''
     if (!full) {
-        lines = script_out.split('\n')
-        if (lines.size() == 1) {
+        lines = script_out?.split('\n')
+        if (lines?.size() == 1) {
             return script_out
         }
         out = ''
         added = 0
-        for (i = 1; i < lines.size(); i++) {
+        for (i = 1; i < lines?.size(); i++) {
             if (lines[i].contains('WARNING')) {
                 continue
             }
@@ -1703,7 +1772,7 @@ def String getURIFromSerial(String board){
         serial_no = nebula('update-config board-config instr-serial --board-name='+board)
     }
     cmd="iio_info -s | grep serial="+serial_no+" | grep -Po \"\\[.*:.*\" | sed 's/.\$//' | cut -c 2-"
-    instr_uri = sh(script:cmd, returnStdout: true).trim()
+    instr_uri = stepExecutor.sh(script:cmd, returnStdout: true).trim()
     return instr_uri
 }
 
@@ -1725,8 +1794,8 @@ private def install_nebula(update_requirements=false) {
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.nebula_repo}"]]
         ])
-        sh 'pip3 uninstall nebula -y || true'
-        sh 'pip3 install .'
+        stepExecutor.sh 'pip3 uninstall nebula -y || true'
+        stepExecutor.sh 'pip3 install .'
     }
 }
 
@@ -1735,11 +1804,11 @@ private def install_libiio() {
         run_i('git clone -b ' + gauntEnv.libiio_branch + ' ' + gauntEnv.libiio_repo, true)
         dir('libiio')
         {
-            bat 'mkdir build'
-            bat('build')
+            stepExecutor.bat 'mkdir build'
+            dir('build')
             {
-                bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
-                bat 'cmake --build . --config Release --install'
+                stepExecutor.bat 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
+                stepExecutor.bat 'cmake --build . --config Release --install'
             }
         }
     }
@@ -1751,16 +1820,16 @@ private def install_libiio() {
             extensions: [[$class: 'LocalBranch', localBranch: "**"]],
             userRemoteConfigs: [[credentialsId: '', url: "${gauntEnv.libiio_repo}"]]
         ])
-        sh 'mkdir -p build'
+        stepExecutor.sh 'mkdir -p build'
         dir('build')
         {
-            sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
-            sh 'make'
-            sh 'sudo make install'
-            sh 'ldconfig'
+            stepExecutor.sh 'cmake .. -DPYTHON_BINDINGS=ON -DWITH_SERIAL_BACKEND=ON -DHAVE_DNS_SD=OFF'
+            stepExecutor.sh 'make'
+            stepExecutor.sh 'sudo make install'
+            stepExecutor.sh 'ldconfig'
             // install python bindings
             dir('bindings/python'){
-                sh 'python3 setup.py install'
+                stepExecutor.sh 'python3 setup.py install'
             }
         }
     }
@@ -1777,7 +1846,7 @@ private def install_telemetry(update_requirements=false){
             run_i('python setup.py install', true)
         }
     }else{
-        // sh 'pip3 uninstall telemetry -y || true'
+        // stepExecutor.sh 'pip3 uninstall telemetry -y || true'
         def scmVars = checkout([
             $class : 'GitSCM',
             branches : [[name: "*/${gauntEnv.telemetry_branch}"]],
@@ -1787,26 +1856,7 @@ private def install_telemetry(update_requirements=false){
         if (update_requirements){
             run_i('pip3 install -r requirements.txt', true)
         }
-        sh 'pip3 install .'
-    }
-}
-
-private def setup_locale() {
-    sh 'sudo apt-get install -y locales'
-    sh 'export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && locale-gen en_US.UTF-8'
-}
-
-private def setup_libserialport() {
-    sh 'sudo apt-get install -y autoconf automake libtool'
-    sh 'git clone https://github.com/sigrokproject/libserialport.git'
-    dir('libserialport'){
-        sh './autogen.sh'
-        sh './configure --prefix=/usr/sp'
-        sh 'make'
-        sh 'make install'
-        sh 'cp -r /usr/sp/lib/* /usr/lib/x86_64-linux-gnu/'
-        sh 'cp /usr/sp/include/* /usr/include/'
-        sh 'date -r /usr/lib/x86_64-linux-gnu/libserialport.so.0'
+        stepExecutor.sh 'pip3 install .'
     }
 }
 
@@ -1866,7 +1916,7 @@ def get_gitsha(String board){
         return
     }
     
-    if (fileExists('outs/properties.yaml')){
+    if (stepExecutor.fileExists('outs/properties.yaml')){
         dir ('outs'){
             script{ properties = readYaml file: 'properties.yaml' }
         }
@@ -1877,9 +1927,9 @@ def get_gitsha(String board){
             hdl_hash = properties.hdl_git_sha + " (" + properties.bootpartition_folder + ")"
             linux_hash = properties.linux_git_sha + " (" + properties.bootpartition_folder + ")"
         }
-    } else if(fileExists('outs/properties.txt')){
+    } else if(stepExecutor.fileExists('outs/properties.txt')){
         dir ('outs'){
-            def file = readFile 'properties.txt'
+            def file = stepExecutor.readFile 'properties.txt'
             lines = file.readLines()
             for (line in lines){
                 echo line
@@ -1953,17 +2003,17 @@ private def extractLockName(String bname, String agent){
     return lockName
 }
 
-private def run_i(cmd, do_retry=false) {
+def run_i(cmd, do_retry=false) {
     def retry_count = 1
     if(do_retry){
         retry_count = gauntEnv.max_retry
     }
-    retry(retry_count){
+    stepExecutor.retry(retry_count){
         if (checkOs() == 'Windows') {
-            bat cmd
+            stepExecutor.bat cmd
         }
         else {
-            sh cmd
+            stepExecutor.sh cmd
         }
     }
 }
@@ -1979,9 +2029,9 @@ private def String getStackTrace(Throwable aThrowable){
 private def  createMFile(){
     // Utility method to write matlab commands in a .m file
     def String command_oneline = gauntEnv.matlab_commands.join(";")
-    writeFile file: 'matlab_commands.m', text: command_oneline
-    sh 'ls -l matlab_commands.m'
-    sh 'cat matlab_commands.m'
+    stepExecutor.writeFile file: 'matlab_commands.m', text: command_oneline
+    stepExecutor.sh 'ls -l matlab_commands.m'
+    stepExecutor.sh 'cat matlab_commands.m'
 }
 
 private def parseForLogging (String stage, String xmlFile, String board) {
@@ -1992,6 +2042,6 @@ private def parseForLogging (String stage, String xmlFile, String board) {
     forLogging."${stage_logs}".each {
         cmd = 'cat ' + xmlFile + ' | sed -rn \'s/.*' 
         cmd+= it + '="([0-9]+)".*/\\1/p\''
-        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, sh(returnStdout: true, script: cmd).trim())
+        set_elastic_field(board.replaceAll('_', '-'), stage + '_' + it, stepExecutor.sh(returnStdout: true, script: cmd).trim())
     }
 }

@@ -1,0 +1,42 @@
+@startuml RecoverBoard Workflow
+start
+title RecoverBoard Stage Workflow
+:Execute RecoverBoard stage;
+:Define reference branches;
+note right: ref_branch = ['boot_partition', 'release']
+if (Board is pluto?) then (yes)
+  :Log "Recover stage does not support pluto yet!";
+  stop
+else (no)
+  :Enter recovery directory;
+  partition "Try Block" {
+    :Fetch reference boot files;
+    note right: 'dl.bootfiles - -board-name=' + board + ' - -source-root="' + gauntEnv.nebula_local_fs_source_root + '" - -source=' + gauntEnv.bootfile_source +  ' - -branch="' + ref_branch.toString() + '"'
+    :Extract reference fsbl and u-boot;
+    note right
+    cd outs/
+    cp bootgen_sysfiles.tgz ..
+    tar -xzvf bootgen_sysfiles.tgz
+    cp u-boot-*.elf u-boot.elf
+    end note
+    :Execute board recovery;
+    note right: manager.recovery-device-manager ____board-name={board} ____folder=outs ____sdcard
+  }
+  partition "Exception Handling" {
+    if (Exception occurs?) then (yes)
+      :Log stack trace;
+      :Re-throw exception;
+      note right: throw ex
+    endif
+  }
+  partition "Finally Block" {
+    :Archive UART logs;
+    note right
+    run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_recover_" + board + ".log; fi")
+    archiveArtifacts artifacts: 'uart_recover_*.log', followSymlinks: false, allowEmptyArchive: true
+    end note
+  }
+endif
+:Stage completed;
+stop
+@enduml

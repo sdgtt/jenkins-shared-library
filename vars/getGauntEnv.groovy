@@ -90,6 +90,7 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             recovery_ref: "SD",
             log_artifacts: false,
             credentials_id: '',
+            cloudsmith_auth_id: '',
             toolbox_generated_bootbin: false,
             ml_toolbox: '',
             ml_branch: '',
@@ -98,6 +99,8 @@ private def call(hdlBranch, linuxBranch, bootPartitionBranch,firmwareVersion, bo
             internal_stages_to_skip: [:], // Number of stages to skip. Used for test skipping for MATLAB
             update_lib_requirements: false, // Set to true to run installation of requirements.txt of nebula and telemetry
             update_container_lib: false, // Set to true to force update libiio, nebula, telemetry base on master branch inside docker container
-            nebula_config_path: ''
+            nebula_config_path: '',
+            debug_level: 1,
+            version_rollback: '',
     ]
 }

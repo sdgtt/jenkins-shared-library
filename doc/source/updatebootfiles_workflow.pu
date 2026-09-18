@@ -1,0 +1,127 @@
+@startuml UpdateBOOTFiles Workflow
+start
+title UpdateBOOTFiles Stage Workflow
+:Execute UpdateBOOTFiles stage;
+:Print board name and branches;
+
+partition "Try Block" {
+  if (Board is Pluto?) then (yes)
+    :Download firmware files via Nebula;
+    note right: dl.bootfiles ____board-name={board} ____branch={firmwareVersion} ____firmware
+  else (no)
+    :Download boot files via Nebula;
+    note right: dl.bootfiles ____board-name={board} ____source-root={source_root} ____source={source} ____branch={branches}
+  endif
+  :Get git SHA for board;
+  :Update boot files on device;
+  note right: manager.update-boot-files ____board-name={board} ____folder=outs
+  if (Board is Pluto?) then (yes)
+    :Set local NIC IP from USB device;
+    note right: uart.set-local-nic-ip-from-usbdev ____board-name={board}
+  endif
+  :Set elastic fields (success);
+  note right
+  set_elastic_field(board, 'uboot_reached', 'True')
+  set_elastic_field(board, 'kernel_started', 'True')
+  set_elastic_field(board, 'linux_prompt_reached', 'True')
+  set_elastic_field(board, 'post_boot_failure', 'False')
+  end note
+}
+
+partition "Exception Handling" {
+  if (Exception occurs?) then (yes)
+    :Log stack trace;
+    switch (Exception type?)
+    case (u-boot not reached)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = False
+      board, kernel_started = False
+      board, linux_prompt_reached = False
+      end note
+    case (u-boot menu cannot boot kernel)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = False
+      board, linux_prompt_reached = False
+      end note
+    case (Linux not fully booting)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = True
+      board, linux_prompt_reached = False
+      end note
+    case (Ethernet/SSH issues)
+      :Set elastic fields;
+      note right
+      board, uboot_reached = True
+      board, kernel_started = True
+      board, linux_prompt_reached = True
+      board, post_boot_failure = True
+      end note
+    case (Other errors)
+      :Log unexpected failure;
+    endswitch
+    :Get git SHA for board;
+    if (send_results enabled?) then (yes)
+      :Set failing stage info;
+      note right
+      last_failing_stage = 'UpdateBOOTFiles'
+      last_failing_stage_failure = exception message
+      end note
+      :Call SendResults stage;
+    endif
+    :Throw UpdateBOOTFiles failed exception;
+    note right: Exception thrown but finally block still executes
+  endif
+}
+
+partition "Finally Block" {
+  :Archive UART logs;
+  note right
+  run_i("if [ -f ${board}.log ]; then mv ${board}.log uart_boot_" + board + ".log; fi")
+  archiveArtifacts artifacts: 'uart_boot_*.log', followSymlinks: false, allowEmptyArchive: true
+  end note
+}
+
+stop
+@enduml
+    Success Case:
+    - uboot_reached: True
+    - kernel_started: True  
+    - linux_prompt_reached: True
+    - post_boot_failure: False
+end note
+
+alt Exception occurs
+    UBF -> UBF: Analyze exception message
+    
+    alt u-boot not reached
+        UBF -> ES: Set uboot_reached=False, kernel_started=False, linux_prompt_reached=False
+    else u-boot menu cannot boot kernel
+        UBF -> ES: Set uboot_reached=True, kernel_started=False, linux_prompt_reached=False
+    else Linux not fully booting
+        UBF -> ES: Set uboot_reached=True, kernel_started=True, linux_prompt_reached=False
+    else Ethernet/SSH issues
+        UBF -> ES: Set uboot_reached=True, kernel_started=True, linux_prompt_reached=True, post_boot_failure=True
+    else Other errors
+        UBF -> UBF: Log unexpected failure
+    end
+    
+    UBF -> UBF: get_gitsha(board)
+    
+    alt send_results enabled
+        UBF -> ES: Set last_failing_stage=UpdateBOOTFiles
+        UBF -> ES: Set last_failing_stage_failure message
+        UBF -> UBF: Call SendResults stage
+    end
+    
+    UBF -> JP: Throw UpdateBOOTFiles failed exception
+end
+
+UBF -> UBF: Archive UART logs (rename {board}.log to uart_boot_{board}.log)
+UBF -> JP: Stage completed
+
+@enduml

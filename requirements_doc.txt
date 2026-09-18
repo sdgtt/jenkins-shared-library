@@ -2,3 +2,12 @@ sphinx>=1.7.6
 sphinx-rtd-theme>=0.4.0
 sphinx-toolbox
 graphviz
+myst-parser
+furo
+sphinx-remove-toctrees
+sphinx-favicon
+sphinxcontrib-mermaid
+sphinx-simplepdf
+pillow
+sphinx-click
+sphinxcontrib-plantuml
