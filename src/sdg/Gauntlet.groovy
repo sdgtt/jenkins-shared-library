@@ -1587,7 +1587,7 @@ private def check_required_hardware() {
             }
 
             for (k=0;k < s;k++){
-                required_board = rh[k]
+                required_board = rh[0]
                 if(found_rh.contains(required_board)){
                     rh.remove(required_board)
                 }
