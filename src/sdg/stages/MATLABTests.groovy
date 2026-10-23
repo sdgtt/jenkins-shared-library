@@ -71,8 +71,8 @@ class MATLABTests implements IStage {
         
         steps.sh("ls /usr/local/MATLAB/R2025b")
         steps.sh("ls /usr/local/MATLAB/R2025b/bin")
-        steps.sh("ls /mlhspro/R2025b")
-        steps.sh("ls /mlhspro/R2025b/toolbox/shared/libiio/base/+matlabshared/+libiio/base.p")
+        steps.sh("ls /mlhsp/R2025b")
+        steps.sh("ls /mlhsp/R2025b/toolbox/shared/libiio/base/+matlabshared/+libiio/base.p")
         // def matlabPath = '/usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab'
         // if (!steps.fileExists(matlabPath)) {
         //     throw new NominalException("MATLAB executable not found at: " + matlabPath)
