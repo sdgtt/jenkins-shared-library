@@ -68,6 +68,8 @@ class MATLABTests implements IStage {
         cmd += ' -r "run(\'matlab_commands.m\');exit"'
         logger.info("Executing command: " + cmd)
         // Check if MATLAB executable exists before trying to run it
+        
+        steps.sh("ls /usr/local/MATLAB")
         def matlabPath = '/usr/local/MATLAB/'+gauntEnv.matlab_release+'/bin/matlab'
         if (!steps.fileExists(matlabPath)) {
             throw new NominalException("MATLAB executable not found at: " + matlabPath)
