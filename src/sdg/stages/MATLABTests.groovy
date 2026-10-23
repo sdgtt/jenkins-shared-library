@@ -75,6 +75,8 @@ class MATLABTests implements IStage {
             
             statusCode = steps.sh(script:cmd, returnStatus:true)
         }catch (Exception ex){
+            logger.info("Exception encountered: " + ex.getMessage())
+            logger.info(gauntlet.getStackTrace(ex))
             xmlFile =  steps.sh(returnStdout: true, script: 'ls | grep _*Results.xml').trim()
             // If we reach here due to sh command failure, assume error status
             if (statusCode == 0) {
