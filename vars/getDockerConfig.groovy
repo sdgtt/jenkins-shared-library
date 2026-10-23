@@ -16,12 +16,12 @@ def call(java.util.ArrayList listOfResources, matlablic, matlabHSPro=true, UseNF
                     args.add('-v "/nfs/apps/resources/mlhsp":"/mlhspro":ro')
             }
             else {
-                    args.add('-v "/usr/local/MATLAB":"/usr/local/MATLAB":ro')
+                    args.add('-v "/home/analog/MATLAB":"/usr/local/MATLAB":ro')
                     args.add('-v "/root/.matlab":"/root/.matlabro":ro')
                     if (matlabHSPro)
-                        args.add('-v "/mlhsp":"/mlhsp":ro')
+                        args.add('-v "mlhsp":"/mlhsp":ro')
                     else
-                        args.add('-v "/mlhsp":"/mlhspro":ro')
+                        args.add('-v "/home/analog/MATLAB/mlhsp":"/mlhspro":ro')
             }
             // Add correct MAC to licenses work in Docker
             if (matlablic.equalsIgnoreCase( 'machine' )) {
