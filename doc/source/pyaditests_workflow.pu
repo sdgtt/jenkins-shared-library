@@ -1,0 +1,137 @@
+@startuml PyADITests Workflow
+start
+title Run Python Tests Stage Workflow
+:Execute Run Python Tests stage;
+
+partition "Try Block" {
+  :Get board configuration and declare variables;
+  note right
+  ip = nebula('update-config network-config dutip - - board-name=' + board)
+  serial = nebula('update-config uart-config address - - board-name=' + board)
+  def uri;
+  println('IP: ' + ip)
+  end note
+  
+  :Clone pytest-libiio repository;
+  note right
+  run_i('git clone -b "' + gauntEnv.pytest_libiio_branch + '" ' + gauntEnv.pytest_libiio_repo, true)
+  end note
+  
+  partition "pytest-libiio Setup" {
+    :Install pytest-libiio in its directory;
+    note right
+    dir('pytest-libiio') {
+        run_i('python3 setup.py install', true)
+    }
+    end note
+  }
+  
+  :Clone pyadi-iio repository;
+  note right
+  run_i('git clone -b "' + gauntEnv.pyadi_iio_branch + '" ' + gauntEnv.pyadi_iio_repo, true)
+  end note
+  
+  :Enter pyadi-iio directory;
+  note right: dir('pyadi-iio')
+  
+  partition "pyadi-iio Setup (within dir)" {
+    
+    :Install dependencies;
+    note right
+    run_i('pip3 install -r requirements.txt', true)
+    run_i('pip3 install -r requirements_dev.txt', true)
+    run_i('pip3 install pylibiio', true)
+    end note
+    
+    :Create test directories;
+    note right
+    run_i('mkdir testxml')
+    run_i('mkdir testhtml')
+    end note
+    
+    :Determine URI source;
+    if (iio_uri_source == "ip"?) then (yes)
+      :Set IP URI;
+      note right: uri = "ip:" + ip
+    else (no)
+      :Set serial URI;
+      note right: uri = "serial:" + serial + "," + gauntEnv.iio_uri_baudrate.toString()
+    endif
+    
+    :Configure board markers;
+    note right
+    check = check_for_marker(board)
+    board = board.replaceAll('-', '_')
+    board_name = check.board_name.replaceAll('-', '_')
+    marker = check.marker
+    end note
+    
+    :Build pytest command;
+    note right
+    cmd = "python3 -m pytest - - html=testhtml/report.html - - junitxml=testxml/" + board + "_reports.xml - - adi-hw-map -v -k 'not stress' -s - - uri='ip:"+ip+"' -m " + board_name + " - - capture=tee-sys" + marker
+    end note
+    
+    :Execute pytest tests;
+    note right: statusCode = sh script:cmd, returnStatus:true
+    
+    if (HTML report exists?) then (yes)
+      :Publish HTML report;
+      note right
+    publishHTML(target : [
+        escapeUnderscores: false,
+        allowMissing: false,
+        alwaysLinkToLastBuild: false,
+        keepAll: true,
+        reportDir: 'testhtml',
+        reportFiles: 'report.html',
+        reportName: board,
+        reportTitles: board])
+    }
+      end note
+    endif
+    
+    if (XML results exist?) then (yes)
+      partition "Parse pytest results (within try-catch)" {
+        :Define pytest metrics to parse;
+        note right
+        def pytest_logs = ['errors', 'failures', 'skipped', 'tests']
+        end note
+        
+        :Parse each metric from XML;
+        note right
+        pytest_logs.each {
+            cmd = 'cat testxml/' + board + '_reports.xml | sed -rn \'s/.*'
+            cmd+= it + '="([0-9]+)".*/\\1/p\''
+            set_elastic_field(board.replaceAll('_', '-'), it, sh(returnStdout: true, script: cmd).trim())
+        }
+        end note
+        
+        if (Parsing succeeds?) then (no)
+          :Log parsing failure;
+          note right
+          catch(Exception ex){
+              println('Parsing pytest results failed')
+              echo getStackTrace(ex)
+          }
+          end note
+        endif
+      }
+    endif
+    
+    :Evaluate pytest status code;
+    
+    if ((statusCode != 5) && (statusCode != 0)) then (yes)
+      :throw new NominalException('PyADITests Failed');
+    else (no)
+    endif
+  }
+}
+
+partition "Finally Block" {
+  :Archive test results;
+  note right: junit testResults: 'pyadi-iio/testxml/*.xml', allowEmptyResults: true
+}
+
+:Stage completed;
+stop
+@enduml

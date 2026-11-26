@@ -1,3 +1,5 @@
+import com.cloudbees.groovy.cps.NonCPS
+
 def call(project, filepattern) {
     root = 'sdg-generic-development/'
     ext = ''

@@ -4,7 +4,7 @@ Gauntlet Hardware Pipeline
 The main purpose of this shared library is to provide a standardize pipeline for software project that want to run code against hardware targets. The figure below shows an example pipeline that is generated using the Jenkinsfile below it.
 
 
-.. graphviz:: pipeline_ex.dot
+.. uml:: gauntlet.pu
 
 These pipelines have 3 main phases. Starting from the left side of the pipeline, phase 1 is the first 3 horizontal stages. In the first stage each agent, tools required are updated. Then for the next stage, each agent is queried to determined available hardware. This information is returned to the master node and the necessary downstream stages are determined. This will occur in all pipeline configuration using the **Gaunlet** class. The generated downstream stages will be based on how the **harness** object is configured and each of these downstream stages are run in a docker container, thus the Setup Docker stage which is the start of phase 2.
 

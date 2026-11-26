@@ -1,0 +1,293 @@
+package sdg.stages
+
+import spock.lang.Specification
+import sdg.Gauntlet
+import sdg.Logger
+import sdg.IStepExecutor
+import sdg.ioc.*
+import groovy.lang.GroovyShell
+
+class TestRecoverBoard extends Specification {
+
+    def shell
+    def getGauntEnv
+
+    IStepExecutor steps
+    IContext context
+
+    def setup() {
+        // mock the context
+        shell = new GroovyShell()
+        getGauntEnv = shell.parse(new File('vars/getGauntEnv.groovy'))
+        
+        steps =  Mock(IStepExecutor.class)
+        context = Mock(IContext.class)
+    }
+
+    def "test getStageName"() {
+        given:
+        RecoverBoard ubf_stage = new RecoverBoard()
+
+        expect:
+        ubf_stage.getStageName() == "RecoverBoard"
+    }
+
+    def "test getCls"() {
+        given:
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "pluto"
+
+        when:
+        def closure = _stage.getCls()
+
+        then:
+        closure instanceof Closure
+    }
+
+    def "test stageSteps for pluto"() {
+        given:
+
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","v0.31","NA")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","NA")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "pluto"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[WARNING] Recover stage does not support pluto yet!')
+    }
+
+    def "test stageSteps for non-pluto"() {
+        given:
+
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+
+        // trigger an exception
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[INFO] Fetching reference boot files')
+        1 * steps.sh(
+            'set -o pipefail; nebula show-log dl.bootfiles --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+            '--source-root="/var/lib/tftpboot" --source=artifactory --branch="release" --filetype="boot_partition" ' +
+            '2>&1 | tee out.out'
+        )
+        1 * steps.echo('[INFO] Extracting reference fsbl and u-boot')
+        1 * steps.echo('[INFO] Executing board recovery...')
+        1 * steps.sh([
+            script: 'nebula manager.recovery-device-manager --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+                    '--folder=outs --sdcard',
+            returnStdout: true
+        ])
+    }
+
+    def "test stageSteps for non-pluto with version_rollback"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        // select the version_rollback recovery mode with a known-good version
+        gauntlet.set_env("recovery_ref", "version_rollback")
+        gauntlet.set_env("version_rollback", "2026_r1/2026_07_22-14_02_35")
+
+        // trigger board-not-booted exception so recovery proceeds
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3',
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[INFO] Fetching reference boot files')
+        1 * steps.sh(
+            'set -o pipefail; nebula show-log dl.bootfiles --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+            '--source-root="/var/lib/tftpboot" --source=artifactory --branch="2026_r1/2026_07_22-14_02_35" --filetype="boot_partition" ' +
+            '2>&1 | tee out.out'
+        )
+        1 * steps.echo('[INFO] Extracting reference fsbl and u-boot')
+        1 * steps.echo('[INFO] Executing board recovery...')
+        // version_rollback mode does not add --sdcard
+        1 * steps.sh([
+            script: 'nebula manager.recovery-device-manager --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 ' +
+                    '--folder=outs',
+            returnStdout: true
+        ])
+    }
+
+    def "test stageSteps for version_rollback without value throws"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        // select version_rollback mode but leave the value unset (default '')
+        gauntlet.set_env("recovery_ref", "version_rollback")
+        gauntlet.set_env("version_rollback", "")
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        thrown Exception
+    }
+
+    def "test stageSteps for non-pluto with cloudsmith source"() {
+        given:
+
+        //Mock gauntlet
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","cloudsmith")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","cloudsmith")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        gauntlet.set_env("cloudsmith_auth_id", "cloudsmith-svc-cred")
+
+        // trigger board-not-booted exception so recovery proceeds
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3',
+            returnStdout: true
+        ]) >> { throw new Exception() }
+
+        def dl_cmd = 'dl.bootfiles --board-name=' + board +
+            ' --source-root="/var/lib/tftpboot"' +
+            ' --source=cloudsmith' +
+            ' --branch="release"' +
+            ' --filetype="boot_partition"' +
+            ' --cloudsmith-auth=${CLOUDSMITH_AUTH}'
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+        then:
+        1 * steps.echo('[INFO] Running RecoverBoard for ' + board)
+        1 * steps.echo('[INFO] Fetching reference boot files')
+        1 * steps.withCredentials(_, _) >> { args -> args[1].call() }
+        1 * steps.string(credentialsId: 'cloudsmith-svc-cred', variable: 'CLOUDSMITH_AUTH')
+        1 * steps.sh('set -o pipefail; nebula show-log ' + dl_cmd + ' 2>&1 | tee out.out')
+        1 * steps.echo('[INFO] Extracting reference fsbl and u-boot')
+        1 * steps.echo('[INFO] Executing board recovery...')
+    }
+
+    def "test stageSteps for non-pluto with exception"() {
+        given:
+
+        //Mock gauntlet 
+        context.getStepExecutor() >> steps
+        context.isDefault() >> false
+        steps.getGauntEnv(_,_,_,_,_) >> getGauntEnv.call("NA","NA","NA","NA","artifactory")
+        steps.isUnix() >> true
+        steps.sh(script: 'uname', returnStdout: true) >> 'Linux'
+        
+        steps.fileExists('out.out') >> true
+        steps.readFile('out.out') >> 'STDOUT of some successful nebula command'
+        ContextRegistry.registerContext(context)
+        Gauntlet gauntlet = new Gauntlet()
+        gauntlet.construct("NA","NA","NA","NA","artifactory")
+
+        RecoverBoard _stage = new RecoverBoard()
+        String board = "zynq-zc702-adv7511-ad9361-fmcomms2-3"
+        gauntlet.set_env("docker_args", [])
+        gauntlet.set_env("debug_level", 3)
+        gauntlet.set_env("env", [JOB_NAME: "test", BUILD_NUMBER: "1"])
+
+        // trigger an exception
+        steps.sh([
+            script: 'nebula net.check-board-booted --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3', 
+            returnStdout: true
+        ]) >> { throw new Exception() }
+        steps.sh('cp outs/bootgen_sysfiles.tgz .') >> { throw new Exception() }
+        
+
+        when:
+        _stage.stageSteps(gauntlet, board)
+
+
+        then:
+        1 * steps.sh(['script':'nebula netbox.disable-board --netbox-ip= --netbox-token= --board-name=zynq-zc702-adv7511-ad9361-fmcomms2-3 --failure --reason="Disabled by test 1" --power-off', 'returnStdout':true])
+        thrown Exception
+    }
+
+}

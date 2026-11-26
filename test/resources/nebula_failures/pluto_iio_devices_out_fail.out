@@ -1,0 +1,24 @@
+INFO | nebula.common : Depth of config: 2
+INFO | nebula.common : board_name used: pluto
+INFO | nebula.driver : Checking uri: ip:localhost
+INFO | nebula.driver : Checking for: adm1177-iio
+INFO | nebula.driver : Checking for: ad9361-phy
+INFO | nebula.driver : Checking for: cf-ad9361-dds-core-lpc
+INFO | nebula.driver : Checking for: cf-ad9361-lpc
+INFO | nebula.driver : Checking for: axi-dummy
+Traceback (most recent call last):
+  File "/home/analog/.local/bin/nebula", line 8, in <module>
+    sys.exit(program.run())
+  File "/usr/local/lib/python3.10/dist-packages/invoke/program.py", line 384, in run
+    self.execute()
+  File "/usr/local/lib/python3.10/dist-packages/invoke/program.py", line 569, in execute
+    executor.execute(*self.tasks)
+  File "/usr/local/lib/python3.10/dist-packages/invoke/executor.py", line 129, in execute
+    result = call.task(*args, **call.kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/invoke/tasks.py", line 127, in __call__
+    result = self.body(*args, **kwargs)
+  File "/home/analog/.local/lib/python3.10/site-packages/nebula/tasks.py", line 363, in check_iio_devices
+    d.check_iio_devices()
+  File "/home/analog/.local/lib/python3.10/site-packages/nebula/driver.py", line 52, in check_iio_devices
+    raise Exception("Device(s) not found " + str(missing_devs))
+Exception: Device(s) not found ['axi-dummy']
