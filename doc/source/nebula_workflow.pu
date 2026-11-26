@@ -1,0 +1,16 @@
+@startuml Nebula Workflow
+!theme plain
+
+participant "Jenkins Pipeline" as JP
+participant "Shared Library" as SL
+participant "Nebula Tool" as NT
+participant "Development Board" as DB
+
+JP -> SL: Call nebula() method
+SL -> NT: Execute nebula command
+NT -> DB: Communicate with board
+DB -> NT: Return response
+NT -> SL: Command result
+SL -> JP: Return output
+
+@enduml

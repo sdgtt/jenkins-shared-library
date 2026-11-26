@@ -41,6 +41,7 @@ Required Packages
    nebula
    artifacts
    vagrant
+   node_setup
 
 Indices and tables
 ==================

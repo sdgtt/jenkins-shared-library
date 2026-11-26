@@ -1,0 +1,72 @@
+@startuml SendResults Workflow
+start
+title SendResults Stage Workflow
+:Execute SendResults stage;
+:Initialize release flags;
+note right
+is_hdl_release = "False"
+is_linux_release = "False"
+is_boot_partition_release = "False"
+end note
+
+if (bootPartitionBranch == 'NA'?) then (yes)
+  :Set HDL and Linux release flags;
+  note right
+  is_hdl_release = ( gauntEnv.hdlBranch == "release" )? "True": "False"
+  is_linux_release = ( gauntEnv.linuxBranch == "release" )? "True": "False"
+  end note
+else (no)
+  :Set boot partition release flag;
+  note right
+  is_boot_partition_release = ( gauntEnv.bootPartitionBranch == "release" )? "True": "False"
+  end note
+endif
+
+:Log elastic logs and start message;
+:Build elastic command string;
+note right
+cmd = 'boot_folder_name ' + board
+cmd += ' hdl_hash ' + '\'' + get_elastic_field(board, 'hdl_hash' , 'NA') + '\''
+cmd += ' linux_hash ' +  '\'' + get_elastic_field(board, 'linux_hash' , 'NA') + '\''
+cmd += ' boot_partition_hash ' + '\'' + gauntEnv.boot_partition_hash + '\''
+cmd += ' hdl_branch ' + gauntEnv.hdlBranch
+cmd += ' linux_branch ' + gauntEnv.linuxBranch
+cmd += ' boot_partition_branch ' + gauntEnv.bootPartitionBranch
+cmd += ' is_hdl_release ' + is_hdl_release
+cmd += ' is_linux_release '  +  is_linux_release
+cmd += ' is_boot_partition_release ' + is_boot_partition_release
+end note
+
+:Add boot status fields;
+note right
+cmd += ' uboot_reached ' + get_elastic_field(board, 'uboot_reached', 'False')
+cmd += ' linux_prompt_reached ' + get_elastic_field(board, 'linux_prompt_reached', 'False')
+cmd += ' drivers_enumerated ' + get_elastic_field(board, 'drivers_enumerated', '0')
+cmd += ' drivers_missing ' + get_elastic_field(board, 'drivers_missing', '0')
+cmd += ' dmesg_warnings_found ' + get_elastic_field(board, 'dmesg_warns' , '0')
+cmd += ' dmesg_errors_found ' + get_elastic_field(board, 'dmesg_errs' , '0')
+end note
+
+:Add Jenkins metadata;
+note right
+cmd += ' jenkins_build_number ' + env.BUILD_NUMBER
+cmd += ' jenkins_project_name ' + env.JOB_NAME
+cmd += ' jenkins_agent ' + env.NODE_NAME
+cmd += ' jenkins_trigger ' + gauntEnv.job_trigger
+end note
+
+:Add test results;
+note right
+cmd += ' pytest_errors ' + get_elastic_field(board, 'errors', '0')
+cmd += ' pytest_failures ' + get_elastic_field(board, 'failures', '0')
+cmd += ' pytest_skipped ' + get_elastic_field(board, 'skipped', '0')
+cmd += ' pytest_tests ' + get_elastic_field(board, 'tests', '0')
+cmd += ' last_failing_stage ' + get_elastic_field(board, 'last_failing_stage', 'NA')
+cmd += ' last_failing_stage_failure ' + get_elastic_field(board, 'last_failing_stage_failure', 'NA')
+end note
+
+:Send logs to Elastic Search;
+note right: sendLogsToElastic(cmd)
+:Stage completed;
+stop
+@enduml

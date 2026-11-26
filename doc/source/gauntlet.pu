@@ -1,0 +1,23 @@
+@startuml Gauntlet Hardware Pipeline
+start
+title Gauntlet Hardware Pipeline
+:START(master);
+If (Update Agents (nuc-01)) 
+  :Query Node;
+else ()
+  :Update Agents (nuc-02);
+endif  
+switch (Check Required Hardware (master))
+  case ()
+    :Setup Docker (nuc-01-pluto);
+    :Linux Tests (nuc-01-pluto);  
+  case ()
+    :Setup Docker (nuc-01-zed-fmcomms2);
+    :Linux Tests (nuc-02);  
+
+  case ()
+    :Setup Docker (nuc-02-zc706-daq2);
+    :Linux Tests (nuc-02-zc706-daq2);
+endswitch
+  :Collect Logs;
+@enduml

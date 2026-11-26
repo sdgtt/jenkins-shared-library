@@ -1,0 +1,90 @@
+@startuml LinuxTests Workflow
+start
+title LinuxTests Stage Workflow
+:Execute LinuxTests stage;
+:Initialize variables;
+note right
+failed_test = ''
+drivers_count = 0
+missing_drivers = 0
+end note
+
+partition "Try Block" {
+  :Get board IP address;
+  note right: def ip = nebula('update-config network-config dutip --board-name='+board)
+  
+  partition "DMESG Check" {
+    :Check DMESG for errors;
+    note right: nebula("net.check-dmesg - - ip='" + ip + "' - - board-name=" + board)
+    if (DMESG check fails?) then (yes)
+      :Add failure to failed_test;
+      note right: failed_test = failed_test + "[dmesg check failed: ${ex.getMessage()}]"
+    endif
+  }
+  
+  partition "IIO Devices Check" {
+    :Check IIO devices;
+    note right: nebula('driver.check-iio-devices - - uri="ip:'+ip+'" - - board-name='+board, true, true, true)
+    if (IIO devices check fails?) then (yes)
+      :Add failure to failed_test;
+      :Parse missing devices;
+      :Write missing devices log;
+      :Set elastic field for missing drivers;
+    note right
+        failed_test += "[iio_devices check failed: ${ex.getMessage()}]"
+        missing_devs = Eval.me(ex.getMessage().split('\n').last().split('not found')[1].replaceAll("'\$",""))
+        missing_drivers = missing_devs.size()
+        writeFile(file: board+'_missing_devs.log', text: missing_devs.join(","))
+        set_elastic_field(board, 'drivers_missing', missing_drivers.toString())
+    end note
+    endif
+  }
+  
+  :Get drivers enumerated;
+  note right: nebula('update-config driver-config iio_device_names -b '+board, false, true, false)
+  
+  partition "Diagnostics Check" {
+    if (Board is not firmware board?) then (yes)
+      :Run network diagnostics;
+      note right: nebula("net.run-diagnostics - - ip='"+ip+"' - - board-name="+board, true, true, true)
+      :Archive diagnostic reports;
+      note right: archiveArtifacts artifacts: '*_diag_report.tar.bz2', followSymlinks: false, allowEmptyArchive: true
+      if (Diagnostics fails?) then (yes)
+        :Add failure to failed_test;
+        note right: failed_test = failed_test + " [diagnostics failed: ${ex.getMessage()}]"
+      endif
+    endif
+  }
+  
+  if (Any tests failed?) then (yes)
+    :Throw Linux Tests Failed exception;
+    note right: if(failed_test && !failed_test.allWhitespace)
+  endif
+}
+
+partition "Exception Handling" {
+  if (Exception occurs?) then (yes)
+    :Throw NominalException;
+    note right: throw new NominalException(ex.getMessage())
+  endif
+}
+
+partition "Finally Block" {
+  :Count DMESG errors and warnings;
+  note right
+    set_elastic_field(board, 'dmesg_errs', sh(returnStdout: true, script: 'cat dmesg_err_filtered.log | wc -l').trim())
+    set_elastic_field(board, 'dmesg_warns', sh(returnStdout: true, script: 'cat dmesg_warn.log | wc -l').trim())
+  end note
+  
+  :Rename and archive logs;
+  note right
+    run_i("if [ -f dmesg.log ]; then mv dmesg.log dmesg_" + board + ".log; fi")
+    run_i("if [ -f dmesg_err_filtered.log ]; then mv dmesg_err_filtered.log dmesg_" + board + "_err.log; fi")
+    run_i("if [ -f dmesg_warn.log ]; then mv dmesg_warn.log dmesg_" + board + "_warn.log; fi")
+    archiveArtifacts artifacts: '*.log', followSymlinks: false, allowEmptyArchive: true
+  end note
+}
+
+:Stage completed;
+stop
+@enduml
